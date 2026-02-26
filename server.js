@@ -28,6 +28,14 @@ function normalizeStatus(status) {
   return ["draft", "published", "archived"].includes(status) ? status : null;
 }
 
+function computeIsActive(survey) {
+  const now = Date.now();
+  if (survey.status !== "published") return false;
+  if (survey.starts_at && Date.parse(survey.starts_at) > now) return false;
+  if (survey.ends_at && Date.parse(survey.ends_at) < now) return false;
+  return true;
+}
+
 function parseBool(value, fallback = false) {
   if (typeof value === "boolean") return value;
   if (value === "1" || value === "true") return true;
@@ -94,11 +102,7 @@ function validateSurveyPayload(payload) {
 }
 
 function surveyIsActive(survey) {
-  if (survey.status !== "published") return false;
-  const now = Date.now();
-  if (survey.starts_at && Date.parse(survey.starts_at) > now) return false;
-  if (survey.ends_at && Date.parse(survey.ends_at) < now) return false;
-  return true;
+  return computeIsActive(survey);
 }
 
 function csvEscape(value) {
@@ -234,6 +238,50 @@ app.get("/api/dashboard", async (_req, res, next) => {
   }
 });
 
+app.get("/api/templates", (_req, res) => {
+  res.json({
+    templates: [
+      {
+        key: "product-feedback",
+        title: "Product Feedback",
+        description: "Оценка удовлетворенности и приоритетов продукта.",
+        audience: "Пользователи продукта",
+        questions: [
+          { text: "Как вы оцениваете продукт в целом?", type: "rating", options: [], required: true },
+          {
+            text: "Что улучшить в первую очередь?",
+            type: "single",
+            options: ["Скорость", "Дизайн", "Надежность", "Интеграции"],
+            required: true
+          },
+          { text: "Что вам нравится больше всего?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "event-voting",
+        title: "Event Voting",
+        description: "Голосование за темы и формат мероприятия.",
+        audience: "Участники мероприятия",
+        questions: [
+          {
+            text: "За какую тему вы голосуете?",
+            type: "single",
+            options: ["AI", "Frontend", "Backend", "Product"],
+            required: true
+          },
+          {
+            text: "Какие форматы вам интересны?",
+            type: "multi",
+            options: ["Доклады", "Воркшопы", "Панельные дискуссии", "Нетворкинг"],
+            required: true
+          },
+          { text: "Оставьте комментарий", type: "text", options: [], required: false }
+        ]
+      }
+    ]
+  });
+});
+
 app.get("/api/surveys", async (req, res, next) => {
   try {
     const status = normalizeStatus(String(req.query.status || ""));
@@ -254,14 +302,77 @@ app.get("/api/surveys", async (req, res, next) => {
 
     const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
-    const surveys = await all(
-      `SELECT id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at
-       FROM surveys ${whereClause}
-       ORDER BY created_at DESC`,
+    const surveysRaw = await all(
+      `SELECT s.id, s.title, s.description, s.audience, s.status, s.allow_multiple_responses, s.starts_at, s.ends_at, s.created_at, s.updated_at,
+              (SELECT COUNT(*) FROM responses r WHERE r.survey_id = s.id) as responses_count
+       FROM surveys s ${whereClause}
+       ORDER BY s.created_at DESC`,
       params
     );
 
+    const surveys = surveysRaw.map((survey) => ({
+      ...survey,
+      is_active: computeIsActive(survey)
+    }));
+
     res.json({ surveys });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/surveys/:id/duplicate", async (req, res, next) => {
+  try {
+    const surveyId = Number(req.params.id);
+    if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
+
+    const survey = await get(
+      `SELECT id, title, description, audience, allow_multiple_responses, starts_at, ends_at
+       FROM surveys
+       WHERE id = ?`,
+      [surveyId]
+    );
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+
+    const questions = await all(
+      `SELECT question_text, type, options_json, required, question_order
+       FROM questions WHERE survey_id = ? ORDER BY question_order ASC`,
+      [surveyId]
+    );
+
+    const createdAt = nowIso();
+    const clone = await run(
+      `INSERT INTO surveys
+        (title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at)
+       VALUES (?, ?, ?, 'draft', ?, ?, ?, ?, ?)`,
+      [
+        `${survey.title} (Copy)`,
+        survey.description,
+        survey.audience,
+        survey.allow_multiple_responses,
+        survey.starts_at,
+        survey.ends_at,
+        createdAt,
+        createdAt
+      ]
+    );
+
+    for (const question of questions) {
+      await run(
+        `INSERT INTO questions (survey_id, question_text, type, options_json, required, question_order)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          clone.lastID,
+          question.question_text,
+          question.type,
+          question.options_json,
+          question.required,
+          question.question_order
+        ]
+      );
+    }
+
+    res.status(201).json({ id: clone.lastID });
   } catch (error) {
     next(error);
   }

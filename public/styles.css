@@ -354,6 +354,7 @@ textarea {
 .toolbar {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .survey-list {
@@ -521,6 +522,23 @@ textarea {
   border: 1px solid var(--line);
   background: #fff;
   cursor: pointer;
+}
+
+.toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 40;
+  background: #201a16;
+  color: #fff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow);
+  max-width: 320px;
+}
+
+.toast--error {
+  background: #9f1d1d;
 }
 
 @media (max-width: 960px) {

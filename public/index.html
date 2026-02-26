@@ -1,9 +1,9 @@
 ﻿<!doctype html>
-<html lang="ru">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Asking Pro | Платформа анкетирования и голосований</title>
+    <title>Asking Pro | Survey and Voting Platform</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -23,12 +23,12 @@
           <span>Asking Pro</span>
         </a>
         <nav class="nav">
-          <a href="#dashboard">Дашборд</a>
-          <a href="#builder">Конструктор</a>
-          <a href="#library">Анкеты</a>
-          <a href="#analytics">Аналитика</a>
+          <a href="#dashboard">Dashboard</a>
+          <a href="#builder">Builder</a>
+          <a href="#library">Surveys</a>
+          <a href="#analytics">Analytics</a>
         </nav>
-        <button id="quickCreate" class="btn btn--ghost">Новая анкета</button>
+        <button id="quickCreate" class="btn btn--ghost">New Survey</button>
       </div>
     </header>
 
@@ -36,24 +36,23 @@
       <section class="hero">
         <div class="container hero__grid">
           <div>
-            <p class="eyebrow">ИНТЕРАКТИВНЫЙ WEB-СЕРВИС</p>
-            <h1>Профессиональная система создания анкет и голосований.</h1>
+            <p class="eyebrow">INTERACTIVE WEB PLATFORM</p>
+            <h1>Professional survey and voting workspace.</h1>
             <p class="lead">
-              Создавайте исследования, открывайте публичное голосование, отслеживайте ответы в реальном времени и
-              выгружайте результаты в CSV для бизнес-аналитики.
+              Build surveys, launch public voting, collect live responses, and export results to CSV for deep analysis.
             </p>
             <div class="hero__actions">
-              <button id="startNow" class="btn">Запустить проект</button>
-              <button id="openDemo" class="btn btn--outline">Открыть демо-результаты</button>
+              <button id="startNow" class="btn">Start Building</button>
+              <button id="openDemo" class="btn btn--outline">Open Demo Results</button>
             </div>
           </div>
           <div class="hero-card">
-            <h3>Что уже доступно</h3>
+            <h3>Core capabilities</h3>
             <ul>
-              <li>Конструктор вопросов: text / single / multi / rating</li>
-              <li>Публикация, архивирование, редактирование черновиков</li>
-              <li>Ограничение повторных ответов</li>
-              <li>Аналитика, тренды и экспорт данных CSV</li>
+              <li>Question builder: text, single, multi, rating</li>
+              <li>Survey lifecycle: draft, publish, archive</li>
+              <li>Duplicate survey and share links</li>
+              <li>Analytics, trends, and CSV export</li>
             </ul>
           </div>
         </div>
@@ -62,12 +61,12 @@
       <section id="dashboard" class="section">
         <div class="container">
           <div class="section__head">
-            <h2>Операционный дашборд</h2>
-            <p>Основные KPI по платформе в текущем проекте.</p>
+            <h2>Operations dashboard</h2>
+            <p>Track platform KPIs and latest activity.</p>
           </div>
           <div id="metrics" class="metrics"></div>
           <div class="card">
-            <h3>Последние анкеты</h3>
+            <h3>Recent surveys</h3>
             <div id="recentSurveys" class="recent-list"></div>
           </div>
         </div>
@@ -76,51 +75,57 @@
       <section id="builder" class="section section--alt">
         <div class="container split">
           <form id="surveyForm" class="card">
-            <h3>Конструктор анкеты</h3>
+            <h3>Survey builder</h3>
             <div class="form-row">
-              <label>Название</label>
-              <input type="text" name="title" required placeholder="Например: Оценка сервиса 2026" />
+              <label>Title</label>
+              <input type="text" name="title" required placeholder="Example: Customer Experience 2026" />
             </div>
             <div class="form-row">
-              <label>Описание</label>
-              <textarea name="description" placeholder="Цели и контекст исследования"></textarea>
+              <label>Description</label>
+              <textarea name="description" placeholder="Survey goal and context"></textarea>
             </div>
             <div class="form-row">
-              <label>Аудитория</label>
-              <input type="text" name="audience" placeholder="Клиенты, сотрудники, участники мероприятия" />
+              <label>Audience</label>
+              <input type="text" name="audience" placeholder="Customers, team members, event attendees" />
+            </div>
+            <div class="form-row">
+              <label>Template</label>
+              <select id="templateSelect">
+                <option value="">Select a template</option>
+              </select>
             </div>
             <div class="form-row grid-2">
               <div>
-                <label>Начало</label>
+                <label>Starts at</label>
                 <input type="datetime-local" name="startsAt" />
               </div>
               <div>
-                <label>Окончание</label>
+                <label>Ends at</label>
                 <input type="datetime-local" name="endsAt" />
               </div>
             </div>
             <div class="form-row">
               <label class="inline-check">
                 <input type="checkbox" name="allowMultipleResponses" />
-                Разрешить повторные ответы
+                Allow multiple responses
               </label>
             </div>
 
             <div class="divider"></div>
             <div id="questions" class="questions"></div>
             <div class="action-row">
-              <button type="button" id="addQuestion" class="btn btn--ghost">+ Добавить вопрос</button>
-              <button type="submit" class="btn">Сохранить как черновик</button>
+              <button type="button" id="addQuestion" class="btn btn--ghost">+ Add question</button>
+              <button type="submit" class="btn">Save Draft</button>
             </div>
             <p id="builderStatus" class="status"></p>
           </form>
 
           <div class="card tips">
-            <h3>Рекомендации</h3>
+            <h3>Best practices</h3>
             <ol>
-              <li>Добавляйте 1-2 ключевых вопроса рейтинга для количественной оценки.</li>
-              <li>Используйте одиночный выбор для приоритетов и мультивыбор для каналов.</li>
-              <li>Закрывайте анкету через архив, когда сбор завершен.</li>
+              <li>Add one rating question for quick quality scoring.</li>
+              <li>Use single choice for priority votes and multi choice for channels.</li>
+              <li>Archive finished surveys to keep active board clean.</li>
             </ol>
           </div>
         </div>
@@ -130,17 +135,22 @@
         <div class="container">
           <div class="section__head section__head--row">
             <div>
-              <h2>Библиотека анкет</h2>
-              <p>Управляйте жизненным циклом анкет: draft, published, archived.</p>
+              <h2>Survey library</h2>
+              <p>Manage drafts, published surveys, and archives.</p>
             </div>
             <div class="toolbar">
               <select id="statusFilter">
-                <option value="">Все статусы</option>
-                <option value="draft">Черновики</option>
-                <option value="published">Опубликованные</option>
-                <option value="archived">Архив</option>
+                <option value="">All statuses</option>
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
               </select>
-              <input id="searchInput" type="search" placeholder="Поиск по названию" />
+              <select id="sortFilter">
+                <option value="newest">Newest first</option>
+                <option value="responses">Most responses</option>
+                <option value="active">Active only</option>
+              </select>
+              <input id="searchInput" type="search" placeholder="Search by title" />
             </div>
           </div>
           <div id="surveyList" class="survey-list"></div>
@@ -150,8 +160,8 @@
       <section id="analytics" class="section section--alt">
         <div class="container">
           <div class="section__head">
-            <h2>Аналитика и результаты голосования</h2>
-            <p>Откройте анкету в библиотеке и нажмите «Результаты».</p>
+            <h2>Analytics and voting results</h2>
+            <p>Open a survey from the library and click Results.</p>
           </div>
           <div id="results" class="results"></div>
         </div>
@@ -160,10 +170,12 @@
 
     <div id="modal" class="modal" hidden>
       <div class="modal__content">
-        <button id="modalClose" class="modal__close">×</button>
+        <button id="modalClose" class="modal__close" aria-label="Close">x</button>
         <div id="modalBody"></div>
       </div>
     </div>
+
+    <div id="toast" class="toast" hidden></div>
 
     <script src="/app.js"></script>
   </body>

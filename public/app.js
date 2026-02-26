@@ -2,9 +2,14 @@
   editingSurveyId: null,
   filters: {
     status: "",
-    q: ""
-  }
+    q: "",
+    sort: "newest"
+  },
+  surveys: [],
+  templates: []
 };
+
+const DRAFT_CACHE_KEY = "asking-pro-builder-draft";
 
 const api = {
   async request(url, options) {
@@ -19,6 +24,9 @@ const api = {
   },
   getDashboard() {
     return this.request("/api/dashboard");
+  },
+  getTemplates() {
+    return this.request("/api/templates");
   },
   getSurveys(params = {}) {
     const query = new URLSearchParams();
@@ -43,6 +51,9 @@ const api = {
       body: JSON.stringify(payload)
     });
   },
+  duplicateSurvey(id) {
+    return this.request(`/api/surveys/${id}/duplicate`, { method: "POST" });
+  },
   publishSurvey(id) {
     return this.request(`/api/surveys/${id}/publish`, { method: "POST" });
   },
@@ -65,33 +76,64 @@ const api = {
 };
 
 const questionTypes = [
-  { value: "text", label: "Текст" },
-  { value: "single", label: "Одиночный выбор" },
-  { value: "multi", label: "Мультивыбор" },
-  { value: "rating", label: "Рейтинг 1-5" }
+  { value: "text", label: "Text" },
+  { value: "single", label: "Single choice" },
+  { value: "multi", label: "Multiple choice" },
+  { value: "rating", label: "Rating 1-5" }
 ];
 
 const surveyForm = document.getElementById("surveyForm");
 const questionsWrap = document.getElementById("questions");
 const addQuestionBtn = document.getElementById("addQuestion");
 const builderStatus = document.getElementById("builderStatus");
+const templateSelect = document.getElementById("templateSelect");
 const metricsWrap = document.getElementById("metrics");
 const recentSurveysWrap = document.getElementById("recentSurveys");
 const surveyList = document.getElementById("surveyList");
 const resultsWrap = document.getElementById("results");
 const statusFilter = document.getElementById("statusFilter");
+const sortFilter = document.getElementById("sortFilter");
 const searchInput = document.getElementById("searchInput");
 const modal = document.getElementById("modal");
 const modalBody = document.getElementById("modalBody");
 const modalClose = document.getElementById("modalClose");
+const toast = document.getElementById("toast");
 
 let questionCounter = 0;
+let toastTimer = null;
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function showToast(message, isError = false) {
+  toast.textContent = message;
+  toast.className = `toast${isError ? " toast--error" : ""}`;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.hidden = true;
+  }, 3000);
+}
+
+function debounce(fn, delay = 300) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
 
 function formatDateTime(value) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleString("ru-RU");
+  return date.toLocaleString();
 }
 
 function toDateTimeLocalValue(value) {
@@ -111,16 +153,16 @@ function toIsoFromLocal(value) {
   return date.toISOString();
 }
 
+function statusLabel(status) {
+  if (status === "published") return "Published";
+  if (status === "archived") return "Archived";
+  return "Draft";
+}
+
 function badgeClass(status) {
   if (status === "published") return "badge badge--published";
   if (status === "archived") return "badge badge--archived";
   return "badge badge--draft";
-}
-
-function statusLabel(status) {
-  if (status === "published") return "published";
-  if (status === "archived") return "archived";
-  return "draft";
 }
 
 function setStatus(message, isError = false) {
@@ -128,42 +170,77 @@ function setStatus(message, isError = false) {
   builderStatus.style.color = isError ? "#b6201f" : "#c33f17";
 }
 
+function cacheBuilderDraft() {
+  try {
+    const payload = collectSurveyPayload();
+    localStorage.setItem(DRAFT_CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    // ignore cache errors
+  }
+}
+
+function restoreBuilderDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_CACHE_KEY);
+    if (!raw) return;
+    const payload = JSON.parse(raw);
+    if (!payload || typeof payload !== "object") return;
+
+    surveyForm.title.value = payload.title || "";
+    surveyForm.description.value = payload.description || "";
+    surveyForm.audience.value = payload.audience || "";
+    surveyForm.startsAt.value = toDateTimeLocalValue(payload.startsAt);
+    surveyForm.endsAt.value = toDateTimeLocalValue(payload.endsAt);
+    surveyForm.allowMultipleResponses.checked = !!payload.allowMultipleResponses;
+
+    questionsWrap.innerHTML = "";
+    const questions = Array.isArray(payload.questions) ? payload.questions : [];
+    if (!questions.length) {
+      addQuestion();
+    } else {
+      questions.forEach((q) => addQuestion(q));
+    }
+  } catch {
+    // ignore parse errors
+  }
+}
+
 function createOptionInput(value = "") {
   const input = document.createElement("input");
   input.type = "text";
-  input.placeholder = "Вариант ответа";
+  input.placeholder = "Answer option";
   input.value = value;
+  input.addEventListener("input", cacheBuilderDraft);
   return input;
 }
 
 function createQuestionBlock(question = null) {
-  const questionId = questionCounter++;
   const block = document.createElement("div");
   block.className = "question";
-  block.dataset.questionId = String(questionId);
+  block.dataset.questionId = String(questionCounter++);
 
   block.innerHTML = `
     <div class="row">
       <div class="form-row">
-        <label>Текст вопроса</label>
+        <label>Question text</label>
         <input name="questionText" type="text" required />
       </div>
       <div class="form-row">
-        <label>Тип</label>
+        <label>Type</label>
         <select name="questionType">
           ${questionTypes.map((type) => `<option value="${type.value}">${type.label}</option>`).join("")}
         </select>
       </div>
       <div class="form-row options-box" style="display:none;">
-        <label>Варианты</label>
+        <label>Options</label>
         <div class="options"></div>
-        <button type="button" class="btn btn--ghost add-option">+ Добавить вариант</button>
+        <button type="button" class="btn btn--ghost add-option">+ Add option</button>
       </div>
       <label class="inline-check">
         <input type="checkbox" name="required" checked />
-        Обязательный вопрос
+        Required question
       </label>
-      <button type="button" class="btn btn--outline remove-question">Удалить вопрос</button>
+      <button type="button" class="btn btn--outline remove-question">Remove question</button>
     </div>
   `;
 
@@ -174,18 +251,42 @@ function createQuestionBlock(question = null) {
   const optionsWrap = block.querySelector(".options");
   const addOptionButton = block.querySelector(".add-option");
 
-  function syncOptionsVisibility() {
-    const isChoice = typeSelect.value === "single" || typeSelect.value === "multi";
-    optionsBox.style.display = isChoice ? "block" : "none";
-  }
-
   function addOption(value = "") {
     optionsWrap.appendChild(createOptionInput(value));
   }
 
-  typeSelect.addEventListener("change", syncOptionsVisibility);
-  addOptionButton.addEventListener("click", () => addOption(""));
-  block.querySelector(".remove-question").addEventListener("click", () => block.remove());
+  function ensureMinimumOptions() {
+    if ((typeSelect.value === "single" || typeSelect.value === "multi") && optionsWrap.children.length < 2) {
+      if (optionsWrap.children.length === 0) {
+        addOption("Option 1");
+        addOption("Option 2");
+      } else if (optionsWrap.children.length === 1) {
+        addOption("Option 2");
+      }
+    }
+  }
+
+  function syncOptionsVisibility() {
+    const isChoice = typeSelect.value === "single" || typeSelect.value === "multi";
+    optionsBox.style.display = isChoice ? "block" : "none";
+    if (isChoice) ensureMinimumOptions();
+  }
+
+  typeSelect.addEventListener("change", () => {
+    syncOptionsVisibility();
+    cacheBuilderDraft();
+  });
+  textInput.addEventListener("input", cacheBuilderDraft);
+  requiredInput.addEventListener("change", cacheBuilderDraft);
+  addOptionButton.addEventListener("click", () => {
+    addOption("");
+    cacheBuilderDraft();
+  });
+
+  block.querySelector(".remove-question").addEventListener("click", () => {
+    block.remove();
+    cacheBuilderDraft();
+  });
 
   if (question) {
     textInput.value = question.text || "";
@@ -209,6 +310,7 @@ function resetBuilder() {
   surveyForm.reset();
   questionsWrap.innerHTML = "";
   addQuestion();
+  localStorage.removeItem(DRAFT_CACHE_KEY);
 }
 
 function collectSurveyPayload() {
@@ -252,16 +354,16 @@ function closeModal() {
 function renderMetrics(metrics) {
   metricsWrap.innerHTML = "";
   const cards = [
-    ["Всего анкет", metrics.totalSurveys],
-    ["Опубликованных", metrics.publishedSurveys],
-    ["Активных", metrics.activeSurveys],
-    ["Всего ответов", metrics.totalResponses]
+    ["Total surveys", metrics.totalSurveys],
+    ["Published", metrics.publishedSurveys],
+    ["Active", metrics.activeSurveys],
+    ["Total responses", metrics.totalResponses]
   ];
 
   cards.forEach(([label, value]) => {
     const card = document.createElement("div");
     card.className = "metric";
-    card.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+    card.innerHTML = `<span>${label}</span><strong>${Number(value || 0)}</strong>`;
     metricsWrap.appendChild(card);
   });
 }
@@ -269,17 +371,14 @@ function renderMetrics(metrics) {
 function renderRecentSurveys(items) {
   recentSurveysWrap.innerHTML = "";
   if (!items.length) {
-    recentSurveysWrap.innerHTML = "<div class='recent-item'>Анкет пока нет</div>";
+    recentSurveysWrap.innerHTML = "<div class='recent-item'>No surveys yet</div>";
     return;
   }
 
   items.forEach((item) => {
     const row = document.createElement("div");
     row.className = "recent-item";
-    row.innerHTML = `
-      <strong>${item.title}</strong>
-      <span>${statusLabel(item.status)}</span>
-    `;
+    row.innerHTML = `<strong>${escapeHtml(item.title)}</strong><span>${statusLabel(item.status)}</span>`;
     recentSurveysWrap.appendChild(row);
   });
 }
@@ -292,10 +391,12 @@ async function loadDashboard() {
 
 function buildResponseForm(survey, questions) {
   const wrapper = document.createElement("div");
-  wrapper.innerHTML = `
-    <h3>${survey.title}</h3>
-    <p>${survey.description || ""}</p>
-  `;
+  const title = document.createElement("h3");
+  title.textContent = survey.title;
+  const desc = document.createElement("p");
+  desc.textContent = survey.description || "";
+  wrapper.appendChild(title);
+  wrapper.appendChild(desc);
 
   const form = document.createElement("form");
   form.className = "card";
@@ -304,7 +405,10 @@ function buildResponseForm(survey, questions) {
   questions.forEach((question) => {
     const block = document.createElement("div");
     block.className = "form-row";
-    block.innerHTML = `<label>${question.text}${question.required ? " *" : ""}</label>`;
+
+    const label = document.createElement("label");
+    label.textContent = `${question.text}${question.required ? " *" : ""}`;
+    block.appendChild(label);
 
     if (question.type === "text") {
       const input = document.createElement("textarea");
@@ -313,28 +417,28 @@ function buildResponseForm(survey, questions) {
     } else if (question.type === "rating") {
       const select = document.createElement("select");
       select.name = `q_${question.id}`;
-      select.appendChild(new Option("Выберите оценку", ""));
+      select.appendChild(new Option("Select rating", ""));
       [1, 2, 3, 4, 5].forEach((value) => select.appendChild(new Option(String(value), String(value))));
       block.appendChild(select);
     } else if (question.type === "single") {
       const select = document.createElement("select");
       select.name = `q_${question.id}`;
-      select.appendChild(new Option("Выберите вариант", ""));
+      select.appendChild(new Option("Select option", ""));
       question.options.forEach((value) => select.appendChild(new Option(value, value)));
       block.appendChild(select);
     } else if (question.type === "multi") {
       const multiWrap = document.createElement("div");
       multiWrap.className = "options";
       question.options.forEach((value) => {
-        const label = document.createElement("label");
-        label.className = "inline-check";
+        const optionLabel = document.createElement("label");
+        optionLabel.className = "inline-check";
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.name = `q_${question.id}`;
         checkbox.value = value;
-        label.appendChild(checkbox);
-        label.appendChild(document.createTextNode(value));
-        multiWrap.appendChild(label);
+        optionLabel.appendChild(checkbox);
+        optionLabel.appendChild(document.createTextNode(value));
+        multiWrap.appendChild(optionLabel);
       });
       block.appendChild(multiWrap);
     }
@@ -345,7 +449,7 @@ function buildResponseForm(survey, questions) {
   const submit = document.createElement("button");
   submit.className = "btn";
   submit.type = "submit";
-  submit.textContent = "Отправить ответ";
+  submit.textContent = "Submit response";
   form.appendChild(submit);
 
   form.addEventListener("submit", async (event) => {
@@ -367,13 +471,14 @@ function buildResponseForm(survey, questions) {
 
     try {
       await api.respond(survey.id, payload);
-      submit.textContent = "Ответ сохранен";
+      submit.textContent = "Response saved";
       submit.disabled = true;
+      showToast("Response submitted");
       await loadDashboard();
       await loadResults(survey.id);
       await loadSurveys();
     } catch (error) {
-      alert(error.message || "Ошибка при отправке ответа");
+      showToast(error.message || "Submission failed", true);
     }
   });
 
@@ -392,8 +497,33 @@ function fillBuilderForEdit(survey, questions) {
 
   questionsWrap.innerHTML = "";
   questions.forEach((question) => addQuestion(question));
-  setStatus(`Режим редактирования: #${survey.id}`);
+  setStatus(`Edit mode for survey #${survey.id}`);
   document.getElementById("builder").scrollIntoView({ behavior: "smooth" });
+  cacheBuilderDraft();
+}
+
+function sortSurveys(items) {
+  const list = [...items];
+
+  if (state.filters.sort === "responses") {
+    return list.sort((a, b) => Number(b.responses_count || 0) - Number(a.responses_count || 0));
+  }
+
+  if (state.filters.sort === "active") {
+    return list.filter((item) => item.is_active);
+  }
+
+  return list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+async function copyShareLink(id) {
+  const link = `${window.location.origin}/?survey=${id}`;
+  try {
+    await navigator.clipboard.writeText(link);
+    showToast("Share link copied");
+  } catch {
+    showToast("Cannot copy link", true);
+  }
 }
 
 function renderSurveyCard(survey) {
@@ -402,16 +532,18 @@ function renderSurveyCard(survey) {
   card.innerHTML = `
     <div class="survey-card__top">
       <div>
-        <h3>${survey.title}</h3>
-        <p>${survey.description || "Без описания"}</p>
+        <h3>${escapeHtml(survey.title)}</h3>
+        <p>${escapeHtml(survey.description || "No description")}</p>
       </div>
       <span class="${badgeClass(survey.status)}">${statusLabel(survey.status)}</span>
     </div>
     <div class="meta">
-      <span>Аудитория: ${survey.audience || "не указана"}</span>
-      <span>Старт: ${formatDateTime(survey.starts_at)}</span>
-      <span>Финиш: ${formatDateTime(survey.ends_at)}</span>
-      <span>Повторные ответы: ${survey.allow_multiple_responses ? "да" : "нет"}</span>
+      <span>Audience: ${escapeHtml(survey.audience || "not specified")}</span>
+      <span>Starts: ${escapeHtml(formatDateTime(survey.starts_at))}</span>
+      <span>Ends: ${escapeHtml(formatDateTime(survey.ends_at))}</span>
+      <span>Responses: ${Number(survey.responses_count || 0)}</span>
+      <span>Active: ${survey.is_active ? "yes" : "no"}</span>
+      <span>Multi response: ${survey.allow_multiple_responses ? "yes" : "no"}</span>
     </div>
     <div class="survey-card__actions"></div>
   `;
@@ -420,32 +552,52 @@ function renderSurveyCard(survey) {
 
   const openButton = document.createElement("button");
   openButton.className = "btn btn--ghost";
-  openButton.textContent = "Открыть анкету";
+  openButton.textContent = "Open";
   openButton.addEventListener("click", async () => {
-    const details = await api.getSurvey(survey.id);
-    openModal(buildResponseForm(details.survey, details.questions));
+    try {
+      const details = await api.getSurvey(survey.id);
+      openModal(buildResponseForm(details.survey, details.questions));
+    } catch (error) {
+      showToast(error.message, true);
+    }
   });
   actions.appendChild(openButton);
 
   const resultsButton = document.createElement("button");
   resultsButton.className = "btn btn--outline";
-  resultsButton.textContent = "Результаты";
+  resultsButton.textContent = "Results";
   resultsButton.addEventListener("click", async () => {
     await loadResults(survey.id);
     document.getElementById("analytics").scrollIntoView({ behavior: "smooth" });
   });
   actions.appendChild(resultsButton);
 
+  const shareButton = document.createElement("button");
+  shareButton.className = "btn btn--ghost";
+  shareButton.textContent = "Copy Link";
+  shareButton.addEventListener("click", () => copyShareLink(survey.id));
+  actions.appendChild(shareButton);
+
   const exportButton = document.createElement("a");
   exportButton.className = "btn btn--ghost";
   exportButton.href = `/api/surveys/${survey.id}/export.csv`;
-  exportButton.textContent = "Экспорт CSV";
+  exportButton.textContent = "Export CSV";
   actions.appendChild(exportButton);
+
+  const duplicateButton = document.createElement("button");
+  duplicateButton.className = "btn btn--ghost";
+  duplicateButton.textContent = "Duplicate";
+  duplicateButton.addEventListener("click", async () => {
+    await api.duplicateSurvey(survey.id);
+    showToast("Survey duplicated");
+    await refreshAll();
+  });
+  actions.appendChild(duplicateButton);
 
   if (survey.status === "draft") {
     const editButton = document.createElement("button");
     editButton.className = "btn btn--ghost";
-    editButton.textContent = "Редактировать";
+    editButton.textContent = "Edit";
     editButton.addEventListener("click", async () => {
       const details = await api.getSurvey(survey.id);
       fillBuilderForEdit(details.survey, details.questions);
@@ -454,9 +606,10 @@ function renderSurveyCard(survey) {
 
     const publishButton = document.createElement("button");
     publishButton.className = "btn";
-    publishButton.textContent = "Опубликовать";
+    publishButton.textContent = "Publish";
     publishButton.addEventListener("click", async () => {
       await api.publishSurvey(survey.id);
+      showToast("Survey published");
       await refreshAll();
     });
     actions.appendChild(publishButton);
@@ -465,9 +618,10 @@ function renderSurveyCard(survey) {
   if (survey.status === "published") {
     const archiveButton = document.createElement("button");
     archiveButton.className = "btn btn--outline";
-    archiveButton.textContent = "В архив";
+    archiveButton.textContent = "Archive";
     archiveButton.addEventListener("click", async () => {
       await api.archiveSurvey(survey.id);
+      showToast("Survey archived");
       await refreshAll();
     });
     actions.appendChild(archiveButton);
@@ -475,11 +629,11 @@ function renderSurveyCard(survey) {
 
   const deleteButton = document.createElement("button");
   deleteButton.className = "btn btn--danger";
-  deleteButton.textContent = "Удалить";
+  deleteButton.textContent = "Delete";
   deleteButton.addEventListener("click", async () => {
-    const confirmed = window.confirm(`Удалить анкету "${survey.title}"?`);
-    if (!confirmed) return;
+    if (!window.confirm(`Delete survey '${survey.title}'?`)) return;
     await api.deleteSurvey(survey.id);
+    showToast("Survey deleted");
     await refreshAll();
   });
   actions.appendChild(deleteButton);
@@ -489,19 +643,19 @@ function renderSurveyCard(survey) {
 
 async function loadSurveys() {
   const data = await api.getSurveys(state.filters);
+  state.surveys = sortSurveys(data.surveys || []);
   surveyList.innerHTML = "";
 
-  if (!data.surveys.length) {
-    surveyList.innerHTML = "<div class='card'>Анкеты не найдены.</div>";
+  if (!state.surveys.length) {
+    surveyList.innerHTML = "<div class='card'>No surveys found.</div>";
     return;
   }
 
-  data.surveys.forEach((survey) => surveyList.appendChild(renderSurveyCard(survey)));
+  state.surveys.forEach((survey) => surveyList.appendChild(renderSurveyCard(survey)));
 }
 
 function renderTrend(trend) {
-  if (!trend.length) return "<p>Ответов пока нет.</p>";
-
+  if (!trend.length) return "<p>No responses yet.</p>";
   const max = Math.max(...trend.map((item) => Number(item.count || 0)), 1);
 
   return trend
@@ -510,7 +664,7 @@ function renderTrend(trend) {
       const percent = Math.round((count / max) * 100);
       return `
         <div class="result-row">
-          <div class="result-head"><span>${item.day}</span><strong>${count}</strong></div>
+          <div class="result-head"><span>${escapeHtml(item.day)}</span><strong>${count}</strong></div>
           <div class="track"><div style="width:${percent}%"></div></div>
         </div>
       `;
@@ -520,19 +674,19 @@ function renderTrend(trend) {
 
 function renderQuestionResult(result) {
   if (result.type === "rating") {
-    return `
-      <p>Средний рейтинг: <strong>${result.average || 0}</strong> / 5</p>
-      <p>Ответов: ${result.total}</p>
-    `;
+    return `<p>Average rating: <strong>${Number(result.average || 0)}</strong> / 5</p><p>Responses: ${result.total}</p>`;
   }
 
   if (result.type === "text") {
-    if (!result.samples.length) return "<p>Текстовых ответов пока нет.</p>";
-    return `<div>${result.samples.slice(0, 8).map((item) => `<div class='result-row'><div class='card'>${item}</div></div>`).join("")}</div>`;
+    if (!result.samples.length) return "<p>No text answers yet.</p>";
+    return `<div>${result.samples
+      .slice(0, 8)
+      .map((item) => `<div class='result-row'><div class='card'>${escapeHtml(item)}</div></div>`)
+      .join("")}</div>`;
   }
 
   const entries = Object.entries(result.counts || {});
-  if (!entries.length) return "<p>Ответов пока нет.</p>";
+  if (!entries.length) return "<p>No responses yet.</p>";
 
   return entries
     .sort((a, b) => b[1] - a[1])
@@ -540,7 +694,7 @@ function renderQuestionResult(result) {
       const percent = result.total ? Math.round((count / result.total) * 100) : 0;
       return `
         <div class="result-row">
-          <div class="result-head"><span>${label}</span><strong>${count} (${percent}%)</strong></div>
+          <div class="result-head"><span>${escapeHtml(label)}</span><strong>${count} (${percent}%)</strong></div>
           <div class="track"><div style="width:${percent}%"></div></div>
         </div>
       `;
@@ -555,24 +709,51 @@ async function loadResults(surveyId) {
   const summary = document.createElement("div");
   summary.className = "result-card";
   summary.innerHTML = `
-    <h3>${data.survey.title}</h3>
-    <p>${data.survey.description || ""}</p>
-    <p>Всего ответов: <strong>${data.summary.totalResponses}</strong></p>
-    <p>Статус: <strong>${data.summary.active ? "активна" : "не активна"}</strong></p>
+    <h3>${escapeHtml(data.survey.title)}</h3>
+    <p>${escapeHtml(data.survey.description || "")}</p>
+    <p>Total responses: <strong>${Number(data.summary.totalResponses || 0)}</strong></p>
+    <p>Active status: <strong>${data.summary.active ? "active" : "inactive"}</strong></p>
   `;
   resultsWrap.appendChild(summary);
 
   const trendCard = document.createElement("div");
   trendCard.className = "result-card";
-  trendCard.innerHTML = `<h3>Динамика ответов</h3>${renderTrend(data.trend || [])}`;
+  trendCard.innerHTML = `<h3>Response trend</h3>${renderTrend(data.trend || [])}`;
   resultsWrap.appendChild(trendCard);
 
   data.results.forEach((result) => {
     const card = document.createElement("div");
     card.className = "result-card";
-    card.innerHTML = `<h3>${result.text}</h3>${renderQuestionResult(result)}`;
+    card.innerHTML = `<h3>${escapeHtml(result.text)}</h3>${renderQuestionResult(result)}`;
     resultsWrap.appendChild(card);
   });
+}
+
+function fillTemplateSelect() {
+  templateSelect.innerHTML = '<option value="">Select a template</option>';
+  state.templates.forEach((template) => {
+    const option = document.createElement("option");
+    option.value = template.key;
+    option.textContent = template.title;
+    templateSelect.appendChild(option);
+  });
+}
+
+function applyTemplate(templateKey) {
+  const template = state.templates.find((item) => item.key === templateKey);
+  if (!template) return;
+
+  surveyForm.title.value = template.title;
+  surveyForm.description.value = template.description;
+  surveyForm.audience.value = template.audience;
+
+  questionsWrap.innerHTML = "";
+  template.questions.forEach((question, index) => {
+    addQuestion({ ...question, order: index });
+  });
+
+  cacheBuilderDraft();
+  showToast("Template applied");
 }
 
 async function submitSurvey(event) {
@@ -582,17 +763,20 @@ async function submitSurvey(event) {
   try {
     if (state.editingSurveyId) {
       await api.updateSurvey(state.editingSurveyId, payload);
-      setStatus(`Анкета #${state.editingSurveyId} обновлена.`);
+      setStatus(`Survey #${state.editingSurveyId} updated.`);
+      showToast("Survey updated");
     } else {
       const created = await api.createSurvey(payload);
-      setStatus(`Анкета #${created.id} сохранена как draft.`);
+      setStatus(`Survey #${created.id} saved as draft.`);
+      showToast("Survey created");
     }
 
     resetBuilder();
     await refreshAll();
   } catch (error) {
     const fields = error.payload?.fields?.join(", ");
-    setStatus(`Ошибка: ${error.message}${fields ? ` (${fields})` : ""}`, true);
+    setStatus(`Error: ${error.message}${fields ? ` (${fields})` : ""}`, true);
+    showToast(error.message || "Cannot save survey", true);
   }
 }
 
@@ -601,18 +785,36 @@ async function refreshAll() {
 }
 
 function wireEvents() {
-  addQuestionBtn.addEventListener("click", () => addQuestion());
+  addQuestionBtn.addEventListener("click", () => {
+    addQuestion();
+    cacheBuilderDraft();
+  });
+
   surveyForm.addEventListener("submit", submitSurvey);
+  surveyForm.addEventListener("input", debounce(cacheBuilderDraft, 250));
+
+  templateSelect.addEventListener("change", () => {
+    if (!templateSelect.value) return;
+    applyTemplate(templateSelect.value);
+  });
 
   statusFilter.addEventListener("change", async () => {
     state.filters.status = statusFilter.value;
     await loadSurveys();
   });
 
-  searchInput.addEventListener("input", async () => {
-    state.filters.q = searchInput.value.trim();
+  sortFilter.addEventListener("change", async () => {
+    state.filters.sort = sortFilter.value;
     await loadSurveys();
   });
+
+  searchInput.addEventListener(
+    "input",
+    debounce(async () => {
+      state.filters.q = searchInput.value.trim();
+      await loadSurveys();
+    }, 300)
+  );
 
   document.getElementById("startNow").addEventListener("click", () => {
     document.getElementById("builder").scrollIntoView({ behavior: "smooth" });
@@ -620,13 +822,14 @@ function wireEvents() {
 
   document.getElementById("quickCreate").addEventListener("click", () => {
     resetBuilder();
+    setStatus("Ready for a new survey");
     document.getElementById("builder").scrollIntoView({ behavior: "smooth" });
   });
 
   document.getElementById("openDemo").addEventListener("click", async () => {
     const surveys = await api.getSurveys({ status: "published" });
     if (!surveys.surveys.length) {
-      alert("Нет опубликованных анкет.");
+      showToast("No published surveys", true);
       return;
     }
     await loadResults(surveys.surveys[0].id);
@@ -639,13 +842,36 @@ function wireEvents() {
   });
 }
 
+function openSurveyFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const id = Number(params.get("survey") || 0);
+  if (!id || !Number.isInteger(id)) return;
+
+  api
+    .getSurvey(id)
+    .then((details) => {
+      openModal(buildResponseForm(details.survey, details.questions));
+    })
+    .catch(() => {
+      showToast("Survey from URL is not available", true);
+    });
+}
+
 async function bootstrap() {
   addQuestion();
   wireEvents();
+
+  const templatesData = await api.getTemplates();
+  state.templates = templatesData.templates || [];
+  fillTemplateSelect();
+
+  restoreBuilderDraft();
   await refreshAll();
+  openSurveyFromUrl();
 }
 
 bootstrap().catch((error) => {
   console.error(error);
-  setStatus("Не удалось загрузить приложение", true);
+  setStatus("Failed to load app", true);
+  showToast("Application load failed", true);
 });
