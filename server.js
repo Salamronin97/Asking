@@ -55,6 +55,103 @@ function validateSurveyInput(body) {
   return { errors, normalizedQuestions };
 }
 
+async function seedDemoSurvey() {
+  const existing = await get("SELECT COUNT(*) as count FROM surveys");
+  if (existing && existing.count > 0) return;
+
+  const title = "Product Pulse 2026";
+  const description =
+    "Demo survey: collect feedback on experience, priorities, and feature votes.";
+
+  const surveyRes = await run(
+    "INSERT INTO surveys (title, description, status, created_at) VALUES (?, ?, ?, ?)",
+    [title, description, "published", nowIso()]
+  );
+
+  const surveyId = surveyRes.lastID;
+  const questions = [
+    {
+      text: "How satisfied are you with the new platform?",
+      type: "rating",
+      options: [],
+      required: 1,
+      order: 0
+    },
+    {
+      text: "Which feature should we prioritize next?",
+      type: "single",
+      options: ["Live dashboards", "Team collaboration", "Mobile app", "AI insights"],
+      required: 1,
+      order: 1
+    },
+    {
+      text: "Which channels do you use to reach participants?",
+      type: "multi",
+      options: ["Email", "Social", "Website", "Events"],
+      required: 0,
+      order: 2
+    },
+    {
+      text: "What is the biggest improvement we should make?",
+      type: "text",
+      options: [],
+      required: 0,
+      order: 3
+    }
+  ];
+
+  for (const q of questions) {
+    await run(
+      "INSERT INTO questions (survey_id, question_text, type, options_json, required, question_order) VALUES (?, ?, ?, ?, ?, ?)",
+      [surveyId, q.text, q.type, JSON.stringify(q.options), q.required, q.order]
+    );
+  }
+
+  const questionRows = await all(
+    "SELECT id, question_text FROM questions WHERE survey_id = ?",
+    [surveyId]
+  );
+  const qByText = new Map(questionRows.map((q) => [q.question_text, q.id]));
+
+  const sampleResponses = [
+    {
+      "How satisfied are you with the new platform?": 5,
+      "Which feature should we prioritize next?": "Live dashboards",
+      "Which channels do you use to reach participants?": ["Email", "Website"],
+      "What is the biggest improvement we should make?":
+        "More templates for professional research programs."
+    },
+    {
+      "How satisfied are you with the new platform?": 4,
+      "Which feature should we prioritize next?": "AI insights",
+      "Which channels do you use to reach participants?": ["Social", "Events"],
+      "What is the biggest improvement we should make?":
+        "Export results to more formats."
+    },
+    {
+      "How satisfied are you with the new platform?": 5,
+      "Which feature should we prioritize next?": "Team collaboration",
+      "Which channels do you use to reach participants?": ["Email", "Social"]
+    }
+  ];
+
+  for (const response of sampleResponses) {
+    const responseRes = await run(
+      "INSERT INTO responses (survey_id, created_at) VALUES (?, ?)",
+      [surveyId, nowIso()]
+    );
+    const responseId = responseRes.lastID;
+    for (const [text, value] of Object.entries(response)) {
+      const questionId = qByText.get(text);
+      if (!questionId) continue;
+      await run(
+        "INSERT INTO answers (response_id, question_id, answer_json) VALUES (?, ?, ?)",
+        [responseId, questionId, JSON.stringify(value)]
+      );
+    }
+  }
+}
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
@@ -303,7 +400,8 @@ app.use((err, _req, res, _next) => {
 });
 
 init()
-  .then(() => {
+  .then(async () => {
+    await seedDemoSurvey();
     app.listen(PORT, () => {
       console.log(`Server listening on http://localhost:${PORT}`);
     });
