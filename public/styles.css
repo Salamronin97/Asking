@@ -501,6 +501,10 @@ textarea {
   z-index: 30;
 }
 
+.modal[hidden] {
+  display: none !important;
+}
+
 .modal__content {
   width: min(760px, 96vw);
   max-height: 88vh;
