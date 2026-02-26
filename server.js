@@ -1,4 +1,5 @@
-﻿const express = require("express");
+﻿const crypto = require("crypto");
+const express = require("express");
 const path = require("path");
 const { init, run, all, get } = require("./db");
 
@@ -7,6 +8,8 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static(path.join(__dirname, "public")));
+
+const QUESTION_TYPES = new Set(["text", "single", "multi", "rating"]);
 
 function nowIso() {
   return new Date().toISOString();
@@ -21,381 +24,683 @@ function safeJsonParse(value, fallback) {
   }
 }
 
-function validateSurveyInput(body) {
-  const errors = [];
-  if (!body.title || String(body.title).trim().length < 3) {
-    errors.push("title");
+function normalizeStatus(status) {
+  return ["draft", "published", "archived"].includes(status) ? status : null;
+}
+
+function parseBool(value, fallback = false) {
+  if (typeof value === "boolean") return value;
+  if (value === "1" || value === "true") return true;
+  if (value === "0" || value === "false") return false;
+  return fallback;
+}
+
+function hashParticipant(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  const ip = (Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "").split(",")[0].trim();
+  const userAgent = req.headers["user-agent"] || "";
+  return crypto.createHash("sha256").update(`${ip}|${userAgent}`).digest("hex");
+}
+
+function normalizeQuestion(question, index) {
+  const text = String(question?.text || "").trim();
+  const type = String(question?.type || "").trim();
+  const rawOptions = Array.isArray(question?.options) ? question.options : [];
+  const options = rawOptions.map((item) => String(item).trim()).filter(Boolean);
+  const required = question?.required === false ? 0 : 1;
+
+  return {
+    text,
+    type,
+    options,
+    required,
+    order: Number.isFinite(question?.order) ? question.order : index
+  };
+}
+
+function validateSurveyPayload(payload) {
+  const fields = [];
+  const title = String(payload?.title || "").trim();
+  const description = String(payload?.description || "").trim();
+  const audience = String(payload?.audience || "").trim();
+  const startsAt = payload?.startsAt ? String(payload.startsAt).trim() : null;
+  const endsAt = payload?.endsAt ? String(payload.endsAt).trim() : null;
+  const allowMultipleResponses = parseBool(payload?.allowMultipleResponses, false) ? 1 : 0;
+
+  if (title.length < 3) fields.push("title");
+
+  if (!Array.isArray(payload?.questions) || payload.questions.length === 0) {
+    fields.push("questions");
   }
-  if (!Array.isArray(body.questions) || body.questions.length === 0) {
-    errors.push("questions");
-  }
-  const normalizedQuestions = (body.questions || []).map((q, idx) => {
-    const text = String(q.text || "").trim();
-    const type = String(q.type || "").trim();
-    const options = Array.isArray(q.options) ? q.options.map(String) : [];
-    return {
-      text,
-      type,
-      options,
-      required: q.required === false ? 0 : 1,
-      order: Number.isFinite(q.order) ? q.order : idx
-    };
+
+  const questions = (payload?.questions || []).map((question, idx) => normalizeQuestion(question, idx));
+
+  questions.forEach((question, idx) => {
+    if (question.text.length < 3) fields.push(`questions[${idx}].text`);
+    if (!QUESTION_TYPES.has(question.type)) fields.push(`questions[${idx}].type`);
+    if ((question.type === "single" || question.type === "multi") && question.options.length < 2) {
+      fields.push(`questions[${idx}].options`);
+    }
   });
 
-  normalizedQuestions.forEach((q, i) => {
-    if (!q.text || q.text.length < 3) errors.push(`questions[${i}].text`);
-    if (!["text", "single", "multi", "rating"].includes(q.type)) {
-      errors.push(`questions[${i}].type`);
-    }
-    if ((q.type === "single" || q.type === "multi") && q.options.length < 2) {
-      errors.push(`questions[${i}].options`);
-    }
-  });
+  if (startsAt && Number.isNaN(Date.parse(startsAt))) fields.push("startsAt");
+  if (endsAt && Number.isNaN(Date.parse(endsAt))) fields.push("endsAt");
+  if (startsAt && endsAt && Date.parse(startsAt) >= Date.parse(endsAt)) fields.push("dateRange");
 
-  return { errors, normalizedQuestions };
+  return {
+    fields,
+    payload: { title, description, audience, startsAt, endsAt, allowMultipleResponses, questions }
+  };
+}
+
+function surveyIsActive(survey) {
+  if (survey.status !== "published") return false;
+  const now = Date.now();
+  if (survey.starts_at && Date.parse(survey.starts_at) > now) return false;
+  if (survey.ends_at && Date.parse(survey.ends_at) < now) return false;
+  return true;
+}
+
+function csvEscape(value) {
+  const text = value == null ? "" : String(value);
+  if (/[,"\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+  return text;
 }
 
 async function seedDemoSurvey() {
   const existing = await get("SELECT COUNT(*) as count FROM surveys");
-  if (existing && existing.count > 0) return;
+  if (existing?.count > 0) return;
 
-  const title = "Product Pulse 2026";
-  const description =
-    "Demo survey: collect feedback on experience, priorities, and feature votes.";
-
-  const surveyRes = await run(
-    "INSERT INTO surveys (title, description, status, created_at) VALUES (?, ?, ?, ?)",
-    [title, description, "published", nowIso()]
+  const createdAt = nowIso();
+  const surveyResult = await run(
+    `INSERT INTO surveys
+      (title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at)
+      VALUES (?, ?, ?, 'published', 1, ?, ?, ?, ?)`,
+    [
+      "Digital Product Benchmark 2026",
+      "Исследование пользовательского опыта и приоритетов развития платформы.",
+      "Клиенты и product-команда",
+      new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+      new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
+      createdAt,
+      createdAt
+    ]
   );
 
-  const surveyId = surveyRes.lastID;
+  const surveyId = surveyResult.lastID;
   const questions = [
+    { text: "Как вы оцениваете общий UX платформы?", type: "rating", options: [], required: 1, order: 0 },
     {
-      text: "How satisfied are you with the new platform?",
-      type: "rating",
-      options: [],
-      required: 1,
-      order: 0
-    },
-    {
-      text: "Which feature should we prioritize next?",
+      text: "Какую функцию нужно внедрить в первую очередь?",
       type: "single",
-      options: ["Live dashboards", "Team collaboration", "Mobile app", "AI insights"],
+      options: ["Расширенная аналитика", "AI-помощник", "Мобильное приложение", "Гибкие роли"],
       required: 1,
       order: 1
     },
     {
-      text: "Which channels do you use to reach participants?",
+      text: "Какие каналы вы используете для привлечения респондентов?",
       type: "multi",
-      options: ["Email", "Social", "Website", "Events"],
+      options: ["Email", "Соцсети", "Сайт", "Оффлайн мероприятия"],
       required: 0,
       order: 2
     },
-    {
-      text: "What is the biggest improvement we should make?",
-      type: "text",
-      options: [],
-      required: 0,
-      order: 3
-    }
+    { text: "Ваше главное предложение по улучшению", type: "text", options: [], required: 0, order: 3 }
   ];
 
   for (const q of questions) {
     await run(
-      "INSERT INTO questions (survey_id, question_text, type, options_json, required, question_order) VALUES (?, ?, ?, ?, ?, ?)",
+      `INSERT INTO questions (survey_id, question_text, type, options_json, required, question_order)
+       VALUES (?, ?, ?, ?, ?, ?)`,
       [surveyId, q.text, q.type, JSON.stringify(q.options), q.required, q.order]
     );
   }
 
-  const questionRows = await all(
-    "SELECT id, question_text FROM questions WHERE survey_id = ?",
-    [surveyId]
-  );
-  const qByText = new Map(questionRows.map((q) => [q.question_text, q.id]));
+  const questionRows = await all("SELECT id, question_text FROM questions WHERE survey_id = ?", [surveyId]);
+  const idsByText = new Map(questionRows.map((item) => [item.question_text, item.id]));
 
-  const sampleResponses = [
+  const responses = [
     {
-      "How satisfied are you with the new platform?": 5,
-      "Which feature should we prioritize next?": "Live dashboards",
-      "Which channels do you use to reach participants?": ["Email", "Website"],
-      "What is the biggest improvement we should make?":
-        "More templates for professional research programs."
+      "Как вы оцениваете общий UX платформы?": 5,
+      "Какую функцию нужно внедрить в первую очередь?": "AI-помощник",
+      "Какие каналы вы используете для привлечения респондентов?": ["Email", "Соцсети"],
+      "Ваше главное предложение по улучшению": "Добавить фильтры и сегменты в отчётах."
     },
     {
-      "How satisfied are you with the new platform?": 4,
-      "Which feature should we prioritize next?": "AI insights",
-      "Which channels do you use to reach participants?": ["Social", "Events"],
-      "What is the biggest improvement we should make?":
-        "Export results to more formats."
+      "Как вы оцениваете общий UX платформы?": 4,
+      "Какую функцию нужно внедрить в первую очередь?": "Расширенная аналитика",
+      "Какие каналы вы используете для привлечения респондентов?": ["Сайт", "Email"]
     },
     {
-      "How satisfied are you with the new platform?": 5,
-      "Which feature should we prioritize next?": "Team collaboration",
-      "Which channels do you use to reach participants?": ["Email", "Social"]
+      "Как вы оцениваете общий UX платформы?": 5,
+      "Какую функцию нужно внедрить в первую очередь?": "Мобильное приложение",
+      "Какие каналы вы используете для привлечения респондентов?": ["Соцсети"],
+      "Ваше главное предложение по улучшению": "Нужны готовые отраслевые шаблоны анкет."
     }
   ];
 
-  for (const response of sampleResponses) {
-    const responseRes = await run(
-      "INSERT INTO responses (survey_id, created_at) VALUES (?, ?)",
-      [surveyId, nowIso()]
+  for (let i = 0; i < responses.length; i += 1) {
+    const responseResult = await run(
+      "INSERT INTO responses (survey_id, participant_hash, created_at) VALUES (?, ?, ?)",
+      [surveyId, `seed_${i + 1}`, new Date(Date.now() - i * 3600 * 1000).toISOString()]
     );
-    const responseId = responseRes.lastID;
-    for (const [text, value] of Object.entries(response)) {
-      const questionId = qByText.get(text);
+
+    for (const [questionText, value] of Object.entries(responses[i])) {
+      const questionId = idsByText.get(questionText);
       if (!questionId) continue;
       await run(
         "INSERT INTO answers (response_id, question_id, answer_json) VALUES (?, ?, ?)",
-        [responseId, questionId, JSON.stringify(value)]
+        [responseResult.lastID, questionId, JSON.stringify(value)]
       );
     }
   }
 }
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, timestamp: nowIso() });
+});
+
+app.get("/api/dashboard", async (_req, res, next) => {
+  try {
+    const [surveyMetrics, responseMetrics, activeMetrics, recentSurveys] = await Promise.all([
+      get("SELECT COUNT(*) as total, SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) as published FROM surveys"),
+      get("SELECT COUNT(*) as total FROM responses"),
+      get(
+        `SELECT COUNT(*) as active
+         FROM surveys
+         WHERE status = 'published'
+           AND (starts_at IS NULL OR starts_at <= ?)
+           AND (ends_at IS NULL OR ends_at >= ?)`,
+        [nowIso(), nowIso()]
+      ),
+      all(
+        `SELECT id, title, status, created_at
+         FROM surveys
+         ORDER BY created_at DESC
+         LIMIT 6`
+      )
+    ]);
+
+    res.json({
+      metrics: {
+        totalSurveys: surveyMetrics?.total || 0,
+        publishedSurveys: surveyMetrics?.published || 0,
+        activeSurveys: activeMetrics?.active || 0,
+        totalResponses: responseMetrics?.total || 0
+      },
+      recentSurveys
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get("/api/surveys", async (req, res, next) => {
   try {
-    const status = req.query.status;
-    const where = status ? "WHERE status = ?" : "";
-    const rows = await all(
-      `SELECT id, title, description, status, created_at FROM surveys ${where} ORDER BY created_at DESC`,
-      status ? [status] : []
-    );
-    res.json({ surveys: rows });
-  } catch (err) {
-    next(err);
-  }
-});
+    const status = normalizeStatus(String(req.query.status || ""));
+    const q = String(req.query.q || "").trim();
 
-app.post("/api/surveys", async (req, res, next) => {
-  try {
-    const { errors, normalizedQuestions } = validateSurveyInput(req.body);
-    if (errors.length) {
-      return res.status(400).json({ error: "Invalid survey", fields: errors });
+    const filters = [];
+    const params = [];
+
+    if (status) {
+      filters.push("status = ?");
+      params.push(status);
     }
 
-    const title = String(req.body.title).trim();
-    const description = String(req.body.description || "").trim();
-
-    const result = await run(
-      "INSERT INTO surveys (title, description, status, created_at) VALUES (?, ?, ?, ?)",
-      [title, description, "draft", nowIso()]
-    );
-
-    const surveyId = result.lastID;
-
-    for (const q of normalizedQuestions) {
-      await run(
-        "INSERT INTO questions (survey_id, question_text, type, options_json, required, question_order) VALUES (?, ?, ?, ?, ?, ?)",
-        [surveyId, q.text, q.type, JSON.stringify(q.options), q.required, q.order]
-      );
+    if (q) {
+      filters.push("(title LIKE ? OR description LIKE ?)");
+      params.push(`%${q}%`, `%${q}%`);
     }
 
-    res.status(201).json({ id: surveyId });
-  } catch (err) {
-    next(err);
-  }
-});
+    const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
-app.post("/api/surveys/:id/publish", async (req, res, next) => {
-  try {
-    const surveyId = Number(req.params.id);
-    const survey = await get("SELECT id FROM surveys WHERE id = ?", [surveyId]);
-    if (!survey) return res.status(404).json({ error: "Not found" });
+    const surveys = await all(
+      `SELECT id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at
+       FROM surveys ${whereClause}
+       ORDER BY created_at DESC`,
+      params
+    );
 
-    await run("UPDATE surveys SET status = 'published' WHERE id = ?", [surveyId]);
-    res.json({ ok: true });
-  } catch (err) {
-    next(err);
+    res.json({ surveys });
+  } catch (error) {
+    next(error);
   }
 });
 
 app.get("/api/surveys/:id", async (req, res, next) => {
   try {
     const surveyId = Number(req.params.id);
+    if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
+
     const survey = await get(
-      "SELECT id, title, description, status, created_at FROM surveys WHERE id = ?",
+      `SELECT id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at
+       FROM surveys
+       WHERE id = ?`,
       [surveyId]
     );
-    if (!survey) return res.status(404).json({ error: "Not found" });
+
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
 
     const questions = await all(
-      "SELECT id, question_text, type, options_json, required, question_order FROM questions WHERE survey_id = ? ORDER BY question_order ASC",
+      `SELECT id, question_text, type, options_json, required, question_order
+       FROM questions
+       WHERE survey_id = ?
+       ORDER BY question_order ASC`,
       [surveyId]
     );
 
-    const normalizedQuestions = questions.map((q) => ({
-      id: q.id,
-      text: q.question_text,
-      type: q.type,
-      options: safeJsonParse(q.options_json, []),
-      required: q.required === 1,
-      order: q.question_order
-    }));
+    res.json({
+      survey,
+      questions: questions.map((q) => ({
+        id: q.id,
+        text: q.question_text,
+        type: q.type,
+        options: safeJsonParse(q.options_json, []),
+        required: q.required === 1,
+        order: q.question_order
+      }))
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
-    res.json({ survey, questions: normalizedQuestions });
-  } catch (err) {
-    next(err);
+app.post("/api/surveys", async (req, res, next) => {
+  try {
+    const { fields, payload } = validateSurveyPayload(req.body);
+    if (fields.length) return res.status(400).json({ error: "Invalid survey payload", fields });
+
+    const createdAt = nowIso();
+    const created = await run(
+      `INSERT INTO surveys
+        (title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at)
+       VALUES (?, ?, ?, 'draft', ?, ?, ?, ?, ?)`,
+      [
+        payload.title,
+        payload.description,
+        payload.audience,
+        payload.allowMultipleResponses,
+        payload.startsAt,
+        payload.endsAt,
+        createdAt,
+        createdAt
+      ]
+    );
+
+    for (const question of payload.questions) {
+      await run(
+        `INSERT INTO questions (survey_id, question_text, type, options_json, required, question_order)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          created.lastID,
+          question.text,
+          question.type,
+          JSON.stringify(question.options),
+          question.required,
+          question.order
+        ]
+      );
+    }
+
+    res.status(201).json({ id: created.lastID });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put("/api/surveys/:id", async (req, res, next) => {
+  try {
+    const surveyId = Number(req.params.id);
+    if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
+
+    const survey = await get("SELECT id, status FROM surveys WHERE id = ?", [surveyId]);
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+    if (survey.status !== "draft") {
+      return res.status(400).json({ error: "Only draft surveys can be edited" });
+    }
+
+    const { fields, payload } = validateSurveyPayload(req.body);
+    if (fields.length) return res.status(400).json({ error: "Invalid survey payload", fields });
+
+    await run(
+      `UPDATE surveys
+       SET title = ?, description = ?, audience = ?, allow_multiple_responses = ?, starts_at = ?, ends_at = ?, updated_at = ?
+       WHERE id = ?`,
+      [
+        payload.title,
+        payload.description,
+        payload.audience,
+        payload.allowMultipleResponses,
+        payload.startsAt,
+        payload.endsAt,
+        nowIso(),
+        surveyId
+      ]
+    );
+
+    await run("DELETE FROM questions WHERE survey_id = ?", [surveyId]);
+
+    for (const question of payload.questions) {
+      await run(
+        `INSERT INTO questions (survey_id, question_text, type, options_json, required, question_order)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          surveyId,
+          question.text,
+          question.type,
+          JSON.stringify(question.options),
+          question.required,
+          question.order
+        ]
+      );
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/surveys/:id/publish", async (req, res, next) => {
+  try {
+    const surveyId = Number(req.params.id);
+    const survey = await get("SELECT id, status FROM surveys WHERE id = ?", [surveyId]);
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+    if (survey.status === "archived") return res.status(400).json({ error: "Archived survey cannot be published" });
+
+    await run("UPDATE surveys SET status = 'published', updated_at = ? WHERE id = ?", [nowIso(), surveyId]);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/surveys/:id/archive", async (req, res, next) => {
+  try {
+    const surveyId = Number(req.params.id);
+    const survey = await get("SELECT id FROM surveys WHERE id = ?", [surveyId]);
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+
+    await run("UPDATE surveys SET status = 'archived', updated_at = ? WHERE id = ?", [nowIso(), surveyId]);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/surveys/:id", async (req, res, next) => {
+  try {
+    const surveyId = Number(req.params.id);
+    const survey = await get("SELECT id FROM surveys WHERE id = ?", [surveyId]);
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+
+    await run("DELETE FROM surveys WHERE id = ?", [surveyId]);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
   }
 });
 
 app.post("/api/surveys/:id/respond", async (req, res, next) => {
   try {
     const surveyId = Number(req.params.id);
-    const survey = await get("SELECT id, status FROM surveys WHERE id = ?", [surveyId]);
-    if (!survey) return res.status(404).json({ error: "Not found" });
-    if (survey.status !== "published") {
-      return res.status(400).json({ error: "Survey is not published" });
-    }
+    if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
-    const questions = await all(
-      "SELECT id, question_text, type, options_json, required FROM questions WHERE survey_id = ?",
+    const survey = await get(
+      `SELECT id, status, allow_multiple_responses, starts_at, ends_at
+       FROM surveys WHERE id = ?`,
       [surveyId]
     );
 
-    const answers = Array.isArray(req.body.answers) ? req.body.answers : [];
-    const answerByQuestion = new Map();
-    answers.forEach((a) => {
-      answerByQuestion.set(Number(a.questionId), a.value);
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+    if (!surveyIsActive(survey)) return res.status(400).json({ error: "Survey is not active" });
+
+    const questions = await all(
+      `SELECT id, type, options_json, required
+       FROM questions WHERE survey_id = ?`,
+      [surveyId]
+    );
+
+    const answersInput = Array.isArray(req.body?.answers) ? req.body.answers : [];
+    const answersByQuestion = new Map();
+    answersInput.forEach((answer) => {
+      if (!Number.isInteger(Number(answer?.questionId))) return;
+      answersByQuestion.set(Number(answer.questionId), answer.value);
     });
 
-    const validationErrors = [];
+    const invalidQuestions = [];
 
     for (const q of questions) {
-      const value = answerByQuestion.get(q.id);
+      const value = answersByQuestion.get(q.id);
       const required = q.required === 1;
+
       if (required && (value === undefined || value === null || value === "")) {
-        validationErrors.push(q.id);
+        invalidQuestions.push(q.id);
         continue;
       }
+
       if (value === undefined || value === null || value === "") continue;
 
       const options = safeJsonParse(q.options_json, []);
 
       if (q.type === "single") {
-        if (!options.includes(String(value))) validationErrors.push(q.id);
+        if (!options.includes(String(value))) invalidQuestions.push(q.id);
       }
+
       if (q.type === "multi") {
-        const arr = Array.isArray(value) ? value.map(String) : [];
-        if (arr.length === 0 || arr.some((v) => !options.includes(String(v)))) {
-          validationErrors.push(q.id);
-        }
+        const values = Array.isArray(value) ? value.map((item) => String(item)) : [];
+        if (values.length === 0 || values.some((item) => !options.includes(item))) invalidQuestions.push(q.id);
       }
+
       if (q.type === "rating") {
-        const rating = Number(value);
-        if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
-          validationErrors.push(q.id);
-        }
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric) || numeric < 1 || numeric > 5) invalidQuestions.push(q.id);
+      }
+
+      if (q.type === "text" && String(value).trim().length > 2000) {
+        invalidQuestions.push(q.id);
       }
     }
 
-    if (validationErrors.length) {
-      return res.status(400).json({ error: "Invalid answers", questions: validationErrors });
+    if (invalidQuestions.length) {
+      return res.status(400).json({ error: "Invalid answers", questions: [...new Set(invalidQuestions)] });
     }
 
-    const responseResult = await run(
-      "INSERT INTO responses (survey_id, created_at) VALUES (?, ?)",
-      [surveyId, nowIso()]
+    const participantHash = hashParticipant(req);
+
+    if (!survey.allow_multiple_responses) {
+      const previous = await get(
+        "SELECT id FROM responses WHERE survey_id = ? AND participant_hash = ? LIMIT 1",
+        [surveyId, participantHash]
+      );
+      if (previous) return res.status(409).json({ error: "Only one response is allowed" });
+    }
+
+    const response = await run(
+      "INSERT INTO responses (survey_id, participant_hash, created_at) VALUES (?, ?, ?)",
+      [surveyId, participantHash, nowIso()]
     );
 
-    const responseId = responseResult.lastID;
-
     for (const q of questions) {
-      if (!answerByQuestion.has(q.id)) continue;
-      const value = answerByQuestion.get(q.id);
+      if (!answersByQuestion.has(q.id)) continue;
       await run(
         "INSERT INTO answers (response_id, question_id, answer_json) VALUES (?, ?, ?)",
-        [responseId, q.id, JSON.stringify(value)]
+        [response.lastID, q.id, JSON.stringify(answersByQuestion.get(q.id))]
       );
     }
 
     res.status(201).json({ ok: true });
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    next(error);
   }
 });
 
 app.get("/api/surveys/:id/results", async (req, res, next) => {
   try {
     const surveyId = Number(req.params.id);
+    if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
+
     const survey = await get(
-      "SELECT id, title, description, status, created_at FROM surveys WHERE id = ?",
+      `SELECT id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at
+       FROM surveys WHERE id = ?`,
       [surveyId]
     );
-    if (!survey) return res.status(404).json({ error: "Not found" });
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
 
-    const questions = await all(
-      "SELECT id, question_text, type, options_json, required, question_order FROM questions WHERE survey_id = ? ORDER BY question_order ASC",
-      [surveyId]
-    );
-
-    const answers = await all(
-      "SELECT question_id, answer_json FROM answers WHERE question_id IN (SELECT id FROM questions WHERE survey_id = ?)",
-      [surveyId]
-    );
+    const [questions, responses, answers, trend] = await Promise.all([
+      all(
+        `SELECT id, question_text, type, options_json, required, question_order
+         FROM questions WHERE survey_id = ?
+         ORDER BY question_order ASC`,
+        [surveyId]
+      ),
+      all("SELECT id, created_at FROM responses WHERE survey_id = ? ORDER BY created_at DESC", [surveyId]),
+      all(
+        `SELECT a.question_id, a.answer_json
+         FROM answers a
+         JOIN responses r ON r.id = a.response_id
+         WHERE r.survey_id = ?`,
+        [surveyId]
+      ),
+      all(
+        `SELECT substr(created_at, 1, 10) as day, COUNT(*) as count
+         FROM responses
+         WHERE survey_id = ?
+         GROUP BY substr(created_at, 1, 10)
+         ORDER BY day ASC`,
+        [surveyId]
+      )
+    ]);
 
     const statsByQuestion = new Map();
-    for (const q of questions) {
-      const options = safeJsonParse(q.options_json, []);
+
+    questions.forEach((q) => {
       statsByQuestion.set(q.id, {
         id: q.id,
         text: q.question_text,
         type: q.type,
-        options,
+        options: safeJsonParse(q.options_json, []),
         required: q.required === 1,
         total: 0,
         counts: {},
         ratings: [],
         samples: []
       });
-    }
+    });
 
-    for (const a of answers) {
-      const entry = statsByQuestion.get(a.question_id);
-      if (!entry) continue;
-      const value = safeJsonParse(a.answer_json, null);
+    answers.forEach((answer) => {
+      const entry = statsByQuestion.get(answer.question_id);
+      if (!entry) return;
+
+      const value = safeJsonParse(answer.answer_json, null);
       entry.total += 1;
 
       if (entry.type === "single") {
         const key = String(value);
         entry.counts[key] = (entry.counts[key] || 0) + 1;
       } else if (entry.type === "multi") {
-        const arr = Array.isArray(value) ? value : [];
-        arr.forEach((v) => {
-          const key = String(v);
+        const values = Array.isArray(value) ? value : [];
+        values.forEach((item) => {
+          const key = String(item);
           entry.counts[key] = (entry.counts[key] || 0) + 1;
         });
       } else if (entry.type === "rating") {
-        const rating = Number(value);
-        if (Number.isFinite(rating)) entry.ratings.push(rating);
-      } else {
-        if (typeof value === "string" && value.trim()) {
-          entry.samples.push(value.trim());
-        }
+        const numeric = Number(value);
+        if (Number.isFinite(numeric)) entry.ratings.push(numeric);
+      } else if (typeof value === "string" && value.trim()) {
+        entry.samples.push(value.trim());
       }
-    }
-
-    const results = Array.from(statsByQuestion.values()).map((q) => {
-      if (q.type === "rating") {
-        const avg = q.ratings.length
-          ? q.ratings.reduce((a, b) => a + b, 0) / q.ratings.length
-          : 0;
-        return { ...q, average: Number(avg.toFixed(2)) };
-      }
-      return q;
     });
 
-    res.json({ survey, results });
-  } catch (err) {
-    next(err);
+    const results = Array.from(statsByQuestion.values()).map((item) => {
+      if (item.type !== "rating") return item;
+      const average = item.ratings.length
+        ? item.ratings.reduce((sum, value) => sum + value, 0) / item.ratings.length
+        : 0;
+      return {
+        ...item,
+        average: Number(average.toFixed(2))
+      };
+    });
+
+    res.json({
+      survey,
+      summary: {
+        totalResponses: responses.length,
+        active: surveyIsActive(survey)
+      },
+      trend,
+      results
+    });
+  } catch (error) {
+    next(error);
   }
 });
 
-app.use((err, _req, res, _next) => {
-  console.error(err);
+app.get("/api/surveys/:id/export.csv", async (req, res, next) => {
+  try {
+    const surveyId = Number(req.params.id);
+    const survey = await get("SELECT id, title FROM surveys WHERE id = ?", [surveyId]);
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+
+    const questions = await all(
+      `SELECT id, question_text, question_order
+       FROM questions
+       WHERE survey_id = ?
+       ORDER BY question_order ASC`,
+      [surveyId]
+    );
+
+    const responses = await all(
+      `SELECT id, created_at
+       FROM responses
+       WHERE survey_id = ?
+       ORDER BY created_at ASC`,
+      [surveyId]
+    );
+
+    const answers = await all(
+      `SELECT response_id, question_id, answer_json
+       FROM answers
+       WHERE response_id IN (SELECT id FROM responses WHERE survey_id = ?)`,
+      [surveyId]
+    );
+
+    const answerMap = new Map();
+    answers.forEach((item) => {
+      const key = `${item.response_id}:${item.question_id}`;
+      answerMap.set(key, safeJsonParse(item.answer_json, ""));
+    });
+
+    const columns = ["response_id", "created_at", ...questions.map((question) => question.question_text)];
+    const rows = [columns.map(csvEscape).join(",")];
+
+    responses.forEach((response) => {
+      const row = [response.id, response.created_at];
+      questions.forEach((question) => {
+        const value = answerMap.get(`${response.id}:${question.id}`);
+        if (Array.isArray(value)) {
+          row.push(value.join(" | "));
+        } else if (value == null) {
+          row.push("");
+        } else {
+          row.push(value);
+        }
+      });
+      rows.push(row.map(csvEscape).join(","));
+    });
+
+    const fileName = `survey-${surveyId}-export.csv`;
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+    res.send(rows.join("\n"));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.use((error, _req, res, _next) => {
+  console.error(error);
   res.status(500).json({ error: "Internal server error" });
 });
 
@@ -406,7 +711,7 @@ init()
       console.log(`Server listening on http://localhost:${PORT}`);
     });
   })
-  .catch((err) => {
-    console.error("Failed to init DB", err);
+  .catch((error) => {
+    console.error("Failed to initialize application", error);
     process.exit(1);
   });

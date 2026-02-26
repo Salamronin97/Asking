@@ -1,201 +1,170 @@
-﻿<!DOCTYPE html>
+﻿<!doctype html>
 <html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PulseSurvey — профессиональные анкеты и голосования</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css" />
-</head>
-<body>
-  <div class="bg-orb orb-1"></div>
-  <div class="bg-orb orb-2"></div>
-  <header class="topbar">
-    <div class="container topbar__inner">
-      <div class="logo">
-        <span class="logo__mark">PS</span>
-        <span class="logo__text">PulseSurvey</span>
-      </div>
-      <nav class="topbar__nav">
-        <a href="#features">Возможности</a>
-        <a href="#builder">Конструктор</a>
-        <a href="#live">Активные анкеты</a>
-        <a href="#analytics">Аналитика</a>
-      </nav>
-      <button class="btn btn--ghost" id="scrollCreate">Создать анкету</button>
-    </div>
-  </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Asking Pro | Платформа анкетирования и голосований</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="bg-shape bg-shape--one"></div>
+    <div class="bg-shape bg-shape--two"></div>
 
-  <main>
-    <section class="hero">
-      <div class="container hero__grid">
-        <div class="hero__content">
-          <p class="eyebrow">Интерактивная платформа для опросов и голосований</p>
-          <h1>Проектируйте анкеты, запускайте голосование и наблюдайте за результатами в реальном времени.</h1>
-          <p class="hero__lead">PulseSurvey помогает быстро создавать профессиональные анкеты, собирать ответы и превращать их в визуальные инсайты. Широкий функционал, корпоративный стиль и надежный бэкенд.</p>
-          <div class="hero__actions">
-            <button class="btn" id="heroStart">Запустить анкету</button>
-            <button class="btn btn--outline" id="heroDemo">Посмотреть демо</button>
-          </div>
-          <div class="hero__stats">
-            <div>
-              <strong>4 типа вопросов</strong>
-              <span>текст, одиночный выбор, множественный выбор, рейтинг</span>
-            </div>
-            <div>
-              <strong>Live-результаты</strong>
-              <span>агрегация ответов без задержек</span>
-            </div>
-            <div>
-              <strong>Надежный стек</strong>
-              <span>Node.js + SQLite + Express</span>
-            </div>
-          </div>
-        </div>
-        <div class="hero__panel">
-          <div class="panel-card">
-            <div class="panel-card__header">
-              <div>
-                <h3>Продуктовый фидбек</h3>
-                <p>Голосование среди участников</p>
-              </div>
-              <span class="badge">LIVE</span>
-            </div>
-            <div class="panel-card__body">
-              <div class="panel-row">
-                <span>Новый дизайн</span>
-                <div class="meter"><span style="width:72%"></span></div>
-                <strong>72%</strong>
-              </div>
-              <div class="panel-row">
-                <span>Быстрые отчеты</span>
-                <div class="meter"><span style="width:54%"></span></div>
-                <strong>54%</strong>
-              </div>
-              <div class="panel-row">
-                <span>Персонализация</span>
-                <div class="meter"><span style="width:81%"></span></div>
-                <strong>81%</strong>
-              </div>
-              <div class="panel-note">+ 184 ответа за последние 3 часа</div>
+    <header class="topbar">
+      <div class="container topbar__inner">
+        <a class="brand" href="#">
+          <span class="brand__mark">A</span>
+          <span>Asking Pro</span>
+        </a>
+        <nav class="nav">
+          <a href="#dashboard">Дашборд</a>
+          <a href="#builder">Конструктор</a>
+          <a href="#library">Анкеты</a>
+          <a href="#analytics">Аналитика</a>
+        </nav>
+        <button id="quickCreate" class="btn btn--ghost">Новая анкета</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container hero__grid">
+          <div>
+            <p class="eyebrow">ИНТЕРАКТИВНЫЙ WEB-СЕРВИС</p>
+            <h1>Профессиональная система создания анкет и голосований.</h1>
+            <p class="lead">
+              Создавайте исследования, открывайте публичное голосование, отслеживайте ответы в реальном времени и
+              выгружайте результаты в CSV для бизнес-аналитики.
+            </p>
+            <div class="hero__actions">
+              <button id="startNow" class="btn">Запустить проект</button>
+              <button id="openDemo" class="btn btn--outline">Открыть демо-результаты</button>
             </div>
           </div>
-          <div class="panel-card panel-card--glass">
-            <h4>Сценарий исследования</h4>
+          <div class="hero-card">
+            <h3>Что уже доступно</h3>
             <ul>
-              <li>Сегментируйте респондентов</li>
-              <li>Запускайте голосование в один клик</li>
-              <li>Получайте визуальные отчеты</li>
+              <li>Конструктор вопросов: text / single / multi / rating</li>
+              <li>Публикация, архивирование, редактирование черновиков</li>
+              <li>Ограничение повторных ответов</li>
+              <li>Аналитика, тренды и экспорт данных CSV</li>
             </ul>
-            <button class="btn btn--light">Сформировать отчет</button>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section id="features" class="section">
-      <div class="container">
-        <div class="section__header">
-          <h2>Широкий функционал для команд и организаций</h2>
-          <p>Единая среда для сбора мнений, проведения исследований и быстрого голосования.</p>
-        </div>
-        <div class="feature-grid">
-          <div class="feature-card">
-            <h3>Профессиональный конструктор</h3>
-            <p>Создавайте анкеты с несколькими типами вопросов, обязательными полями и сценарием логики.</p>
+      <section id="dashboard" class="section">
+        <div class="container">
+          <div class="section__head">
+            <h2>Операционный дашборд</h2>
+            <p>Основные KPI по платформе в текущем проекте.</p>
           </div>
-          <div class="feature-card">
-            <h3>Голосования</h3>
-            <p>Запускайте мгновенные голосования с визуальным отображением долей и динамикой.</p>
-          </div>
-          <div class="feature-card">
-            <h3>Результаты и аналитика</h3>
-            <p>Смотрите агрегированные результаты по каждому вопросу и анализируйте тренды.</p>
-          </div>
-          <div class="feature-card">
-            <h3>Готово к масштабированию</h3>
-            <p>Архитектура построена на Express + SQLite и легко переносится на PostgreSQL.</p>
+          <div id="metrics" class="metrics"></div>
+          <div class="card">
+            <h3>Последние анкеты</h3>
+            <div id="recentSurveys" class="recent-list"></div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section id="builder" class="section section--alt">
-      <div class="container">
-        <div class="section__header">
-          <h2>Конструктор анкеты</h2>
-          <p>Соберите опрос и опубликуйте его за пару минут.</p>
-        </div>
-        <div class="builder">
+      <section id="builder" class="section section--alt">
+        <div class="container split">
           <form id="surveyForm" class="card">
+            <h3>Конструктор анкеты</h3>
             <div class="form-row">
-              <label>Название анкеты</label>
-              <input type="text" name="title" placeholder="Например: Оценка продукта" required />
+              <label>Название</label>
+              <input type="text" name="title" required placeholder="Например: Оценка сервиса 2026" />
             </div>
             <div class="form-row">
               <label>Описание</label>
-              <textarea name="description" placeholder="Контекст, цель, сроки"></textarea>
+              <textarea name="description" placeholder="Цели и контекст исследования"></textarea>
+            </div>
+            <div class="form-row">
+              <label>Аудитория</label>
+              <input type="text" name="audience" placeholder="Клиенты, сотрудники, участники мероприятия" />
+            </div>
+            <div class="form-row grid-2">
+              <div>
+                <label>Начало</label>
+                <input type="datetime-local" name="startsAt" />
+              </div>
+              <div>
+                <label>Окончание</label>
+                <input type="datetime-local" name="endsAt" />
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="inline-check">
+                <input type="checkbox" name="allowMultipleResponses" />
+                Разрешить повторные ответы
+              </label>
             </div>
 
-            <div id="questions"></div>
-
-            <div class="builder__actions">
-              <button type="button" class="btn btn--ghost" id="addQuestion">+ Добавить вопрос</button>
-              <button type="submit" class="btn">Сохранить анкету</button>
+            <div class="divider"></div>
+            <div id="questions" class="questions"></div>
+            <div class="action-row">
+              <button type="button" id="addQuestion" class="btn btn--ghost">+ Добавить вопрос</button>
+              <button type="submit" class="btn">Сохранить как черновик</button>
             </div>
+            <p id="builderStatus" class="status"></p>
           </form>
 
-          <div class="card builder__tips">
-            <h3>Профессиональные советы</h3>
-            <ul>
-              <li>Комбинируйте выбор и открытые вопросы для глубины исследования.</li>
-              <li>Используйте рейтинг, чтобы быстро выявить приоритеты.</li>
-              <li>Публикуйте анкету, чтобы открыть сбор ответов.</li>
-            </ul>
-            <div class="builder__status" id="builderStatus">Создайте первую анкету, чтобы увидеть результат.</div>
+          <div class="card tips">
+            <h3>Рекомендации</h3>
+            <ol>
+              <li>Добавляйте 1-2 ключевых вопроса рейтинга для количественной оценки.</li>
+              <li>Используйте одиночный выбор для приоритетов и мультивыбор для каналов.</li>
+              <li>Закрывайте анкету через архив, когда сбор завершен.</li>
+            </ol>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section id="live" class="section">
-      <div class="container">
-        <div class="section__header">
-          <h2>Активные анкеты и голосования</h2>
-          <p>Публикуйте анкеты и собирайте ответы в реальном времени.</p>
+      <section id="library" class="section">
+        <div class="container">
+          <div class="section__head section__head--row">
+            <div>
+              <h2>Библиотека анкет</h2>
+              <p>Управляйте жизненным циклом анкет: draft, published, archived.</p>
+            </div>
+            <div class="toolbar">
+              <select id="statusFilter">
+                <option value="">Все статусы</option>
+                <option value="draft">Черновики</option>
+                <option value="published">Опубликованные</option>
+                <option value="archived">Архив</option>
+              </select>
+              <input id="searchInput" type="search" placeholder="Поиск по названию" />
+            </div>
+          </div>
+          <div id="surveyList" class="survey-list"></div>
         </div>
-        <div id="surveyList" class="survey-list"></div>
-      </div>
-    </section>
+      </section>
 
-    <section id="analytics" class="section section--alt">
-      <div class="container">
-        <div class="section__header">
-          <h2>Аналитика и результаты</h2>
-          <p>Откройте анкету, чтобы увидеть статистику и распределение голосов.</p>
+      <section id="analytics" class="section section--alt">
+        <div class="container">
+          <div class="section__head">
+            <h2>Аналитика и результаты голосования</h2>
+            <p>Откройте анкету в библиотеке и нажмите «Результаты».</p>
+          </div>
+          <div id="results" class="results"></div>
         </div>
-        <div id="results" class="results"></div>
-      </div>
-    </section>
-  </main>
+      </section>
+    </main>
 
-  <footer class="footer">
-    <div class="container footer__inner">
-      <div>
-        <h3>PulseSurvey</h3>
-        <p>Платформа для профессиональных опросов и голосований.</p>
-      </div>
-      <div class="footer__links">
-        <a href="#features">Возможности</a>
-        <a href="#builder">Конструктор</a>
-        <a href="#live">Анкеты</a>
-        <a href="#analytics">Аналитика</a>
+    <div id="modal" class="modal" hidden>
+      <div class="modal__content">
+        <button id="modalClose" class="modal__close">×</button>
+        <div id="modalBody"></div>
       </div>
     </div>
-  </footer>
 
-  <script src="/app.js"></script>
-</body>
+    <script src="/app.js"></script>
+  </body>
 </html>
