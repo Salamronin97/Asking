@@ -499,25 +499,13 @@ app.post("/api/auth/register", rateLimitAuth("register"), antiBotPayload, async 
 
     const createdAt = nowIso();
     const result = await run(
-      "INSERT INTO users (name, username, email, email_verified, password_hash, created_at) VALUES (?, ?, ?, 0, ?, ?)",
+      "INSERT INTO users (name, username, email, email_verified, password_hash, created_at) VALUES (?, ?, ?, 1, ?, ?)",
       [name, username, email, hashPassword(password), createdAt]
     );
 
-    const verificationToken = await issueVerificationToken(result.lastID);
-    const verifyLink = `${baseUrl(req)}/auth?verify=${verificationToken}`;
-    await sendEmail({
-      to: email,
-      subject: "Confirm your Asking Pro email",
-      text: `Confirm your email: ${verifyLink}`,
-      html: `<p>Confirm your email for Asking Pro:</p><p><a href="${verifyLink}">${verifyLink}</a></p>`
-    });
-
     const session = await createSession(result.lastID);
     setSessionCookie(req, res, session.token, session.expiresAt);
-    res.status(201).json({
-      user: { id: result.lastID, name, username, email, email_verified: 0 },
-      verificationRequired: true
-    });
+    res.status(201).json({ user: { id: result.lastID, name, username, email, email_verified: 1 } });
   } catch (error) {
     next(error);
   }
@@ -539,10 +527,6 @@ app.post("/api/auth/login", rateLimitAuth("login"), antiBotPayload, async (req, 
     if (!user || !verifyPassword(password, user.password_hash)) {
       return res.status(401).json({ error: "Invalid nickname/email or password" });
     }
-    if (user.email_verified !== 1) {
-      return res.status(403).json({ error: "Email not confirmed. Please verify your email first." });
-    }
-
     const session = await createSession(user.id);
     setSessionCookie(req, res, session.token, session.expiresAt);
     res.json({ user: toPublicUser(user) });

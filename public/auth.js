@@ -158,7 +158,10 @@ async function submitAuth(event) {
     });
 
     if (mode === "register") {
-      showOk("Account created. Check your email for verification link.");
+      showOk("Account created. Redirecting...");
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 700);
       return;
     }
 
