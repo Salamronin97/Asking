@@ -8,9 +8,13 @@ const nameRow = document.getElementById("nameRow");
 const nameInput = document.getElementById("name");
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
+const passwordHint = document.getElementById("passwordHint");
 const errorBox = document.getElementById("errorBox");
 const okBox = document.getElementById("okBox");
 const googleWrap = document.getElementById("googleWrap");
+const googleTitle = document.getElementById("googleTitle");
+const googleLead = document.getElementById("googleLead");
+const googleState = document.getElementById("googleState");
 
 let mode = "login";
 
@@ -21,9 +25,17 @@ function setMode(nextMode) {
   authLead.textContent = isRegister
     ? "Create your account to build and manage surveys."
     : "Use your email and password, or continue with Google.";
+  googleTitle.textContent = isRegister ? "Register with Google" : "Google Sign-In";
+  googleLead.textContent = isRegister
+    ? "Create an account instantly using your Google profile."
+    : "One-click sign in with your Google account.";
   submitBtn.textContent = isRegister ? "Register" : "Login";
   nameRow.hidden = !isRegister;
   nameInput.required = isRegister;
+  passwordInput.autocomplete = isRegister ? "new-password" : "current-password";
+  passwordHint.hidden = !isRegister;
+  toLogin.classList.toggle("is-active", !isRegister);
+  toRegister.classList.toggle("is-active", isRegister);
   errorBox.textContent = "";
   okBox.textContent = "";
 }
@@ -43,6 +55,17 @@ function showError(message) {
 function showOk(message) {
   okBox.textContent = message;
   errorBox.textContent = "";
+}
+
+function setGoogleState(message, kind = "muted") {
+  googleState.textContent = message;
+  if (kind === "error") {
+    googleState.style.color = "#b91c1c";
+  } else if (kind === "ok") {
+    googleState.style.color = "#166534";
+  } else {
+    googleState.style.color = "";
+  }
 }
 
 async function submitAuth(event) {
@@ -91,6 +114,7 @@ function initGoogle(clientId) {
         }, 500);
       } catch (error) {
         showError(error.message);
+        setGoogleState("Google auth failed. Try again.", "error");
       }
     }
   });
@@ -101,6 +125,7 @@ function initGoogle(clientId) {
     theme: "outline",
     shape: "rectangular"
   });
+  setGoogleState("Google OAuth is enabled.", "ok");
   window.google.accounts.id.prompt();
 }
 
@@ -122,9 +147,13 @@ async function bootstrap() {
 
   try {
     const cfg = await request("/api/auth/google-config");
-    if (cfg.enabled && cfg.clientId) initGoogle(cfg.clientId);
-  } catch {
-    // ignore
+    if (cfg.enabled && cfg.clientId) {
+      initGoogle(cfg.clientId);
+      return;
+    }
+    setGoogleState("Google sign-in is currently unavailable on this deployment.", "error");
+  } catch (error) {
+    setGoogleState("Could not load Google auth configuration.", "error");
   }
 }
 
