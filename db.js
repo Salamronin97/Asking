@@ -43,6 +43,7 @@ async function init() {
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
+      username TEXT UNIQUE,
       email TEXT NOT NULL UNIQUE,
       password_hash TEXT,
       google_sub TEXT UNIQUE,
@@ -115,6 +116,10 @@ async function init() {
   if (!surveyColumns.some((column) => column.name === "owner_user_id")) {
     await run("ALTER TABLE surveys ADD COLUMN owner_user_id INTEGER");
   }
+  const userColumns = await all("PRAGMA table_info(users)");
+  if (!userColumns.some((column) => column.name === "username")) {
+    await run("ALTER TABLE users ADD COLUMN username TEXT");
+  }
 
   await run("CREATE INDEX IF NOT EXISTS idx_surveys_status ON surveys(status)");
   await run("CREATE INDEX IF NOT EXISTS idx_surveys_owner ON surveys(owner_user_id)");
@@ -122,6 +127,8 @@ async function init() {
   await run("CREATE INDEX IF NOT EXISTS idx_responses_survey ON responses(survey_id)");
   await run("CREATE INDEX IF NOT EXISTS idx_answers_question ON answers(question_id)");
   await run("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)");
+  await run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_unique ON users(username) WHERE username IS NOT NULL");
+  await run("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)");
   await run("CREATE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub)");
   await run("CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions(user_id)");
   await run("CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires ON auth_sessions(expires_at)");

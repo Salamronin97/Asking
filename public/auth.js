@@ -4,8 +4,14 @@ const authLead = document.getElementById("authLead");
 const toLogin = document.getElementById("toLogin");
 const toRegister = document.getElementById("toRegister");
 const submitBtn = document.getElementById("submitBtn");
+const identifierRow = document.getElementById("identifierRow");
+const identifierLabel = document.getElementById("identifierLabel");
+const identifierInput = document.getElementById("identifier");
+const usernameRow = document.getElementById("usernameRow");
+const usernameInput = document.getElementById("username");
 const nameRow = document.getElementById("nameRow");
 const nameInput = document.getElementById("name");
+const emailRow = document.getElementById("emailRow");
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
 const passwordHint = document.getElementById("passwordHint");
@@ -30,8 +36,15 @@ function setMode(nextMode) {
     ? "Create an account instantly using your Google profile."
     : "One-click sign in with your Google account.";
   submitBtn.textContent = isRegister ? "Register" : "Login";
+  identifierRow.hidden = isRegister;
+  identifierInput.required = !isRegister;
+  identifierLabel.textContent = "Email or nickname";
+  usernameRow.hidden = !isRegister;
+  usernameInput.required = isRegister;
   nameRow.hidden = !isRegister;
-  nameInput.required = isRegister;
+  nameInput.required = false;
+  emailRow.hidden = !isRegister;
+  emailInput.required = isRegister;
   passwordInput.autocomplete = isRegister ? "new-password" : "current-password";
   passwordHint.hidden = !isRegister;
   toLogin.classList.toggle("is-active", !isRegister);
@@ -74,12 +87,13 @@ async function submitAuth(event) {
     const payload =
       mode === "register"
         ? {
+            username: usernameInput.value.trim(),
             name: nameInput.value.trim(),
             email: emailInput.value.trim(),
             password: passwordInput.value
           }
         : {
-            email: emailInput.value.trim(),
+            identifier: identifierInput.value.trim(),
             password: passwordInput.value
           };
     const url = mode === "register" ? "/api/auth/register" : "/api/auth/login";
@@ -99,6 +113,7 @@ async function submitAuth(event) {
 
 function initGoogle(clientId) {
   if (!window.google || !clientId) return;
+  googleWrap.innerHTML = "";
   window.google.accounts.id.initialize({
     client_id: clientId,
     callback: async (response) => {
@@ -122,11 +137,16 @@ function initGoogle(clientId) {
     type: "standard",
     size: "large",
     text: "continue_with",
-    theme: "outline",
-    shape: "rectangular"
+    theme: "filled_black",
+    shape: "pill",
+    width: 320
   });
   setGoogleState("Google OAuth is enabled.", "ok");
   window.google.accounts.id.prompt();
+}
+
+function renderGoogleFallback() {
+  googleWrap.innerHTML = '<button type="button" class="google-fallback" disabled>Google Sign-In unavailable</button>';
 }
 
 async function bootstrap() {
@@ -151,8 +171,10 @@ async function bootstrap() {
       initGoogle(cfg.clientId);
       return;
     }
+    renderGoogleFallback();
     setGoogleState("Google sign-in is currently unavailable on this deployment.", "error");
   } catch (error) {
+    renderGoogleFallback();
     setGoogleState("Could not load Google auth configuration.", "error");
   }
 }

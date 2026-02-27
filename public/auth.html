@@ -59,10 +59,10 @@
       .google-card {
         border: 1px solid var(--line);
         border-radius: 14px;
-        background: #fff8f1;
-        padding: 12px;
+        background: linear-gradient(145deg, #fff9f2 0%, #fff1e5 100%);
+        padding: 14px;
         display: grid;
-        gap: 8px;
+        gap: 10px;
       }
       .google-title {
         font-weight: 700;
@@ -79,6 +79,17 @@
         margin: 0;
         color: var(--muted);
         font-size: 13px;
+      }
+      .google-fallback {
+        border: 1px dashed #c5b3a1;
+        border-radius: 12px;
+        background: #fff;
+        color: #6d635b;
+        font-weight: 700;
+        padding: 11px 14px;
+        width: 100%;
+        text-align: left;
+        cursor: not-allowed;
       }
       .hint {
         font-size: 12px;
@@ -100,13 +111,22 @@
           <a class="btn btn--outline" href="/">Back</a>
         </div>
         <div class="auth-grid">
-          <div class="auth-row" id="nameRow" hidden>
-            <label for="name">Name</label>
-            <input id="name" type="text" autocomplete="name" />
+          <div class="auth-row" id="identifierRow">
+            <label for="identifier" id="identifierLabel">Email or nickname</label>
+            <input id="identifier" type="text" required autocomplete="username" placeholder="you@mail.com or cool_nick" />
           </div>
-          <div class="auth-row">
+          <div class="auth-row" id="usernameRow" hidden>
+            <label for="username">Nickname</label>
+            <input id="username" type="text" autocomplete="username" placeholder="cool_nick" />
+            <span class="hint">Allowed: a-z, 0-9, dot, underscore, dash</span>
+          </div>
+          <div class="auth-row" id="nameRow" hidden>
+            <label for="name">Display name (optional)</label>
+            <input id="name" type="text" autocomplete="name" placeholder="Your name" />
+          </div>
+          <div class="auth-row" id="emailRow" hidden>
             <label for="email">Email</label>
-            <input id="email" type="email" required autocomplete="email" />
+            <input id="email" type="email" autocomplete="email" placeholder="you@mail.com" />
           </div>
           <div class="auth-row">
             <label for="password">Password</label>

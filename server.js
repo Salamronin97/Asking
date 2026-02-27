@@ -189,8 +189,36 @@ function toPublicUser(row) {
   return {
     id: row.id,
     name: row.name,
+    username: row.username,
     email: row.email
   };
+}
+
+function normalizeUsername(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function sanitizeUsernameBase(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, "")
+    .replace(/^[._-]+|[._-]+$/g, "")
+    .slice(0, 24);
+}
+
+async function ensureUniqueUsername(baseRaw) {
+  const base = sanitizeUsernameBase(baseRaw) || `user${Math.floor(Date.now() / 1000)}`;
+  let candidate = base.slice(0, 32);
+  let suffix = 0;
+  while (true) {
+    const existing = await get("SELECT id FROM users WHERE lower(username) = lower(?) LIMIT 1", [candidate]);
+    if (!existing) return candidate;
+    suffix += 1;
+    const tail = String(suffix);
+    candidate = `${base.slice(0, Math.max(3, 32 - tail.length))}${tail}`;
+  }
 }
 
 async function attachAuthUser(req, _res, next) {
@@ -201,7 +229,7 @@ async function attachAuthUser(req, _res, next) {
     if (!token) return next();
 
     const session = await get(
-      `SELECT s.token, s.user_id, s.expires_at, u.id, u.name, u.email
+      `SELECT s.token, s.user_id, s.expires_at, u.id, u.name, u.username, u.email
        FROM auth_sessions s
        JOIN users u ON u.id = s.user_id
        WHERE s.token = ?`,
@@ -332,28 +360,37 @@ app.get("/api/auth/me", (req, res) => {
 
 app.post("/api/auth/register", async (req, res, next) => {
   try {
-    const name = String(req.body?.name || "").trim();
+    const nameInput = String(req.body?.name || "").trim();
+    const username = normalizeUsername(req.body?.username);
     const email = String(req.body?.email || "")
       .trim()
       .toLowerCase();
     const password = String(req.body?.password || "");
+    const name = nameInput || username;
 
+    if (!/^[a-z0-9._-]{3,32}$/.test(username)) {
+      return res.status(400).json({ error: "Nickname must be 3-32 chars: a-z, 0-9, . _ -" });
+    }
     if (name.length < 2) return res.status(400).json({ error: "Name is too short" });
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: "Invalid email" });
     if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
 
-    const existing = await get("SELECT id FROM users WHERE email = ?", [email]);
-    if (existing) return res.status(409).json({ error: "Email already in use" });
+    const [existingEmail, existingUsername] = await Promise.all([
+      get("SELECT id FROM users WHERE email = ?", [email]),
+      get("SELECT id FROM users WHERE lower(username) = lower(?)", [username])
+    ]);
+    if (existingEmail) return res.status(409).json({ error: "Email already in use" });
+    if (existingUsername) return res.status(409).json({ error: "Nickname already in use" });
 
     const createdAt = nowIso();
     const result = await run(
-      "INSERT INTO users (name, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
-      [name, email, hashPassword(password), createdAt]
+      "INSERT INTO users (name, username, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)",
+      [name, username, email, hashPassword(password), createdAt]
     );
 
     const session = await createSession(result.lastID);
     setSessionCookie(req, res, session.token, session.expiresAt);
-    res.status(201).json({ user: { id: result.lastID, name, email } });
+    res.status(201).json({ user: { id: result.lastID, name, username, email } });
   } catch (error) {
     next(error);
   }
@@ -361,13 +398,17 @@ app.post("/api/auth/register", async (req, res, next) => {
 
 app.post("/api/auth/login", async (req, res, next) => {
   try {
-    const email = String(req.body?.email || "")
+    const identifier = String(req.body?.identifier || req.body?.email || req.body?.username || "")
       .trim()
       .toLowerCase();
     const password = String(req.body?.password || "");
-    const user = await get("SELECT id, name, email, password_hash FROM users WHERE email = ?", [email]);
+    if (!identifier) return res.status(400).json({ error: "Nickname or email is required" });
+    const user = await get(
+      "SELECT id, name, username, email, password_hash FROM users WHERE lower(email) = ? OR lower(username) = ?",
+      [identifier, identifier]
+    );
     if (!user || !verifyPassword(password, user.password_hash)) {
-      return res.status(401).json({ error: "Invalid email or password" });
+      return res.status(401).json({ error: "Invalid nickname/email or password" });
     }
 
     const session = await createSession(user.id);
@@ -391,19 +432,27 @@ app.post("/api/auth/google", async (req, res, next) => {
     const googleSub = payload.sub;
     const email = String(payload.email).toLowerCase();
     const name = String(payload.name || email.split("@")[0] || "Google User").trim();
+    const preferredUsername = sanitizeUsernameBase(payload.given_name || name || email.split("@")[0]);
 
-    let user = await get("SELECT id, name, email FROM users WHERE google_sub = ?", [googleSub]);
+    let user = await get("SELECT id, name, username, email FROM users WHERE google_sub = ?", [googleSub]);
     if (!user) {
-      const byEmail = await get("SELECT id, name, email FROM users WHERE email = ?", [email]);
+      const byEmail = await get("SELECT id, name, username, email FROM users WHERE email = ?", [email]);
       if (byEmail) {
-        await run("UPDATE users SET google_sub = ? WHERE id = ?", [googleSub, byEmail.id]);
-        user = { ...byEmail };
+        let username = byEmail.username;
+        if (!username) {
+          username = await ensureUniqueUsername(preferredUsername || email.split("@")[0]);
+          await run("UPDATE users SET google_sub = ?, username = ? WHERE id = ?", [googleSub, username, byEmail.id]);
+        } else {
+          await run("UPDATE users SET google_sub = ? WHERE id = ?", [googleSub, byEmail.id]);
+        }
+        user = { ...byEmail, username };
       } else {
+        const username = await ensureUniqueUsername(preferredUsername || email.split("@")[0]);
         const created = await run(
-          "INSERT INTO users (name, email, google_sub, created_at) VALUES (?, ?, ?, ?)",
-          [name, email, googleSub, nowIso()]
+          "INSERT INTO users (name, username, email, google_sub, created_at) VALUES (?, ?, ?, ?, ?)",
+          [name, username, email, googleSub, nowIso()]
         );
-        user = { id: created.lastID, name, email };
+        user = { id: created.lastID, name, username, email };
       }
     }
 
