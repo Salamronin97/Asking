@@ -45,6 +45,7 @@ async function init() {
       name TEXT NOT NULL,
       username TEXT UNIQUE,
       email TEXT NOT NULL UNIQUE,
+      email_verified INTEGER NOT NULL DEFAULT 0,
       password_hash TEXT,
       google_sub TEXT UNIQUE,
       created_at TEXT NOT NULL
@@ -111,6 +112,24 @@ async function init() {
       FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
+  await run(`
+    CREATE TABLE IF NOT EXISTS email_verification_tokens (
+      token TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+  await run(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      token TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
 
   const surveyColumns = await all("PRAGMA table_info(surveys)");
   if (!surveyColumns.some((column) => column.name === "owner_user_id")) {
@@ -119,6 +138,9 @@ async function init() {
   const userColumns = await all("PRAGMA table_info(users)");
   if (!userColumns.some((column) => column.name === "username")) {
     await run("ALTER TABLE users ADD COLUMN username TEXT");
+  }
+  if (!userColumns.some((column) => column.name === "email_verified")) {
+    await run("ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0");
   }
 
   await run("CREATE INDEX IF NOT EXISTS idx_surveys_status ON surveys(status)");
@@ -132,6 +154,10 @@ async function init() {
   await run("CREATE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub)");
   await run("CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions(user_id)");
   await run("CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires ON auth_sessions(expires_at)");
+  await run(
+    "CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_expires ON email_verification_tokens(expires_at)"
+  );
+  await run("CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires ON password_reset_tokens(expires_at)");
 }
 
 module.exports = {

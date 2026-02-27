@@ -1,6 +1,7 @@
 ﻿const crypto = require("crypto");
 const express = require("express");
 const path = require("path");
+const nodemailer = require("nodemailer");
 const { OAuth2Client } = require("google-auth-library");
 const { init, run, all, get } = require("./db");
 
@@ -15,7 +16,24 @@ const QUESTION_TYPES = new Set(["text", "single", "multi", "rating"]);
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const SESSION_COOKIE = "asking_sid";
 const SESSION_TTL_DAYS = 30;
+const VERIFY_TOKEN_TTL_HOURS = 48;
+const RESET_TOKEN_TTL_HOURS = 1;
+const APP_BASE_URL = process.env.APP_BASE_URL || "";
+const SMTP_HOST = process.env.SMTP_HOST || "";
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_USER = process.env.SMTP_USER || "";
+const SMTP_PASS = process.env.SMTP_PASS || "";
+const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || "noreply@asking.local";
 const GOOGLE_CLIENT = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
+const AUTH_RATE_BUCKETS = new Map();
+const AUTH_LIMITS = {
+  login: { limit: 12, windowMs: 15 * 60 * 1000 },
+  register: { limit: 6, windowMs: 20 * 60 * 1000 },
+  forgot: { limit: 5, windowMs: 20 * 60 * 1000 },
+  reset: { limit: 7, windowMs: 20 * 60 * 1000 },
+  verify: { limit: 10, windowMs: 20 * 60 * 1000 },
+  resend: { limit: 6, windowMs: 20 * 60 * 1000 }
+};
 
 function nowIso() {
   return new Date().toISOString();
@@ -47,6 +65,100 @@ function parseBool(value, fallback = false) {
   if (value === "1" || value === "true") return true;
   if (value === "0" || value === "false") return false;
   return fallback;
+}
+
+function baseUrl(req) {
+  if (APP_BASE_URL) return APP_BASE_URL.replace(/\/+$/, "");
+  const protocol = req.headers["x-forwarded-proto"] || (req.secure ? "https" : "http");
+  const host = req.headers["x-forwarded-host"] || req.headers.host || `localhost:${PORT}`;
+  return `${protocol}://${host}`.replace(/\/+$/, "");
+}
+
+function randomToken(size = 32) {
+  return crypto.randomBytes(size).toString("hex");
+}
+
+function rateLimitAuth(action) {
+  const conf = AUTH_LIMITS[action];
+  return (req, res, next) => {
+    if (!conf) return next();
+    const forwarded = req.headers["x-forwarded-for"];
+    const ipRaw = Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "unknown";
+    const ip = String(ipRaw).split(",")[0].trim();
+    const key = `${action}:${ip}`;
+    const now = Date.now();
+    const bucket = AUTH_RATE_BUCKETS.get(key) || [];
+    const recent = bucket.filter((ts) => now - ts < conf.windowMs);
+    if (recent.length >= conf.limit) {
+      return res.status(429).json({ error: "Too many auth attempts. Try again later." });
+    }
+    recent.push(now);
+    AUTH_RATE_BUCKETS.set(key, recent);
+    return next();
+  };
+}
+
+function antiBotPayload(req, res, next) {
+  const website = String(req.body?.website || "").trim();
+  const startedAt = Number(req.body?.authStartedAt || 0);
+  if (website) return res.status(400).json({ error: "Bot protection triggered" });
+  if (startedAt && Date.now() - startedAt < 1200) {
+    return res.status(400).json({ error: "Form submitted too quickly" });
+  }
+  return next();
+}
+
+async function issueVerificationToken(userId) {
+  const token = randomToken(24);
+  const createdAt = nowIso();
+  const expiresAt = new Date(Date.now() + VERIFY_TOKEN_TTL_HOURS * 60 * 60 * 1000).toISOString();
+  await run("DELETE FROM email_verification_tokens WHERE user_id = ?", [userId]);
+  await run(
+    "INSERT INTO email_verification_tokens (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+    [token, userId, createdAt, expiresAt]
+  );
+  return token;
+}
+
+async function issueResetToken(userId) {
+  const token = randomToken(24);
+  const createdAt = nowIso();
+  const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_HOURS * 60 * 60 * 1000).toISOString();
+  await run("DELETE FROM password_reset_tokens WHERE user_id = ?", [userId]);
+  await run(
+    "INSERT INTO password_reset_tokens (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+    [token, userId, createdAt, expiresAt]
+  );
+  return token;
+}
+
+function getMailer() {
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465,
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS
+    }
+  });
+}
+
+async function sendEmail({ to, subject, text, html }) {
+  const mailer = getMailer();
+  if (!mailer) {
+    console.log("[mail disabled] to=%s subject=%s text=%s", to, subject, text);
+    return false;
+  }
+  await mailer.sendMail({
+    from: SMTP_FROM,
+    to,
+    subject,
+    text,
+    html
+  });
+  return true;
 }
 
 function parseCookies(req) {
@@ -190,7 +302,8 @@ function toPublicUser(row) {
     id: row.id,
     name: row.name,
     username: row.username,
-    email: row.email
+    email: row.email,
+    emailVerified: row.email_verified === 1
   };
 }
 
@@ -229,7 +342,7 @@ async function attachAuthUser(req, _res, next) {
     if (!token) return next();
 
     const session = await get(
-      `SELECT s.token, s.user_id, s.expires_at, u.id, u.name, u.username, u.email
+      `SELECT s.token, s.user_id, s.expires_at, u.id, u.name, u.username, u.email, u.email_verified
        FROM auth_sessions s
        JOIN users u ON u.id = s.user_id
        WHERE s.token = ?`,
@@ -358,7 +471,7 @@ app.get("/api/auth/me", (req, res) => {
   res.json({ user: req.user || null });
 });
 
-app.post("/api/auth/register", async (req, res, next) => {
+app.post("/api/auth/register", rateLimitAuth("register"), antiBotPayload, async (req, res, next) => {
   try {
     const nameInput = String(req.body?.name || "").trim();
     const username = normalizeUsername(req.body?.username);
@@ -384,19 +497,31 @@ app.post("/api/auth/register", async (req, res, next) => {
 
     const createdAt = nowIso();
     const result = await run(
-      "INSERT INTO users (name, username, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)",
+      "INSERT INTO users (name, username, email, email_verified, password_hash, created_at) VALUES (?, ?, ?, 0, ?, ?)",
       [name, username, email, hashPassword(password), createdAt]
     );
 
+    const verificationToken = await issueVerificationToken(result.lastID);
+    const verifyLink = `${baseUrl(req)}/auth?verify=${verificationToken}`;
+    await sendEmail({
+      to: email,
+      subject: "Confirm your Asking Pro email",
+      text: `Confirm your email: ${verifyLink}`,
+      html: `<p>Confirm your email for Asking Pro:</p><p><a href="${verifyLink}">${verifyLink}</a></p>`
+    });
+
     const session = await createSession(result.lastID);
     setSessionCookie(req, res, session.token, session.expiresAt);
-    res.status(201).json({ user: { id: result.lastID, name, username, email } });
+    res.status(201).json({
+      user: { id: result.lastID, name, username, email, email_verified: 0 },
+      verificationRequired: true
+    });
   } catch (error) {
     next(error);
   }
 });
 
-app.post("/api/auth/login", async (req, res, next) => {
+app.post("/api/auth/login", rateLimitAuth("login"), antiBotPayload, async (req, res, next) => {
   try {
     const identifier = String(req.body?.identifier || req.body?.email || req.body?.username || "")
       .trim()
@@ -404,11 +529,16 @@ app.post("/api/auth/login", async (req, res, next) => {
     const password = String(req.body?.password || "");
     if (!identifier) return res.status(400).json({ error: "Nickname or email is required" });
     const user = await get(
-      "SELECT id, name, username, email, password_hash FROM users WHERE lower(email) = ? OR lower(username) = ?",
+      `SELECT id, name, username, email, email_verified, password_hash
+       FROM users
+       WHERE lower(email) = ? OR lower(username) = ?`,
       [identifier, identifier]
     );
     if (!user || !verifyPassword(password, user.password_hash)) {
       return res.status(401).json({ error: "Invalid nickname/email or password" });
+    }
+    if (user.email_verified !== 1) {
+      return res.status(403).json({ error: "Email not confirmed. Please verify your email first." });
     }
 
     const session = await createSession(user.id);
@@ -434,31 +564,150 @@ app.post("/api/auth/google", async (req, res, next) => {
     const name = String(payload.name || email.split("@")[0] || "Google User").trim();
     const preferredUsername = sanitizeUsernameBase(payload.given_name || name || email.split("@")[0]);
 
-    let user = await get("SELECT id, name, username, email FROM users WHERE google_sub = ?", [googleSub]);
+    let user = await get("SELECT id, name, username, email, email_verified FROM users WHERE google_sub = ?", [googleSub]);
     if (!user) {
-      const byEmail = await get("SELECT id, name, username, email FROM users WHERE email = ?", [email]);
+      const byEmail = await get("SELECT id, name, username, email, email_verified FROM users WHERE email = ?", [email]);
       if (byEmail) {
         let username = byEmail.username;
         if (!username) {
           username = await ensureUniqueUsername(preferredUsername || email.split("@")[0]);
-          await run("UPDATE users SET google_sub = ?, username = ? WHERE id = ?", [googleSub, username, byEmail.id]);
+          await run("UPDATE users SET google_sub = ?, username = ?, email_verified = 1 WHERE id = ?", [
+            googleSub,
+            username,
+            byEmail.id
+          ]);
         } else {
-          await run("UPDATE users SET google_sub = ? WHERE id = ?", [googleSub, byEmail.id]);
+          await run("UPDATE users SET google_sub = ?, email_verified = 1 WHERE id = ?", [googleSub, byEmail.id]);
         }
-        user = { ...byEmail, username };
+        user = { ...byEmail, username, email_verified: 1 };
       } else {
         const username = await ensureUniqueUsername(preferredUsername || email.split("@")[0]);
         const created = await run(
-          "INSERT INTO users (name, username, email, google_sub, created_at) VALUES (?, ?, ?, ?, ?)",
+          "INSERT INTO users (name, username, email, email_verified, google_sub, created_at) VALUES (?, ?, ?, 1, ?, ?)",
           [name, username, email, googleSub, nowIso()]
         );
-        user = { id: created.lastID, name, username, email };
+        user = { id: created.lastID, name, username, email, email_verified: 1 };
       }
     }
 
     const session = await createSession(user.id);
     setSessionCookie(req, res, session.token, session.expiresAt);
     res.json({ user: toPublicUser(user) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/auth/verify-email", rateLimitAuth("verify"), async (req, res, next) => {
+  try {
+    const token = String(req.body?.token || "").trim();
+    if (!token) return res.status(400).json({ error: "Missing verification token" });
+
+    const row = await get(
+      `SELECT t.token, t.user_id, t.expires_at, u.id, u.name, u.username, u.email, u.email_verified
+       FROM email_verification_tokens t
+       JOIN users u ON u.id = t.user_id
+       WHERE t.token = ?`,
+      [token]
+    );
+    if (!row) return res.status(400).json({ error: "Invalid verification token" });
+    if (Date.parse(row.expires_at) < Date.now()) {
+      await run("DELETE FROM email_verification_tokens WHERE token = ?", [token]);
+      return res.status(400).json({ error: "Verification token expired" });
+    }
+
+    await run("UPDATE users SET email_verified = 1 WHERE id = ?", [row.user_id]);
+    await run("DELETE FROM email_verification_tokens WHERE user_id = ?", [row.user_id]);
+
+    const session = await createSession(row.user_id);
+    setSessionCookie(req, res, session.token, session.expiresAt);
+    res.json({
+      ok: true,
+      user: {
+        id: row.id,
+        name: row.name,
+        username: row.username,
+        email: row.email,
+        emailVerified: true
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/auth/resend-verification", rateLimitAuth("resend"), antiBotPayload, async (req, res, next) => {
+  try {
+    const email = String(req.body?.email || "")
+      .trim()
+      .toLowerCase();
+    if (!email) return res.json({ ok: true });
+
+    const user = await get("SELECT id, email, email_verified FROM users WHERE email = ?", [email]);
+    if (!user || user.email_verified === 1) return res.json({ ok: true });
+
+    const token = await issueVerificationToken(user.id);
+    const verifyLink = `${baseUrl(req)}/auth?verify=${token}`;
+    await sendEmail({
+      to: user.email,
+      subject: "Confirm your Asking Pro email",
+      text: `Confirm your email: ${verifyLink}`,
+      html: `<p>Confirm your email for Asking Pro:</p><p><a href="${verifyLink}">${verifyLink}</a></p>`
+    });
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/auth/forgot-password", rateLimitAuth("forgot"), antiBotPayload, async (req, res, next) => {
+  try {
+    const email = String(req.body?.email || "")
+      .trim()
+      .toLowerCase();
+    if (!email) return res.json({ ok: true });
+    const user = await get("SELECT id, email FROM users WHERE email = ?", [email]);
+    if (!user) return res.json({ ok: true });
+
+    const token = await issueResetToken(user.id);
+    const resetLink = `${baseUrl(req)}/auth?reset=${token}`;
+    await sendEmail({
+      to: user.email,
+      subject: "Reset your Asking Pro password",
+      text: `Reset your password: ${resetLink}`,
+      html: `<p>Reset your Asking Pro password:</p><p><a href="${resetLink}">${resetLink}</a></p>`
+    });
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/auth/reset-password", rateLimitAuth("reset"), antiBotPayload, async (req, res, next) => {
+  try {
+    const token = String(req.body?.token || "").trim();
+    const password = String(req.body?.password || "");
+    if (!token) return res.status(400).json({ error: "Missing reset token" });
+    if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+
+    const tokenRow = await get("SELECT token, user_id, expires_at FROM password_reset_tokens WHERE token = ?", [token]);
+    if (!tokenRow) return res.status(400).json({ error: "Invalid reset token" });
+    if (Date.parse(tokenRow.expires_at) < Date.now()) {
+      await run("DELETE FROM password_reset_tokens WHERE token = ?", [token]);
+      return res.status(400).json({ error: "Reset token expired" });
+    }
+
+    await run("UPDATE users SET password_hash = ?, email_verified = 1 WHERE id = ?", [
+      hashPassword(password),
+      tokenRow.user_id
+    ]);
+    await run("DELETE FROM password_reset_tokens WHERE user_id = ?", [tokenRow.user_id]);
+    await run("DELETE FROM auth_sessions WHERE user_id = ?", [tokenRow.user_id]);
+
+    const user = await get("SELECT id, name, username, email, email_verified FROM users WHERE id = ?", [tokenRow.user_id]);
+    const session = await createSession(tokenRow.user_id);
+    setSessionCookie(req, res, session.token, session.expiresAt);
+    res.json({ ok: true, user: toPublicUser(user) });
   } catch (error) {
     next(error);
   }

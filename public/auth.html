@@ -95,6 +95,40 @@
         font-size: 12px;
         color: var(--muted);
       }
+      .ghost-link {
+        border: none;
+        background: transparent;
+        color: var(--accent-strong);
+        font-weight: 700;
+        padding: 0;
+        text-align: left;
+        cursor: pointer;
+      }
+      .auth-aux {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fff;
+        padding: 12px;
+        display: grid;
+        gap: 10px;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
     </style>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
   </head>
@@ -111,6 +145,11 @@
           <a class="btn btn--outline" href="/">Back</a>
         </div>
         <div class="auth-grid">
+          <div class="sr-only">
+            <label for="website">Website</label>
+            <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+          <input id="authStartedAt" type="hidden" />
           <div class="auth-row" id="identifierRow">
             <label for="identifier" id="identifierLabel">Email or nickname</label>
             <input id="identifier" type="text" required autocomplete="username" placeholder="you@mail.com or cool_nick" />
@@ -133,10 +172,26 @@
             <input id="password" type="password" required autocomplete="current-password" />
             <span class="hint" id="passwordHint" hidden>Use at least 8 characters.</span>
           </div>
+          <div class="auth-row" id="resetTokenRow" hidden>
+            <label for="resetToken">Reset token</label>
+            <input id="resetToken" type="text" autocomplete="off" />
+          </div>
           <button class="btn" id="submitBtn" type="submit">Login</button>
+          <div class="auth-aux" id="authAux">
+            <button class="ghost-link" id="forgotBtn" type="button">Forgot password?</button>
+            <button class="ghost-link" id="resendBtn" type="button">Resend verification email</button>
+          </div>
         </div>
         <div class="error" id="errorBox"></div>
         <div class="ok" id="okBox"></div>
+        <div class="panel" id="forgotPanel" hidden>
+          <strong>Password recovery</strong>
+          <div class="auth-row">
+            <label for="forgotEmail">Account email</label>
+            <input id="forgotEmail" type="email" autocomplete="email" placeholder="you@mail.com" />
+          </div>
+          <button class="btn btn--outline" id="forgotSendBtn" type="button">Send reset link</button>
+        </div>
         <div class="google-card">
           <div class="google-title" id="googleTitle">Google Sign-In</div>
           <p class="google-note" id="googleLead">One-click sign in with your Google account.</p>

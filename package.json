@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "pulse-survey-pro",
   "version": "2.0.0",
   "description": "Professional interactive platform for surveys and voting",
@@ -14,6 +14,7 @@
   "dependencies": {
     "express": "^4.21.2",
     "google-auth-library": "^9.15.1",
+    "nodemailer": "^8.0.1",
     "sqlite3": "^5.1.7"
   }
 }

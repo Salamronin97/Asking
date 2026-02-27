@@ -14,6 +14,10 @@
 - Demo-анкета с предзаполненными ответами при первом запуске
 - Отдельная страница авторизации: `/auth`
 - Регистрация и вход с сохранением аккаунта в БД
+- Вход в одну строку по `email` или `nickname`
+- Подтверждение email через токен-ссылку
+- Восстановление пароля через email и reset-токен
+- Анти-бот защита на auth-эндпоинтах (rate limit + honeypot + anti-fast-submit)
 - Google вход (через Google Account Chooser) при наличии `GOOGLE_CLIENT_ID`
 - Создание/управление анкетами только для авторизованных пользователей
 
@@ -34,7 +38,13 @@ npm run dev
 
 ## Переменные окружения
 
-- `GOOGLE_CLIENT_ID` — OAuth Client ID для входа через Google (опционально).
+- `GOOGLE_CLIENT_ID` - OAuth Client ID для входа через Google (опционально).
+- `APP_BASE_URL` - публичный URL приложения (для ссылок в email).
+- `SMTP_HOST` - SMTP host для отправки email.
+- `SMTP_PORT` - SMTP port (обычно `587` или `465`).
+- `SMTP_USER` - SMTP логин.
+- `SMTP_PASS` - SMTP пароль.
+- `SMTP_FROM` - email отправителя (опционально, по умолчанию `SMTP_USER`).
 
 ## Деплой на Railway
 
@@ -47,6 +57,13 @@ npm run dev
 
 - `GET /api/health`
 - `GET /api/dashboard`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `POST /api/auth/verify-email`
+- `POST /api/auth/resend-verification`
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
 - `GET /api/surveys`
 - `POST /api/surveys`
 - `PUT /api/surveys/:id`
