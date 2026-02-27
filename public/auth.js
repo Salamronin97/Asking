@@ -17,7 +17,6 @@ const passwordHint = document.getElementById("passwordHint");
 const resetTokenRow = document.getElementById("resetTokenRow");
 const resetTokenInput = document.getElementById("resetToken");
 const forgotBtn = document.getElementById("forgotBtn");
-const resendBtn = document.getElementById("resendBtn");
 const authAux = document.getElementById("authAux");
 const forgotPanel = document.getElementById("forgotPanel");
 const forgotEmail = document.getElementById("forgotEmail");
@@ -232,20 +231,6 @@ async function sendForgotPassword() {
   }
 }
 
-async function resendVerification() {
-  try {
-    const candidate = (emailInput.value || forgotEmail.value || "").trim();
-    await request("/api/auth/resend-verification", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: candidate, ...antiBotMeta() })
-    });
-    showOk("If your account exists and is unverified, verification email was resent.");
-  } catch (error) {
-    showError(error.message);
-  }
-}
-
 async function consumeVerifyToken(token) {
   try {
     await request("/api/auth/verify-email", {
@@ -274,7 +259,6 @@ async function bootstrap() {
   forgotBtn.addEventListener("click", () => {
     forgotPanel.hidden = !forgotPanel.hidden;
   });
-  resendBtn.addEventListener("click", resendVerification);
   forgotSendBtn.addEventListener("click", sendForgotPassword);
   authForm.addEventListener("submit", submitAuth);
 

@@ -29,6 +29,12 @@
         display: grid;
         gap: 8px;
       }
+      .auth-row[hidden],
+      .panel[hidden],
+      .auth-aux[hidden],
+      .google-card[hidden] {
+        display: none !important;
+      }
       .auth-row label {
         font-weight: 600;
       }
@@ -179,7 +185,6 @@
           <button class="btn" id="submitBtn" type="submit">Login</button>
           <div class="auth-aux" id="authAux">
             <button class="ghost-link" id="forgotBtn" type="button">Forgot password?</button>
-            <button class="ghost-link" id="resendBtn" type="button">Resend verification email</button>
           </div>
         </div>
         <div class="error" id="errorBox"></div>
