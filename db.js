@@ -40,8 +40,20 @@ function get(sql, params = []) {
 
 async function init() {
   await run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT,
+      google_sub TEXT UNIQUE,
+      created_at TEXT NOT NULL
+    )
+  `);
+
+  await run(`
     CREATE TABLE IF NOT EXISTS surveys (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      owner_user_id INTEGER,
       title TEXT NOT NULL,
       description TEXT,
       audience TEXT,
@@ -50,7 +62,8 @@ async function init() {
       starts_at TEXT,
       ends_at TEXT,
       created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(owner_user_id) REFERENCES users(id) ON DELETE SET NULL
     )
   `);
 
@@ -88,10 +101,30 @@ async function init() {
     )
   `);
 
+  await run(`
+    CREATE TABLE IF NOT EXISTS auth_sessions (
+      token TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  const surveyColumns = await all("PRAGMA table_info(surveys)");
+  if (!surveyColumns.some((column) => column.name === "owner_user_id")) {
+    await run("ALTER TABLE surveys ADD COLUMN owner_user_id INTEGER");
+  }
+
   await run("CREATE INDEX IF NOT EXISTS idx_surveys_status ON surveys(status)");
+  await run("CREATE INDEX IF NOT EXISTS idx_surveys_owner ON surveys(owner_user_id)");
   await run("CREATE INDEX IF NOT EXISTS idx_questions_survey ON questions(survey_id)");
   await run("CREATE INDEX IF NOT EXISTS idx_responses_survey ON responses(survey_id)");
   await run("CREATE INDEX IF NOT EXISTS idx_answers_question ON answers(question_id)");
+  await run("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)");
+  await run("CREATE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub)");
+  await run("CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions(user_id)");
+  await run("CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires ON auth_sessions(expires_at)");
 }
 
 module.exports = {

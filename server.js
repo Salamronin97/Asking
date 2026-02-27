@@ -1,6 +1,7 @@
 ﻿const crypto = require("crypto");
 const express = require("express");
 const path = require("path");
+const { OAuth2Client } = require("google-auth-library");
 const { init, run, all, get } = require("./db");
 
 const app = express();
@@ -8,8 +9,13 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static(path.join(__dirname, "public")));
+app.use(attachAuthUser);
 
 const QUESTION_TYPES = new Set(["text", "single", "multi", "rating"]);
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+const SESSION_COOKIE = "asking_sid";
+const SESSION_TTL_DAYS = 30;
+const GOOGLE_CLIENT = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 function nowIso() {
   return new Date().toISOString();
@@ -41,6 +47,73 @@ function parseBool(value, fallback = false) {
   if (value === "1" || value === "true") return true;
   if (value === "0" || value === "false") return false;
   return fallback;
+}
+
+function parseCookies(req) {
+  const header = req.headers.cookie || "";
+  const entries = header
+    .split(";")
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .map((chunk) => {
+      const index = chunk.indexOf("=");
+      if (index === -1) return [chunk, ""];
+      return [chunk.slice(0, index), decodeURIComponent(chunk.slice(index + 1))];
+    });
+  return Object.fromEntries(entries);
+}
+
+function setSessionCookie(req, res, token, expiresAtIso) {
+  const secure = req.secure || req.headers["x-forwarded-proto"] === "https";
+  const parts = [
+    `${SESSION_COOKIE}=${encodeURIComponent(token)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    `Expires=${new Date(expiresAtIso).toUTCString()}`
+  ];
+  if (secure) parts.push("Secure");
+  res.setHeader("Set-Cookie", parts.join("; "));
+}
+
+function clearSessionCookie(req, res) {
+  const secure = req.secure || req.headers["x-forwarded-proto"] === "https";
+  const parts = [
+    `${SESSION_COOKIE}=`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    "Expires=Thu, 01 Jan 1970 00:00:00 GMT"
+  ];
+  if (secure) parts.push("Secure");
+  res.setHeader("Set-Cookie", parts.join("; "));
+}
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto.scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password, stored) {
+  if (!stored || !stored.includes(":")) return false;
+  const [salt, oldHash] = stored.split(":");
+  const currentHash = crypto.scryptSync(password, salt, 64).toString("hex");
+  const left = Buffer.from(oldHash, "hex");
+  const right = Buffer.from(currentHash, "hex");
+  if (left.length !== right.length) return false;
+  return crypto.timingSafeEqual(left, right);
+}
+
+async function createSession(userId) {
+  const token = crypto.randomBytes(48).toString("hex");
+  const createdAt = nowIso();
+  const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  await run(
+    "INSERT INTO auth_sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+    [token, userId, createdAt, expiresAt]
+  );
+  return { token, expiresAt };
 }
 
 function hashParticipant(req) {
@@ -109,6 +182,48 @@ function csvEscape(value) {
   const text = value == null ? "" : String(value);
   if (/[,"\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
   return text;
+}
+
+function toPublicUser(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email
+  };
+}
+
+async function attachAuthUser(req, _res, next) {
+  try {
+    const token = parseCookies(req)[SESSION_COOKIE];
+    req.user = null;
+    req.sessionToken = token || null;
+    if (!token) return next();
+
+    const session = await get(
+      `SELECT s.token, s.user_id, s.expires_at, u.id, u.name, u.email
+       FROM auth_sessions s
+       JOIN users u ON u.id = s.user_id
+       WHERE s.token = ?`,
+      [token]
+    );
+
+    if (!session) return next();
+    if (Date.parse(session.expires_at) < Date.now()) {
+      await run("DELETE FROM auth_sessions WHERE token = ?", [token]);
+      return next();
+    }
+
+    req.user = toPublicUser(session);
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
+
+function requireAuth(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: "Authentication required" });
+  return next();
 }
 
 async function seedDemoSurvey() {
@@ -201,6 +316,114 @@ async function seedDemoSurvey() {
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, timestamp: nowIso() });
+});
+
+app.get("/auth", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "auth.html"));
+});
+
+app.get("/api/auth/google-config", (_req, res) => {
+  res.json({ enabled: Boolean(GOOGLE_CLIENT_ID), clientId: GOOGLE_CLIENT_ID || null });
+});
+
+app.get("/api/auth/me", (req, res) => {
+  res.json({ user: req.user || null });
+});
+
+app.post("/api/auth/register", async (req, res, next) => {
+  try {
+    const name = String(req.body?.name || "").trim();
+    const email = String(req.body?.email || "")
+      .trim()
+      .toLowerCase();
+    const password = String(req.body?.password || "");
+
+    if (name.length < 2) return res.status(400).json({ error: "Name is too short" });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: "Invalid email" });
+    if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+
+    const existing = await get("SELECT id FROM users WHERE email = ?", [email]);
+    if (existing) return res.status(409).json({ error: "Email already in use" });
+
+    const createdAt = nowIso();
+    const result = await run(
+      "INSERT INTO users (name, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
+      [name, email, hashPassword(password), createdAt]
+    );
+
+    const session = await createSession(result.lastID);
+    setSessionCookie(req, res, session.token, session.expiresAt);
+    res.status(201).json({ user: { id: result.lastID, name, email } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/auth/login", async (req, res, next) => {
+  try {
+    const email = String(req.body?.email || "")
+      .trim()
+      .toLowerCase();
+    const password = String(req.body?.password || "");
+    const user = await get("SELECT id, name, email, password_hash FROM users WHERE email = ?", [email]);
+    if (!user || !verifyPassword(password, user.password_hash)) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    const session = await createSession(user.id);
+    setSessionCookie(req, res, session.token, session.expiresAt);
+    res.json({ user: toPublicUser(user) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/auth/google", async (req, res, next) => {
+  try {
+    if (!GOOGLE_CLIENT || !GOOGLE_CLIENT_ID) return res.status(400).json({ error: "Google sign-in is not configured" });
+    const credential = String(req.body?.credential || "");
+    if (!credential) return res.status(400).json({ error: "Missing Google credential" });
+
+    const ticket = await GOOGLE_CLIENT.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID });
+    const payload = ticket.getPayload();
+    if (!payload?.sub || !payload?.email) return res.status(400).json({ error: "Invalid Google profile" });
+
+    const googleSub = payload.sub;
+    const email = String(payload.email).toLowerCase();
+    const name = String(payload.name || email.split("@")[0] || "Google User").trim();
+
+    let user = await get("SELECT id, name, email FROM users WHERE google_sub = ?", [googleSub]);
+    if (!user) {
+      const byEmail = await get("SELECT id, name, email FROM users WHERE email = ?", [email]);
+      if (byEmail) {
+        await run("UPDATE users SET google_sub = ? WHERE id = ?", [googleSub, byEmail.id]);
+        user = { ...byEmail };
+      } else {
+        const created = await run(
+          "INSERT INTO users (name, email, google_sub, created_at) VALUES (?, ?, ?, ?)",
+          [name, email, googleSub, nowIso()]
+        );
+        user = { id: created.lastID, name, email };
+      }
+    }
+
+    const session = await createSession(user.id);
+    setSessionCookie(req, res, session.token, session.expiresAt);
+    res.json({ user: toPublicUser(user) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/auth/logout", async (req, res, next) => {
+  try {
+    const token = parseCookies(req)[SESSION_COOKIE];
+    if (token) await run("DELETE FROM auth_sessions WHERE token = ?", [token]);
+    clearSessionCookie(req, res);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get("/api/dashboard", async (_req, res, next) => {
@@ -303,7 +526,7 @@ app.get("/api/surveys", async (req, res, next) => {
     const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
     const surveysRaw = await all(
-      `SELECT s.id, s.title, s.description, s.audience, s.status, s.allow_multiple_responses, s.starts_at, s.ends_at, s.created_at, s.updated_at,
+      `SELECT s.id, s.owner_user_id, s.title, s.description, s.audience, s.status, s.allow_multiple_responses, s.starts_at, s.ends_at, s.created_at, s.updated_at,
               (SELECT COUNT(*) FROM responses r WHERE r.survey_id = s.id) as responses_count
        FROM surveys s ${whereClause}
        ORDER BY s.created_at DESC`,
@@ -312,7 +535,8 @@ app.get("/api/surveys", async (req, res, next) => {
 
     const surveys = surveysRaw.map((survey) => ({
       ...survey,
-      is_active: computeIsActive(survey)
+      is_active: computeIsActive(survey),
+      can_manage: Boolean(req.user && survey.owner_user_id === req.user.id)
     }));
 
     res.json({ surveys });
@@ -321,7 +545,7 @@ app.get("/api/surveys", async (req, res, next) => {
   }
 });
 
-app.post("/api/surveys/:id/duplicate", async (req, res, next) => {
+app.post("/api/surveys/:id/duplicate", requireAuth, async (req, res, next) => {
   try {
     const surveyId = Number(req.params.id);
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
@@ -329,8 +553,8 @@ app.post("/api/surveys/:id/duplicate", async (req, res, next) => {
     const survey = await get(
       `SELECT id, title, description, audience, allow_multiple_responses, starts_at, ends_at
        FROM surveys
-       WHERE id = ?`,
-      [surveyId]
+       WHERE id = ? AND owner_user_id = ?`,
+      [surveyId, req.user.id]
     );
     if (!survey) return res.status(404).json({ error: "Survey not found" });
 
@@ -343,9 +567,10 @@ app.post("/api/surveys/:id/duplicate", async (req, res, next) => {
     const createdAt = nowIso();
     const clone = await run(
       `INSERT INTO surveys
-        (title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at)
-       VALUES (?, ?, ?, 'draft', ?, ?, ?, ?, ?)`,
+        (owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?)`,
       [
+        req.user.id,
         `${survey.title} (Copy)`,
         survey.description,
         survey.audience,
@@ -416,7 +641,7 @@ app.get("/api/surveys/:id", async (req, res, next) => {
   }
 });
 
-app.post("/api/surveys", async (req, res, next) => {
+app.post("/api/surveys", requireAuth, async (req, res, next) => {
   try {
     const { fields, payload } = validateSurveyPayload(req.body);
     if (fields.length) return res.status(400).json({ error: "Invalid survey payload", fields });
@@ -424,9 +649,10 @@ app.post("/api/surveys", async (req, res, next) => {
     const createdAt = nowIso();
     const created = await run(
       `INSERT INTO surveys
-        (title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at)
-       VALUES (?, ?, ?, 'draft', ?, ?, ?, ?, ?)`,
+        (owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?)`,
       [
+        req.user.id,
         payload.title,
         payload.description,
         payload.audience,
@@ -459,12 +685,12 @@ app.post("/api/surveys", async (req, res, next) => {
   }
 });
 
-app.put("/api/surveys/:id", async (req, res, next) => {
+app.put("/api/surveys/:id", requireAuth, async (req, res, next) => {
   try {
     const surveyId = Number(req.params.id);
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
-    const survey = await get("SELECT id, status FROM surveys WHERE id = ?", [surveyId]);
+    const survey = await get("SELECT id, status FROM surveys WHERE id = ? AND owner_user_id = ?", [surveyId, req.user.id]);
     if (!survey) return res.status(404).json({ error: "Survey not found" });
     if (survey.status !== "draft") {
       return res.status(400).json({ error: "Only draft surveys can be edited" });
@@ -512,10 +738,10 @@ app.put("/api/surveys/:id", async (req, res, next) => {
   }
 });
 
-app.post("/api/surveys/:id/publish", async (req, res, next) => {
+app.post("/api/surveys/:id/publish", requireAuth, async (req, res, next) => {
   try {
     const surveyId = Number(req.params.id);
-    const survey = await get("SELECT id, status FROM surveys WHERE id = ?", [surveyId]);
+    const survey = await get("SELECT id, status FROM surveys WHERE id = ? AND owner_user_id = ?", [surveyId, req.user.id]);
     if (!survey) return res.status(404).json({ error: "Survey not found" });
     if (survey.status === "archived") return res.status(400).json({ error: "Archived survey cannot be published" });
 
@@ -526,10 +752,10 @@ app.post("/api/surveys/:id/publish", async (req, res, next) => {
   }
 });
 
-app.post("/api/surveys/:id/archive", async (req, res, next) => {
+app.post("/api/surveys/:id/archive", requireAuth, async (req, res, next) => {
   try {
     const surveyId = Number(req.params.id);
-    const survey = await get("SELECT id FROM surveys WHERE id = ?", [surveyId]);
+    const survey = await get("SELECT id FROM surveys WHERE id = ? AND owner_user_id = ?", [surveyId, req.user.id]);
     if (!survey) return res.status(404).json({ error: "Survey not found" });
 
     await run("UPDATE surveys SET status = 'archived', updated_at = ? WHERE id = ?", [nowIso(), surveyId]);
@@ -539,10 +765,10 @@ app.post("/api/surveys/:id/archive", async (req, res, next) => {
   }
 });
 
-app.delete("/api/surveys/:id", async (req, res, next) => {
+app.delete("/api/surveys/:id", requireAuth, async (req, res, next) => {
   try {
     const surveyId = Number(req.params.id);
-    const survey = await get("SELECT id FROM surveys WHERE id = ?", [surveyId]);
+    const survey = await get("SELECT id FROM surveys WHERE id = ? AND owner_user_id = ?", [surveyId, req.user.id]);
     if (!survey) return res.status(404).json({ error: "Survey not found" });
 
     await run("DELETE FROM surveys WHERE id = ?", [surveyId]);

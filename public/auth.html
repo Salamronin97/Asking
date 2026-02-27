@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Asking Pro | Authentication</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .auth-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+      .auth-card { width: min(520px, 96vw); }
+      .auth-grid { display: grid; gap: 12px; }
+      .auth-row { display: grid; gap: 8px; }
+      .auth-switch { display: flex; gap: 8px; }
+      .muted { color: var(--muted); font-size: 14px; }
+      .error { color: #b91c1c; min-height: 20px; }
+      .ok { color: #166534; min-height: 20px; }
+      #googleWrap { margin-top: 10px; }
+    </style>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </head>
+  <body>
+    <div class="auth-page">
+      <form id="authForm" class="card auth-card">
+        <h2 id="authTitle">Sign In</h2>
+        <p class="muted" id="authLead">Use your email and password, or continue with Google.</p>
+        <div class="auth-switch">
+          <button type="button" class="btn btn--ghost" id="toLogin">Login</button>
+          <button type="button" class="btn btn--ghost" id="toRegister">Register</button>
+          <a class="btn btn--outline" href="/">Back</a>
+        </div>
+        <div class="auth-grid">
+          <div class="auth-row" id="nameRow" hidden>
+            <label for="name">Name</label>
+            <input id="name" type="text" autocomplete="name" />
+          </div>
+          <div class="auth-row">
+            <label for="email">Email</label>
+            <input id="email" type="email" required autocomplete="email" />
+          </div>
+          <div class="auth-row">
+            <label for="password">Password</label>
+            <input id="password" type="password" required autocomplete="current-password" />
+          </div>
+          <button class="btn" id="submitBtn" type="submit">Login</button>
+        </div>
+        <div class="error" id="errorBox"></div>
+        <div class="ok" id="okBox"></div>
+        <div id="googleWrap"></div>
+      </form>
+    </div>
+    <script src="/auth.js"></script>
+  </body>
+</html>

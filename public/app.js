@@ -7,7 +7,8 @@
   },
   surveys: [],
   templates: [],
-  lang: localStorage.getItem("asking-pro-lang") || "ru"
+  lang: localStorage.getItem("asking-pro-lang") || "ru",
+  user: null
 };
 
 const DRAFT_CACHE_KEY = "asking-pro-builder-draft";
@@ -200,6 +201,7 @@ function applyStaticI18n() {
     const key = el.getAttribute("data-i18n-aria-label");
     el.setAttribute("aria-label", t(key));
   });
+  renderAuthState();
 }
 
 const api = {
@@ -263,6 +265,12 @@ const api = {
   },
   getResults(id) {
     return this.request(`/api/surveys/${id}/results`);
+  },
+  getMe() {
+    return this.request("/api/auth/me");
+  },
+  logout() {
+    return this.request("/api/auth/logout", { method: "POST" });
   }
 };
 
@@ -278,6 +286,8 @@ const questionsWrap = document.getElementById("questions");
 const addQuestionBtn = document.getElementById("addQuestion");
 const builderStatus = document.getElementById("builderStatus");
 const templateSelect = document.getElementById("templateSelect");
+const authLink = document.getElementById("authLink");
+const logoutBtn = document.getElementById("logoutBtn");
 const metricsWrap = document.getElementById("metrics");
 const recentSurveysWrap = document.getElementById("recentSurveys");
 const surveyList = document.getElementById("surveyList");
@@ -359,6 +369,18 @@ function badgeClass(status) {
 function setStatus(message, isError = false) {
   builderStatus.textContent = message;
   builderStatus.style.color = isError ? "#b6201f" : "#c33f17";
+}
+
+function renderAuthState() {
+  if (state.user) {
+    authLink.textContent = state.user.name || state.user.email || "Account";
+    authLink.href = "#";
+    logoutBtn.hidden = false;
+  } else {
+    authLink.textContent = state.lang === "ru" ? "Войти" : "Sign In";
+    authLink.href = "/auth";
+    logoutBtn.hidden = true;
+  }
 }
 
 function cacheBuilderDraft() {
@@ -775,17 +797,19 @@ function renderSurveyCard(survey) {
   exportButton.textContent = t("exportCsv");
   actions.appendChild(exportButton);
 
-  const duplicateButton = document.createElement("button");
-  duplicateButton.className = "btn btn--ghost";
-  duplicateButton.textContent = t("duplicate");
-  duplicateButton.addEventListener("click", async () => {
-    await api.duplicateSurvey(survey.id);
-    showToast("Survey duplicated");
-    await refreshAll();
-  });
-  actions.appendChild(duplicateButton);
+  if (survey.can_manage) {
+    const duplicateButton = document.createElement("button");
+    duplicateButton.className = "btn btn--ghost";
+    duplicateButton.textContent = t("duplicate");
+    duplicateButton.addEventListener("click", async () => {
+      await api.duplicateSurvey(survey.id);
+      showToast("Survey duplicated");
+      await refreshAll();
+    });
+    actions.appendChild(duplicateButton);
+  }
 
-  if (survey.status === "draft") {
+  if (survey.status === "draft" && survey.can_manage) {
     const editButton = document.createElement("button");
     editButton.className = "btn btn--ghost";
     editButton.textContent = "Edit";
@@ -806,7 +830,7 @@ function renderSurveyCard(survey) {
     actions.appendChild(publishButton);
   }
 
-  if (survey.status === "published") {
+  if (survey.status === "published" && survey.can_manage) {
     const archiveButton = document.createElement("button");
     archiveButton.className = "btn btn--outline";
     archiveButton.textContent = t("archive");
@@ -818,16 +842,18 @@ function renderSurveyCard(survey) {
     actions.appendChild(archiveButton);
   }
 
-  const deleteButton = document.createElement("button");
-  deleteButton.className = "btn btn--danger";
-  deleteButton.textContent = t("del");
-  deleteButton.addEventListener("click", async () => {
-    if (!window.confirm(`Delete survey '${survey.title}'?`)) return;
-    await api.deleteSurvey(survey.id);
-    showToast("Survey deleted");
-    await refreshAll();
-  });
-  actions.appendChild(deleteButton);
+  if (survey.can_manage) {
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "btn btn--danger";
+    deleteButton.textContent = t("del");
+    deleteButton.addEventListener("click", async () => {
+      if (!window.confirm(`Delete survey '${survey.title}'?`)) return;
+      await api.deleteSurvey(survey.id);
+      showToast("Survey deleted");
+      await refreshAll();
+    });
+    actions.appendChild(deleteButton);
+  }
 
   return card;
 }
@@ -949,6 +975,10 @@ function applyTemplate(templateKey) {
 
 async function submitSurvey(event) {
   event.preventDefault();
+  if (!state.user) {
+    window.location.href = "/auth";
+    return;
+  }
   const payload = collectSurveyPayload();
 
   try {
@@ -975,7 +1005,26 @@ async function refreshAll() {
   await Promise.all([loadDashboard(), loadSurveys()]);
 }
 
+async function loadAuthState() {
+  try {
+    const data = await api.getMe();
+    state.user = data.user || null;
+  } catch {
+    state.user = null;
+  }
+  renderAuthState();
+}
+
 function wireEvents() {
+  authLink.addEventListener("click", (event) => {
+    if (state.user) event.preventDefault();
+  });
+  logoutBtn.addEventListener("click", async () => {
+    await api.logout();
+    state.user = null;
+    renderAuthState();
+  });
+
   addQuestionBtn.addEventListener("click", () => {
     addQuestion();
     cacheBuilderDraft();
@@ -1062,6 +1111,7 @@ function openSurveyFromUrl() {
 async function bootstrap() {
   languageSelect.value = state.lang;
   applyStaticI18n();
+  await loadAuthState();
   addQuestion();
   wireEvents();
 
