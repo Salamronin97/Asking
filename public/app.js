@@ -6,10 +6,61 @@
     sort: "newest"
   },
   surveys: [],
-  templates: []
+  templates: [],
+  lang: localStorage.getItem("asking-pro-lang") || "ru"
 };
 
 const DRAFT_CACHE_KEY = "asking-pro-builder-draft";
+const languageSelect = document.getElementById("languageSelect");
+
+const i18n = {
+  en: {
+    close: "Close",
+    statusDraft: "Draft",
+    statusPublished: "Published",
+    statusArchived: "Archived",
+    metricTotalSurveys: "Total surveys",
+    metricPublished: "Published",
+    metricActive: "Active",
+    metricResponses: "Total responses",
+    noSurveysYet: "No surveys yet",
+    noSurveysFound: "No surveys found.",
+    selectTemplate: "Select a template"
+  },
+  ru: {
+    close: "Закрыть",
+    statusDraft: "Черновик",
+    statusPublished: "Опубликована",
+    statusArchived: "Архив",
+    metricTotalSurveys: "Всего анкет",
+    metricPublished: "Опубликовано",
+    metricActive: "Активные",
+    metricResponses: "Всего ответов",
+    noSurveysYet: "Анкет пока нет",
+    noSurveysFound: "Анкеты не найдены.",
+    selectTemplate: "Выберите шаблон"
+  }
+};
+
+function t(key) {
+  return i18n[state.lang]?.[key] || i18n.en[key] || key;
+}
+
+function applyStaticI18n() {
+  document.documentElement.lang = state.lang;
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
+    el.textContent = t(key);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-placeholder");
+    el.setAttribute("placeholder", t(key));
+  });
+  document.querySelectorAll("[data-i18n-aria-label]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-aria-label");
+    el.setAttribute("aria-label", t(key));
+  });
+}
 
 const api = {
   async request(url, options) {
@@ -154,9 +205,9 @@ function toIsoFromLocal(value) {
 }
 
 function statusLabel(status) {
-  if (status === "published") return "Published";
-  if (status === "archived") return "Archived";
-  return "Draft";
+  if (status === "published") return t("statusPublished");
+  if (status === "archived") return t("statusArchived");
+  return t("statusDraft");
 }
 
 function badgeClass(status) {
@@ -354,10 +405,10 @@ function closeModal() {
 function renderMetrics(metrics) {
   metricsWrap.innerHTML = "";
   const cards = [
-    ["Total surveys", metrics.totalSurveys],
-    ["Published", metrics.publishedSurveys],
-    ["Active", metrics.activeSurveys],
-    ["Total responses", metrics.totalResponses]
+    [t("metricTotalSurveys"), metrics.totalSurveys],
+    [t("metricPublished"), metrics.publishedSurveys],
+    [t("metricActive"), metrics.activeSurveys],
+    [t("metricResponses"), metrics.totalResponses]
   ];
 
   cards.forEach(([label, value]) => {
@@ -371,7 +422,7 @@ function renderMetrics(metrics) {
 function renderRecentSurveys(items) {
   recentSurveysWrap.innerHTML = "";
   if (!items.length) {
-    recentSurveysWrap.innerHTML = "<div class='recent-item'>No surveys yet</div>";
+    recentSurveysWrap.innerHTML = `<div class='recent-item'>${t("noSurveysYet")}</div>`;
     return;
   }
 
@@ -647,7 +698,7 @@ async function loadSurveys() {
   surveyList.innerHTML = "";
 
   if (!state.surveys.length) {
-    surveyList.innerHTML = "<div class='card'>No surveys found.</div>";
+    surveyList.innerHTML = `<div class='card'>${t("noSurveysFound")}</div>`;
     return;
   }
 
@@ -730,7 +781,7 @@ async function loadResults(surveyId) {
 }
 
 function fillTemplateSelect() {
-  templateSelect.innerHTML = '<option value="">Select a template</option>';
+  templateSelect.innerHTML = `<option value="">${t("selectTemplate")}</option>`;
   state.templates.forEach((template) => {
     const option = document.createElement("option");
     option.value = template.key;
@@ -798,6 +849,14 @@ function wireEvents() {
     applyTemplate(templateSelect.value);
   });
 
+  languageSelect.addEventListener("change", async () => {
+    state.lang = languageSelect.value === "en" ? "en" : "ru";
+    localStorage.setItem("asking-pro-lang", state.lang);
+    applyStaticI18n();
+    fillTemplateSelect();
+    await refreshAll();
+  });
+
   statusFilter.addEventListener("change", async () => {
     state.filters.status = statusFilter.value;
     await loadSurveys();
@@ -858,6 +917,8 @@ function openSurveyFromUrl() {
 }
 
 async function bootstrap() {
+  languageSelect.value = state.lang;
+  applyStaticI18n();
   addQuestion();
   wireEvents();
 

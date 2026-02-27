@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -23,12 +23,18 @@
           <span>Asking Pro</span>
         </a>
         <nav class="nav">
-          <a href="#dashboard">Dashboard</a>
-          <a href="#builder">Builder</a>
-          <a href="#library">Surveys</a>
-          <a href="#analytics">Analytics</a>
+          <a href="#dashboard" data-i18n="navDashboard">Dashboard</a>
+          <a href="#builder" data-i18n="navBuilder">Builder</a>
+          <a href="#library" data-i18n="navSurveys">Surveys</a>
+          <a href="#analytics" data-i18n="navAnalytics">Analytics</a>
         </nav>
-        <button id="quickCreate" class="btn btn--ghost">New Survey</button>
+        <div class="topbar__actions">
+          <select id="languageSelect" class="lang-select" aria-label="Language">
+            <option value="en">EN</option>
+            <option value="ru">RU</option>
+          </select>
+          <button id="quickCreate" class="btn btn--ghost" data-i18n="newSurvey">New Survey</button>
+        </div>
       </div>
     </header>
 
@@ -36,23 +42,23 @@
       <section class="hero">
         <div class="container hero__grid">
           <div>
-            <p class="eyebrow">INTERACTIVE WEB PLATFORM</p>
-            <h1>Professional survey and voting workspace.</h1>
-            <p class="lead">
+            <p class="eyebrow" data-i18n="heroEyebrow">INTERACTIVE WEB PLATFORM</p>
+            <h1 data-i18n="heroTitle">Professional survey and voting workspace.</h1>
+            <p class="lead" data-i18n="heroLead">
               Build surveys, launch public voting, collect live responses, and export results to CSV for deep analysis.
             </p>
             <div class="hero__actions">
-              <button id="startNow" class="btn">Start Building</button>
-              <button id="openDemo" class="btn btn--outline">Open Demo Results</button>
+              <button id="startNow" class="btn" data-i18n="startBuilding">Start Building</button>
+              <button id="openDemo" class="btn btn--outline" data-i18n="openDemoResults">Open Demo Results</button>
             </div>
           </div>
           <div class="hero-card">
-            <h3>Core capabilities</h3>
+            <h3 data-i18n="coreCapabilities">Core capabilities</h3>
             <ul>
-              <li>Question builder: text, single, multi, rating</li>
-              <li>Survey lifecycle: draft, publish, archive</li>
-              <li>Duplicate survey and share links</li>
-              <li>Analytics, trends, and CSV export</li>
+              <li data-i18n="heroFeature1">Question builder: text, single, multi, rating</li>
+              <li data-i18n="heroFeature2">Survey lifecycle: draft, publish, archive</li>
+              <li data-i18n="heroFeature3">Duplicate survey and share links</li>
+              <li data-i18n="heroFeature4">Analytics, trends, and CSV export</li>
             </ul>
           </div>
         </div>
@@ -61,12 +67,12 @@
       <section id="dashboard" class="section">
         <div class="container">
           <div class="section__head">
-            <h2>Operations dashboard</h2>
-            <p>Track platform KPIs and latest activity.</p>
+            <h2 data-i18n="dashboardTitle">Operations dashboard</h2>
+            <p data-i18n="dashboardLead">Track platform KPIs and latest activity.</p>
           </div>
           <div id="metrics" class="metrics"></div>
           <div class="card">
-            <h3>Recent surveys</h3>
+            <h3 data-i18n="recentSurveysTitle">Recent surveys</h3>
             <div id="recentSurveys" class="recent-list"></div>
           </div>
         </div>
@@ -75,57 +81,68 @@
       <section id="builder" class="section section--alt">
         <div class="container split">
           <form id="surveyForm" class="card">
-            <h3>Survey builder</h3>
+            <h3 data-i18n="builderTitle">Survey builder</h3>
             <div class="form-row">
-              <label>Title</label>
-              <input type="text" name="title" required placeholder="Example: Customer Experience 2026" />
+              <label data-i18n="titleLabel">Title</label>
+              <input
+                type="text"
+                name="title"
+                required
+                placeholder="Example: Customer Experience 2026"
+                data-i18n-placeholder="titlePlaceholder"
+              />
             </div>
             <div class="form-row">
-              <label>Description</label>
-              <textarea name="description" placeholder="Survey goal and context"></textarea>
+              <label data-i18n="descriptionLabel">Description</label>
+              <textarea name="description" placeholder="Survey goal and context" data-i18n-placeholder="descriptionPlaceholder"></textarea>
             </div>
             <div class="form-row">
-              <label>Audience</label>
-              <input type="text" name="audience" placeholder="Customers, team members, event attendees" />
+              <label data-i18n="audienceLabel">Audience</label>
+              <input
+                type="text"
+                name="audience"
+                placeholder="Customers, team members, event attendees"
+                data-i18n-placeholder="audiencePlaceholder"
+              />
             </div>
             <div class="form-row">
-              <label>Template</label>
+              <label data-i18n="templateLabel">Template</label>
               <select id="templateSelect">
-                <option value="">Select a template</option>
+                <option value="" data-i18n="selectTemplate">Select a template</option>
               </select>
             </div>
             <div class="form-row grid-2">
               <div>
-                <label>Starts at</label>
+                <label data-i18n="startsAtLabel">Starts at</label>
                 <input type="datetime-local" name="startsAt" />
               </div>
               <div>
-                <label>Ends at</label>
+                <label data-i18n="endsAtLabel">Ends at</label>
                 <input type="datetime-local" name="endsAt" />
               </div>
             </div>
             <div class="form-row">
               <label class="inline-check">
                 <input type="checkbox" name="allowMultipleResponses" />
-                Allow multiple responses
+                <span data-i18n="allowMultipleResponses">Allow multiple responses</span>
               </label>
             </div>
 
             <div class="divider"></div>
             <div id="questions" class="questions"></div>
             <div class="action-row">
-              <button type="button" id="addQuestion" class="btn btn--ghost">+ Add question</button>
-              <button type="submit" class="btn">Save Draft</button>
+              <button type="button" id="addQuestion" class="btn btn--ghost" data-i18n="addQuestion">+ Add question</button>
+              <button type="submit" class="btn" data-i18n="saveDraft">Save Draft</button>
             </div>
             <p id="builderStatus" class="status"></p>
           </form>
 
           <div class="card tips">
-            <h3>Best practices</h3>
+            <h3 data-i18n="bestPractices">Best practices</h3>
             <ol>
-              <li>Add one rating question for quick quality scoring.</li>
-              <li>Use single choice for priority votes and multi choice for channels.</li>
-              <li>Archive finished surveys to keep active board clean.</li>
+              <li data-i18n="bestPractice1">Add one rating question for quick quality scoring.</li>
+              <li data-i18n="bestPractice2">Use single choice for priority votes and multi choice for channels.</li>
+              <li data-i18n="bestPractice3">Archive finished surveys to keep active board clean.</li>
             </ol>
           </div>
         </div>
@@ -135,22 +152,22 @@
         <div class="container">
           <div class="section__head section__head--row">
             <div>
-              <h2>Survey library</h2>
-              <p>Manage drafts, published surveys, and archives.</p>
+              <h2 data-i18n="libraryTitle">Survey library</h2>
+              <p data-i18n="libraryLead">Manage drafts, published surveys, and archives.</p>
             </div>
             <div class="toolbar">
               <select id="statusFilter">
-                <option value="">All statuses</option>
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
+                <option value="" data-i18n="allStatuses">All statuses</option>
+                <option value="draft" data-i18n="statusDraft">Draft</option>
+                <option value="published" data-i18n="statusPublished">Published</option>
+                <option value="archived" data-i18n="statusArchived">Archived</option>
               </select>
               <select id="sortFilter">
-                <option value="newest">Newest first</option>
-                <option value="responses">Most responses</option>
-                <option value="active">Active only</option>
+                <option value="newest" data-i18n="sortNewest">Newest first</option>
+                <option value="responses" data-i18n="sortResponses">Most responses</option>
+                <option value="active" data-i18n="sortActive">Active only</option>
               </select>
-              <input id="searchInput" type="search" placeholder="Search by title" />
+              <input id="searchInput" type="search" placeholder="Search by title" data-i18n-placeholder="searchPlaceholder" />
             </div>
           </div>
           <div id="surveyList" class="survey-list"></div>
@@ -160,8 +177,8 @@
       <section id="analytics" class="section section--alt">
         <div class="container">
           <div class="section__head">
-            <h2>Analytics and voting results</h2>
-            <p>Open a survey from the library and click Results.</p>
+            <h2 data-i18n="analyticsTitle">Analytics and voting results</h2>
+            <p data-i18n="analyticsLead">Open a survey from the library and click Results.</p>
           </div>
           <div id="results" class="results"></div>
         </div>
@@ -170,7 +187,7 @@
 
     <div id="modal" class="modal" hidden>
       <div class="modal__content">
-        <button id="modalClose" class="modal__close" aria-label="Close">x</button>
+        <button id="modalClose" class="modal__close" aria-label="Close" data-i18n-aria-label="close">x</button>
         <div id="modalBody"></div>
       </div>
     </div>

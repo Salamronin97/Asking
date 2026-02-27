@@ -80,6 +80,16 @@ a {
   padding: 16px 0;
 }
 
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lang-select {
+  width: 74px;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -560,7 +570,8 @@ textarea {
   .toolbar,
   .section__head--row,
   .survey-card__top,
-  .topbar__inner {
+  .topbar__inner,
+  .topbar__actions {
     flex-direction: column;
     align-items: stretch;
   }
