@@ -100,11 +100,7 @@ function rateLimitAuth(action) {
 
 function antiBotPayload(req, res, next) {
   const website = String(req.body?.website || "").trim();
-  const startedAt = Number(req.body?.authStartedAt || 0);
   if (website) return res.status(400).json({ error: "Bot protection triggered" });
-  if (startedAt && Date.now() - startedAt < 1200) {
-    return res.status(400).json({ error: "Form submitted too quickly" });
-  }
   return next();
 }
 
@@ -475,37 +471,27 @@ app.get("/api/auth/me", (req, res) => {
 
 app.post("/api/auth/register", rateLimitAuth("register"), antiBotPayload, async (req, res, next) => {
   try {
-    const nameInput = String(req.body?.name || "").trim();
-    const username = normalizeUsername(req.body?.username);
     const email = String(req.body?.email || "")
       .trim()
       .toLowerCase();
     const password = String(req.body?.password || "");
-    const name = nameInput || username;
+    const name = email.split("@")[0] || "User";
 
-    if (!/^[a-z0-9._-]{3,32}$/.test(username)) {
-      return res.status(400).json({ error: "Nickname must be 3-32 chars: a-z, 0-9, . _ -" });
-    }
-    if (name.length < 2) return res.status(400).json({ error: "Name is too short" });
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: "Invalid email" });
     if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
 
-    const [existingEmail, existingUsername] = await Promise.all([
-      get("SELECT id FROM users WHERE email = ?", [email]),
-      get("SELECT id FROM users WHERE lower(username) = lower(?)", [username])
-    ]);
+    const existingEmail = await get("SELECT id FROM users WHERE email = ?", [email]);
     if (existingEmail) return res.status(409).json({ error: "Email already in use" });
-    if (existingUsername) return res.status(409).json({ error: "Nickname already in use" });
 
     const createdAt = nowIso();
     const result = await run(
-      "INSERT INTO users (name, username, email, email_verified, password_hash, created_at) VALUES (?, ?, ?, 1, ?, ?)",
-      [name, username, email, hashPassword(password), createdAt]
+      "INSERT INTO users (name, username, email, email_verified, password_hash, created_at) VALUES (?, NULL, ?, 1, ?, ?)",
+      [name, email, hashPassword(password), createdAt]
     );
 
     const session = await createSession(result.lastID);
     setSessionCookie(req, res, session.token, session.expiresAt);
-    res.status(201).json({ user: { id: result.lastID, name, username, email, email_verified: 1 } });
+    res.status(201).json({ user: { id: result.lastID, name, email, email_verified: 1 } });
   } catch (error) {
     next(error);
   }
@@ -513,19 +499,17 @@ app.post("/api/auth/register", rateLimitAuth("register"), antiBotPayload, async 
 
 app.post("/api/auth/login", rateLimitAuth("login"), antiBotPayload, async (req, res, next) => {
   try {
-    const identifier = String(req.body?.identifier || req.body?.email || req.body?.username || "")
+    const email = String(req.body?.email || req.body?.identifier || "")
       .trim()
       .toLowerCase();
     const password = String(req.body?.password || "");
-    if (!identifier) return res.status(400).json({ error: "Nickname or email is required" });
+    if (!email) return res.status(400).json({ error: "Email is required" });
     const user = await get(
-      `SELECT id, name, username, email, email_verified, password_hash
-       FROM users
-       WHERE lower(email) = ? OR lower(username) = ?`,
-      [identifier, identifier]
+      `SELECT id, name, username, email, email_verified, password_hash FROM users WHERE lower(email) = ?`,
+      [email]
     );
     if (!user || !verifyPassword(password, user.password_hash)) {
-      return res.status(401).json({ error: "Invalid nickname/email or password" });
+      return res.status(401).json({ error: "Invalid email or password" });
     }
     const session = await createSession(user.id);
     setSessionCookie(req, res, session.token, session.expiresAt);

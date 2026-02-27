@@ -13,7 +13,7 @@
         padding: 24px;
       }
       .auth-card {
-        width: min(560px, 96vw);
+        width: min(520px, 96vw);
         display: grid;
         gap: 14px;
       }
@@ -31,8 +31,7 @@
       }
       .auth-row[hidden],
       .panel[hidden],
-      .auth-aux[hidden],
-      .google-card[hidden] {
+      .auth-aux[hidden] {
         display: none !important;
       }
       .auth-row label {
@@ -62,45 +61,6 @@
         color: #166534;
         min-height: 20px;
       }
-      .google-card {
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        background: linear-gradient(145deg, #fff9f2 0%, #fff1e5 100%);
-        padding: 14px;
-        display: grid;
-        gap: 10px;
-      }
-      .google-title {
-        font-weight: 700;
-      }
-      .google-note {
-        margin: 0;
-        color: var(--muted);
-        font-size: 13px;
-      }
-      #googleWrap {
-        min-height: 42px;
-      }
-      #googleState {
-        margin: 0;
-        color: var(--muted);
-        font-size: 13px;
-      }
-      .google-fallback {
-        border: 1px dashed #c5b3a1;
-        border-radius: 12px;
-        background: #fff;
-        color: #6d635b;
-        font-weight: 700;
-        padding: 11px 14px;
-        width: 100%;
-        text-align: left;
-        cursor: not-allowed;
-      }
-      .hint {
-        font-size: 12px;
-        color: var(--muted);
-      }
       .ghost-link {
         border: none;
         background: transparent;
@@ -115,7 +75,6 @@
         justify-content: space-between;
         align-items: center;
         gap: 10px;
-        flex-wrap: wrap;
       }
       .panel {
         border: 1px solid var(--line);
@@ -136,47 +95,32 @@
         border: 0;
       }
     </style>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
   </head>
   <body>
     <div class="auth-page">
       <form id="authForm" class="card auth-card">
         <div class="auth-head">
           <h2 id="authTitle">Sign In</h2>
-          <p class="muted" id="authLead">Use your email and password, or continue with Google.</p>
+          <p class="muted" id="authLead">Use your email and password.</p>
         </div>
         <div class="auth-switch">
           <button type="button" class="btn auth-mode is-active" id="toLogin">Login</button>
           <button type="button" class="btn auth-mode" id="toRegister">Register</button>
           <a class="btn btn--outline" href="/">Back</a>
         </div>
+
         <div class="auth-grid">
           <div class="sr-only">
             <label for="website">Website</label>
             <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
           </div>
-          <input id="authStartedAt" type="hidden" />
-          <div class="auth-row" id="identifierRow">
-            <label for="identifier" id="identifierLabel">Email or nickname</label>
-            <input id="identifier" type="text" required autocomplete="username" placeholder="you@mail.com or cool_nick" />
-          </div>
-          <div class="auth-row" id="usernameRow" hidden>
-            <label for="username">Nickname</label>
-            <input id="username" type="text" autocomplete="username" placeholder="cool_nick" />
-            <span class="hint">Allowed: a-z, 0-9, dot, underscore, dash</span>
-          </div>
-          <div class="auth-row" id="nameRow" hidden>
-            <label for="name">Display name (optional)</label>
-            <input id="name" type="text" autocomplete="name" placeholder="Your name" />
-          </div>
-          <div class="auth-row" id="emailRow" hidden>
+          <div class="auth-row">
             <label for="email">Email</label>
-            <input id="email" type="email" autocomplete="email" placeholder="you@mail.com" />
+            <input id="email" type="email" required autocomplete="email" placeholder="you@mail.com" />
           </div>
           <div class="auth-row">
             <label for="password">Password</label>
             <input id="password" type="password" required autocomplete="current-password" />
-            <span class="hint" id="passwordHint" hidden>Use at least 8 characters.</span>
           </div>
           <div class="auth-row" id="resetTokenRow" hidden>
             <label for="resetToken">Reset token</label>
@@ -187,8 +131,10 @@
             <button class="ghost-link" id="forgotBtn" type="button">Forgot password?</button>
           </div>
         </div>
+
         <div class="error" id="errorBox"></div>
         <div class="ok" id="okBox"></div>
+
         <div class="panel" id="forgotPanel" hidden>
           <strong>Password recovery</strong>
           <div class="auth-row">
@@ -196,12 +142,6 @@
             <input id="forgotEmail" type="email" autocomplete="email" placeholder="you@mail.com" />
           </div>
           <button class="btn btn--outline" id="forgotSendBtn" type="button">Send reset link</button>
-        </div>
-        <div class="google-card">
-          <div class="google-title" id="googleTitle">Google Sign-In</div>
-          <p class="google-note" id="googleLead">One-click sign in with your Google account.</p>
-          <div id="googleWrap"></div>
-          <p id="googleState">Checking Google OAuth configuration...</p>
         </div>
       </form>
     </div>
