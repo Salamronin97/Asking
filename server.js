@@ -694,6 +694,53 @@ app.post("/api/auth/logout", async (req, res, next) => {
   }
 });
 
+app.post("/api/account/password", requireAuth, antiBotPayload, async (req, res, next) => {
+  try {
+    const currentPassword = String(req.body?.currentPassword || "");
+    const newPassword = String(req.body?.newPassword || "");
+    if (!currentPassword || !newPassword) return res.status(400).json({ error: "Both passwords are required" });
+    if (newPassword.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+
+    const user = await get("SELECT id, password_hash FROM users WHERE id = ?", [req.user.id]);
+    if (!user || !verifyPassword(currentPassword, user.password_hash)) {
+      return res.status(401).json({ error: "Current password is invalid" });
+    }
+
+    await run("UPDATE users SET password_hash = ? WHERE id = ?", [hashPassword(newPassword), req.user.id]);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/account/logout-all", requireAuth, async (req, res, next) => {
+  try {
+    await run("DELETE FROM auth_sessions WHERE user_id = ?", [req.user.id]);
+    clearSessionCookie(req, res);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/account", requireAuth, antiBotPayload, async (req, res, next) => {
+  try {
+    const password = String(req.body?.password || "");
+    if (!password) return res.status(400).json({ error: "Password is required" });
+
+    const user = await get("SELECT id, password_hash FROM users WHERE id = ?", [req.user.id]);
+    if (!user || !verifyPassword(password, user.password_hash)) {
+      return res.status(401).json({ error: "Invalid password" });
+    }
+
+    await run("DELETE FROM users WHERE id = ?", [req.user.id]);
+    clearSessionCookie(req, res);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/api/dashboard", async (_req, res, next) => {
   try {
     const [surveyMetrics, responseMetrics, activeMetrics, recentSurveys] = await Promise.all([

@@ -20,6 +20,7 @@ const i18n = {
     navBuilder: "Builder",
     navSurveys: "Surveys",
     navAnalytics: "Analytics",
+    navAccount: "Account",
     newSurvey: "New Survey",
     heroEyebrow: "INTERACTIVE WEB PLATFORM",
     heroTitle: "Professional survey and voting workspace.",
@@ -96,13 +97,25 @@ const i18n = {
     multiResponse: "Multi response",
     yes: "yes",
     no: "no",
-    descFallback: "not specified"
+    descFallback: "not specified",
+    accountTitle: "Account settings",
+    accountLead: "Change password and manage active sessions.",
+    accountEmailLabel: "Account email",
+    accountCurrentPassword: "Current password",
+    accountNewPassword: "New password",
+    accountChangePassword: "Change password",
+    accountLogoutAll: "Logout all devices",
+    accountDangerTitle: "Danger zone",
+    accountDangerLead: "This action will permanently remove your account.",
+    accountDeletePassword: "Confirm password",
+    accountDeleteBtn: "Delete account"
   },
   ru: {
     navDashboard: "Дашборд",
     navBuilder: "Конструктор",
     navSurveys: "Анкеты",
     navAnalytics: "Аналитика",
+    navAccount: "Аккаунт",
     newSurvey: "Новая анкета",
     heroEyebrow: "ИНТЕРАКТИВНАЯ WEB-ПЛАТФОРМА",
     heroTitle: "Профессиональное пространство для анкет и голосований.",
@@ -179,7 +192,18 @@ const i18n = {
     multiResponse: "Повторные ответы",
     yes: "да",
     no: "нет",
-    descFallback: "не указана"
+    descFallback: "не указана",
+    accountTitle: "Настройки аккаунта",
+    accountLead: "Смена пароля и управление активными сессиями.",
+    accountEmailLabel: "Email аккаунта",
+    accountCurrentPassword: "Текущий пароль",
+    accountNewPassword: "Новый пароль",
+    accountChangePassword: "Сменить пароль",
+    accountLogoutAll: "Выйти на всех устройствах",
+    accountDangerTitle: "Опасная зона",
+    accountDangerLead: "Это действие удалит аккаунт без возможности восстановления.",
+    accountDeletePassword: "Подтвердите пароль",
+    accountDeleteBtn: "Удалить аккаунт"
   }
 };
 
@@ -271,6 +295,23 @@ const api = {
   },
   logout() {
     return this.request("/api/auth/logout", { method: "POST" });
+  },
+  changePassword(payload) {
+    return this.request("/api/account/password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  },
+  logoutAllSessions() {
+    return this.request("/api/account/logout-all", { method: "POST" });
+  },
+  deleteAccount(payload) {
+    return this.request("/api/account", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
   }
 };
 
@@ -299,6 +340,12 @@ const modal = document.getElementById("modal");
 const modalBody = document.getElementById("modalBody");
 const modalClose = document.getElementById("modalClose");
 const toast = document.getElementById("toast");
+const accountPasswordForm = document.getElementById("accountPasswordForm");
+const accountEmail = document.getElementById("accountEmail");
+const accountStatus = document.getElementById("accountStatus");
+const logoutAllBtn = document.getElementById("logoutAllBtn");
+const deletePassword = document.getElementById("deletePassword");
+const deleteAccountBtn = document.getElementById("deleteAccountBtn");
 
 let questionCounter = 0;
 let toastTimer = null;
@@ -381,6 +428,19 @@ function renderAuthState() {
     authLink.href = "/auth";
     logoutBtn.hidden = true;
   }
+  renderAccountState();
+}
+
+function renderAccountState() {
+  const isAuth = Boolean(state.user);
+  accountEmail.value = isAuth ? state.user.email || "" : "";
+  accountPasswordForm.querySelectorAll("input, button").forEach((node) => {
+    if (node.id === "accountEmail") return;
+    node.disabled = !isAuth;
+  });
+  deletePassword.disabled = !isAuth;
+  deleteAccountBtn.disabled = !isAuth;
+  accountStatus.textContent = isAuth ? "" : state.lang === "ru" ? "Войдите для управления аккаунтом." : "Sign in to manage your account.";
 }
 
 function cacheBuilderDraft() {
@@ -1001,6 +1061,53 @@ async function submitSurvey(event) {
   }
 }
 
+async function submitAccountPassword(event) {
+  event.preventDefault();
+  if (!state.user) {
+    window.location.href = "/auth";
+    return;
+  }
+  const formData = new FormData(accountPasswordForm);
+  const currentPassword = String(formData.get("currentPassword") || "");
+  const newPassword = String(formData.get("newPassword") || "");
+
+  try {
+    await api.changePassword({ currentPassword, newPassword, website: "" });
+    accountStatus.textContent = state.lang === "ru" ? "Пароль обновлен." : "Password updated.";
+    accountPasswordForm.reset();
+    accountEmail.value = state.user.email || "";
+    showToast(state.lang === "ru" ? "Пароль обновлен" : "Password updated");
+  } catch (error) {
+    accountStatus.textContent = `${state.lang === "ru" ? "Ошибка" : "Error"}: ${error.message}`;
+    showToast(error.message, true);
+  }
+}
+
+async function logoutAllDevices() {
+  if (!state.user) return;
+  await api.logoutAllSessions();
+  state.user = null;
+  renderAuthState();
+  showToast(state.lang === "ru" ? "Выход выполнен на всех устройствах" : "Logged out on all devices");
+}
+
+async function deleteOwnAccount() {
+  if (!state.user) return;
+  const password = String(deletePassword.value || "");
+  if (!password) {
+    showToast(state.lang === "ru" ? "Введите пароль" : "Enter password", true);
+    return;
+  }
+  const warning = state.lang === "ru" ? "Удалить аккаунт без возможности восстановления?" : "Delete account permanently?";
+  if (!window.confirm(warning)) return;
+
+  await api.deleteAccount({ password, website: "" });
+  state.user = null;
+  renderAuthState();
+  showToast(state.lang === "ru" ? "Аккаунт удален" : "Account deleted");
+  window.location.href = "/auth";
+}
+
 async function refreshAll() {
   await Promise.all([loadDashboard(), loadSurveys()]);
 }
@@ -1020,9 +1127,13 @@ function wireEvents() {
     if (state.user) event.preventDefault();
   });
   logoutBtn.addEventListener("click", async () => {
-    await api.logout();
-    state.user = null;
-    renderAuthState();
+    try {
+      await api.logout();
+      state.user = null;
+      renderAuthState();
+    } catch (error) {
+      showToast(error.message, true);
+    }
   });
 
   addQuestionBtn.addEventListener("click", () => {
@@ -1090,6 +1201,22 @@ function wireEvents() {
   modalClose.addEventListener("click", closeModal);
   modal.addEventListener("click", (event) => {
     if (event.target === modal) closeModal();
+  });
+
+  accountPasswordForm.addEventListener("submit", submitAccountPassword);
+  logoutAllBtn.addEventListener("click", async () => {
+    try {
+      await logoutAllDevices();
+    } catch (error) {
+      showToast(error.message, true);
+    }
+  });
+  deleteAccountBtn.addEventListener("click", async () => {
+    try {
+      await deleteOwnAccount();
+    } catch (error) {
+      showToast(error.message, true);
+    }
   });
 }
 

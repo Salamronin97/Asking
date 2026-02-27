@@ -27,6 +27,7 @@
           <a href="#builder" data-i18n="navBuilder">Builder</a>
           <a href="#library" data-i18n="navSurveys">Surveys</a>
           <a href="#analytics" data-i18n="navAnalytics">Analytics</a>
+          <a href="#account" data-i18n="navAccount">Account</a>
         </nav>
         <div class="topbar__actions">
           <a id="authLink" class="btn btn--ghost" href="/auth">Sign In</a>
@@ -183,6 +184,44 @@
             <p data-i18n="analyticsLead">Open a survey from the library and click Results.</p>
           </div>
           <div id="results" class="results"></div>
+        </div>
+      </section>
+
+      <section id="account" class="section">
+        <div class="container split">
+          <form id="accountPasswordForm" class="card">
+            <h3 data-i18n="accountTitle">Account settings</h3>
+            <p class="lead" style="margin-top: 6px" data-i18n="accountLead">Change password and manage active sessions.</p>
+            <div class="form-row">
+              <label data-i18n="accountEmailLabel">Account email</label>
+              <input id="accountEmail" type="email" disabled />
+            </div>
+            <div class="form-row">
+              <label data-i18n="accountCurrentPassword">Current password</label>
+              <input name="currentPassword" type="password" required />
+            </div>
+            <div class="form-row">
+              <label data-i18n="accountNewPassword">New password</label>
+              <input name="newPassword" type="password" required />
+            </div>
+            <div class="action-row">
+              <button class="btn" type="submit" data-i18n="accountChangePassword">Change password</button>
+              <button id="logoutAllBtn" class="btn btn--outline" type="button" data-i18n="accountLogoutAll">Logout all devices</button>
+            </div>
+            <p id="accountStatus" class="status"></p>
+          </form>
+
+          <div class="card">
+            <h3 data-i18n="accountDangerTitle">Danger zone</h3>
+            <p class="lead" style="margin-top: 6px" data-i18n="accountDangerLead">
+              This action will permanently remove your account.
+            </p>
+            <div class="form-row">
+              <label data-i18n="accountDeletePassword">Confirm password</label>
+              <input id="deletePassword" type="password" />
+            </div>
+            <button id="deleteAccountBtn" class="btn btn--danger" type="button" data-i18n="accountDeleteBtn">Delete account</button>
+          </div>
         </div>
       </section>
     </main>
