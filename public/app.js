@@ -69,7 +69,33 @@ const i18n = {
     metricResponses: "Total responses",
     noSurveysYet: "No surveys yet",
     noSurveysFound: "No surveys found.",
-    selectTemplate: "Select a template"
+    selectTemplate: "Select a template",
+    questionText: "Question text",
+    questionType: "Type",
+    options: "Options",
+    addOption: "+ Add option",
+    requiredQuestion: "Required question",
+    removeQuestion: "Remove question",
+    qTypeText: "Text",
+    qTypeSingle: "Single choice",
+    qTypeMulti: "Multiple choice",
+    qTypeRating: "Rating 1-5",
+    open: "Open",
+    results: "Results",
+    copyLink: "Copy Link",
+    exportCsv: "Export CSV",
+    duplicate: "Duplicate",
+    archive: "Archive",
+    del: "Delete",
+    audience: "Audience",
+    starts: "Starts",
+    ends: "Ends",
+    responses: "Responses",
+    active: "Active",
+    multiResponse: "Multi response",
+    yes: "yes",
+    no: "no",
+    descFallback: "not specified"
   },
   ru: {
     navDashboard: "Дашборд",
@@ -126,7 +152,33 @@ const i18n = {
     metricResponses: "Всего ответов",
     noSurveysYet: "Анкет пока нет",
     noSurveysFound: "Анкеты не найдены.",
-    selectTemplate: "Выберите шаблон"
+    selectTemplate: "Выберите шаблон",
+    questionText: "Текст вопроса",
+    questionType: "Тип",
+    options: "Варианты",
+    addOption: "+ Добавить вариант",
+    requiredQuestion: "Обязательный вопрос",
+    removeQuestion: "Удалить вопрос",
+    qTypeText: "Текст",
+    qTypeSingle: "Одиночный выбор",
+    qTypeMulti: "Множественный выбор",
+    qTypeRating: "Рейтинг 1-5",
+    open: "Открыть",
+    results: "Результаты",
+    copyLink: "Ссылка",
+    exportCsv: "Экспорт CSV",
+    duplicate: "Дублировать",
+    archive: "Архив",
+    del: "Удалить",
+    audience: "Аудитория",
+    starts: "Начало",
+    ends: "Окончание",
+    responses: "Ответы",
+    active: "Активна",
+    multiResponse: "Повторные ответы",
+    yes: "да",
+    no: "нет",
+    descFallback: "не указана"
   }
 };
 
@@ -215,10 +267,10 @@ const api = {
 };
 
 const questionTypes = [
-  { value: "text", label: "Text" },
-  { value: "single", label: "Single choice" },
-  { value: "multi", label: "Multiple choice" },
-  { value: "rating", label: "Rating 1-5" }
+  { value: "text", key: "qTypeText" },
+  { value: "single", key: "qTypeSingle" },
+  { value: "multi", key: "qTypeMulti" },
+  { value: "rating", key: "qTypeRating" }
 ];
 
 const surveyForm = document.getElementById("surveyForm");
@@ -361,25 +413,25 @@ function createQuestionBlock(question = null) {
   block.innerHTML = `
     <div class="row">
       <div class="form-row">
-        <label>Question text</label>
+        <label>${t("questionText")}</label>
         <input name="questionText" type="text" required />
       </div>
       <div class="form-row">
-        <label>Type</label>
+        <label>${t("questionType")}</label>
         <select name="questionType">
-          ${questionTypes.map((type) => `<option value="${type.value}">${type.label}</option>`).join("")}
+          ${questionTypes.map((type) => `<option value="${type.value}">${t(type.key)}</option>`).join("")}
         </select>
       </div>
       <div class="form-row options-box" style="display:none;">
-        <label>Options</label>
+        <label>${t("options")}</label>
         <div class="options"></div>
-        <button type="button" class="btn btn--ghost add-option">+ Add option</button>
+        <button type="button" class="btn btn--ghost add-option">${t("addOption")}</button>
       </div>
       <label class="inline-check">
         <input type="checkbox" name="required" checked />
-        Required question
+        ${t("requiredQuestion")}
       </label>
-      <button type="button" class="btn btn--outline remove-question">Remove question</button>
+      <button type="button" class="btn btn--outline remove-question">${t("removeQuestion")}</button>
     </div>
   `;
 
@@ -677,12 +729,12 @@ function renderSurveyCard(survey) {
       <span class="${badgeClass(survey.status)}">${statusLabel(survey.status)}</span>
     </div>
     <div class="meta">
-      <span>Audience: ${escapeHtml(survey.audience || "not specified")}</span>
-      <span>Starts: ${escapeHtml(formatDateTime(survey.starts_at))}</span>
-      <span>Ends: ${escapeHtml(formatDateTime(survey.ends_at))}</span>
-      <span>Responses: ${Number(survey.responses_count || 0)}</span>
-      <span>Active: ${survey.is_active ? "yes" : "no"}</span>
-      <span>Multi response: ${survey.allow_multiple_responses ? "yes" : "no"}</span>
+      <span>${t("audience")}: ${escapeHtml(survey.audience || t("descFallback"))}</span>
+      <span>${t("starts")}: ${escapeHtml(formatDateTime(survey.starts_at))}</span>
+      <span>${t("ends")}: ${escapeHtml(formatDateTime(survey.ends_at))}</span>
+      <span>${t("responses")}: ${Number(survey.responses_count || 0)}</span>
+      <span>${t("active")}: ${survey.is_active ? t("yes") : t("no")}</span>
+      <span>${t("multiResponse")}: ${survey.allow_multiple_responses ? t("yes") : t("no")}</span>
     </div>
     <div class="survey-card__actions"></div>
   `;
@@ -691,7 +743,7 @@ function renderSurveyCard(survey) {
 
   const openButton = document.createElement("button");
   openButton.className = "btn btn--ghost";
-  openButton.textContent = "Open";
+  openButton.textContent = t("open");
   openButton.addEventListener("click", async () => {
     try {
       const details = await api.getSurvey(survey.id);
@@ -704,7 +756,7 @@ function renderSurveyCard(survey) {
 
   const resultsButton = document.createElement("button");
   resultsButton.className = "btn btn--outline";
-  resultsButton.textContent = "Results";
+  resultsButton.textContent = t("results");
   resultsButton.addEventListener("click", async () => {
     await loadResults(survey.id);
     document.getElementById("analytics").scrollIntoView({ behavior: "smooth" });
@@ -713,19 +765,19 @@ function renderSurveyCard(survey) {
 
   const shareButton = document.createElement("button");
   shareButton.className = "btn btn--ghost";
-  shareButton.textContent = "Copy Link";
+  shareButton.textContent = t("copyLink");
   shareButton.addEventListener("click", () => copyShareLink(survey.id));
   actions.appendChild(shareButton);
 
   const exportButton = document.createElement("a");
   exportButton.className = "btn btn--ghost";
   exportButton.href = `/api/surveys/${survey.id}/export.csv`;
-  exportButton.textContent = "Export CSV";
+  exportButton.textContent = t("exportCsv");
   actions.appendChild(exportButton);
 
   const duplicateButton = document.createElement("button");
   duplicateButton.className = "btn btn--ghost";
-  duplicateButton.textContent = "Duplicate";
+  duplicateButton.textContent = t("duplicate");
   duplicateButton.addEventListener("click", async () => {
     await api.duplicateSurvey(survey.id);
     showToast("Survey duplicated");
@@ -757,7 +809,7 @@ function renderSurveyCard(survey) {
   if (survey.status === "published") {
     const archiveButton = document.createElement("button");
     archiveButton.className = "btn btn--outline";
-    archiveButton.textContent = "Archive";
+    archiveButton.textContent = t("archive");
     archiveButton.addEventListener("click", async () => {
       await api.archiveSurvey(survey.id);
       showToast("Survey archived");
@@ -768,7 +820,7 @@ function renderSurveyCard(survey) {
 
   const deleteButton = document.createElement("button");
   deleteButton.className = "btn btn--danger";
-  deleteButton.textContent = "Delete";
+  deleteButton.textContent = t("del");
   deleteButton.addEventListener("click", async () => {
     if (!window.confirm(`Delete survey '${survey.title}'?`)) return;
     await api.deleteSurvey(survey.id);
@@ -940,7 +992,10 @@ function wireEvents() {
   languageSelect.addEventListener("change", async () => {
     state.lang = languageSelect.value === "en" ? "en" : "ru";
     localStorage.setItem("asking-pro-lang", state.lang);
+    const draft = collectSurveyPayload();
     applyStaticI18n();
+    questionsWrap.innerHTML = "";
+    (draft.questions || []).forEach((q) => addQuestion(q));
     fillTemplateSelect();
     await refreshAll();
   });
