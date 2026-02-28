@@ -17,24 +17,24 @@ const i18n = {
     cannotOpen: "Cannot open survey"
   },
   ru: {
-    invalidLink: "Некорректная ссылка анкеты",
+    invalidLink: "Некорректная ссылка на анкету",
     selectRating: "Выберите оценку",
     selectOption: "Выберите вариант",
     submit: "Отправить ответ",
     success: "Ответ успешно отправлен.",
-    inactiveTitle: "Анкета сейчас неактивна",
-    inactiveLead: "Сейчас форма не принимает ответы.",
-    cannotOpen: "Невозможно открыть анкету"
+    inactiveTitle: "Анкета сейчас недоступна",
+    inactiveLead: "Форма временно не принимает ответы.",
+    cannotOpen: "Не удалось открыть анкету"
   },
   kz: {
-    invalidLink: "Сауалнама сілтемесі жарамсыз",
+    invalidLink: "Сауалнама сілтемесі қате",
     selectRating: "Бағаны таңдаңыз",
     selectOption: "Нұсқаны таңдаңыз",
     submit: "Жауап жіберу",
     success: "Жауап сәтті жіберілді.",
     inactiveTitle: "Сауалнама қазір белсенді емес",
     inactiveLead: "Бұл форма қазір жауап қабылдамайды.",
-    cannotOpen: "Сауалнаманы ашу мүмкін емес"
+    cannotOpen: "Сауалнаманы ашу мүмкін болмады"
   }
 };
 
@@ -79,7 +79,7 @@ function buildForm(survey, questions) {
       const select = document.createElement("select");
       select.name = key;
       select.appendChild(new Option(t("selectRating"), ""));
-      [1, 2, 3, 4, 5].forEach((v) => select.appendChild(new Option(String(v), String(v))));
+      [1, 2, 3, 4, 5].forEach((value) => select.appendChild(new Option(String(value), String(value))));
       row.appendChild(select);
     } else if (question.type === "single") {
       const select = document.createElement("select");

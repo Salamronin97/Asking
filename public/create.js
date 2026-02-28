@@ -10,6 +10,7 @@ const languageSelect = document.getElementById("languageSelect");
 const prevStepBtn = document.getElementById("prevStepBtn");
 const nextStepBtn = document.getElementById("nextStepBtn");
 const createBtn = document.getElementById("createBtn");
+const createPublishBtn = document.getElementById("createPublishBtn");
 const wizardPanes = Array.from(document.querySelectorAll(".wizard-pane"));
 const wizardStepButtons = Array.from(document.querySelectorAll("[data-step-btn]"));
 const previewTitle = document.getElementById("previewTitle");
@@ -42,12 +43,12 @@ const i18n = {
     labelStartsAt: "Starts at",
     labelEndsAt: "Ends at",
     allowMultiple: "Allow multiple responses",
-    publishImmediately: "Publish immediately after draft creation",
     afterDraft: "After draft creation:",
     afterDraftLead: "Publish in cabinet, copy public link, and share with participants.",
     back: "Back",
     next: "Next",
     createDraft: "Create draft",
+    createAndPublish: "Create and publish",
     openCabinet: "Open cabinet",
     livePreview: "Live preview",
     questionText: "Question text",
@@ -74,6 +75,7 @@ const i18n = {
     titleTooShort: "Title must be at least 3 characters.",
     needQuestion: "Add at least one question.",
     draftCreated: "Draft #{id} created. Publish and share from cabinet.",
+    publishedCreated: "Survey #{id} created and published.",
     failedLoad: "Failed to load create page",
     noDescription: "No description"
   },
@@ -93,12 +95,12 @@ const i18n = {
     labelStartsAt: "Начало",
     labelEndsAt: "Окончание",
     allowMultiple: "Разрешить повторные ответы",
-    publishImmediately: "Опубликовать сразу после создания черновика",
     afterDraft: "После создания:",
     afterDraftLead: "Публикуйте в кабинете, копируйте публичную ссылку и отправляйте участникам.",
     back: "Назад",
     next: "Далее",
     createDraft: "Сохранить черновик",
+    createAndPublish: "Создать и опубликовать",
     openCabinet: "Открыть кабинет",
     livePreview: "Предпросмотр",
     questionText: "Текст вопроса",
@@ -125,6 +127,7 @@ const i18n = {
     titleTooShort: "Название должно быть не менее 3 символов.",
     needQuestion: "Добавьте минимум один вопрос.",
     draftCreated: "Черновик #{id} создан. Опубликуйте его в кабинете.",
+    publishedCreated: "Анкета #{id} создана и опубликована.",
     failedLoad: "Не удалось загрузить страницу создания",
     noDescription: "Без описания"
   },
@@ -144,12 +147,12 @@ const i18n = {
     labelStartsAt: "Басталуы",
     labelEndsAt: "Аяқталуы",
     allowMultiple: "Қайта жауап беруге рұқсат",
-    publishImmediately: "Черновиктен кейін бірден жариялау",
     afterDraft: "Құрылғаннан кейін:",
     afterDraftLead: "Кабинетте жариялап, сілтемені көшіріп, қатысушыларға таратыңыз.",
     back: "Артқа",
     next: "Келесі",
     createDraft: "Черновик сақтау",
+    createAndPublish: "Жасап жариялау",
     openCabinet: "Кабинет ашу",
     livePreview: "Алдын ала көру",
     questionText: "Сұрақ мәтіні",
@@ -176,6 +179,7 @@ const i18n = {
     titleTooShort: "Атау кемінде 3 таңбадан тұруы тиіс.",
     needQuestion: "Кемінде бір сұрақ қосыңыз.",
     draftCreated: "#{id} черновик сақталды. Кабинетте жариялаңыз.",
+    publishedCreated: "#{id} сауалнамасы жасалып, жарияланды.",
     failedLoad: "Құру беті жүктелмеді",
     noDescription: "Сипаттама жоқ"
   }
@@ -239,7 +243,6 @@ function restoreDraft() {
     surveyForm.startsAt.value = payload.startsAt ? new Date(payload.startsAt).toISOString().slice(0, 16) : "";
     surveyForm.endsAt.value = payload.endsAt ? new Date(payload.endsAt).toISOString().slice(0, 16) : "";
     surveyForm.allowMultipleResponses.checked = !!payload.allowMultipleResponses;
-    surveyForm.publishImmediately.checked = !!payload.publishImmediately;
     questionsWrap.innerHTML = "";
     (payload.questions || []).forEach((q) => addQuestion(q));
     if (!(payload.questions || []).length) addQuestion();
@@ -279,6 +282,7 @@ function setStep(nextStep) {
   prevStepBtn.disabled = step === 1;
   nextStepBtn.hidden = step === 3;
   createBtn.hidden = step !== 3;
+  createPublishBtn.hidden = step !== 3;
   cacheDraft();
 }
 
@@ -423,7 +427,6 @@ function collectPayload() {
     startsAt: formData.get("startsAt") ? new Date(String(formData.get("startsAt"))).toISOString() : null,
     endsAt: formData.get("endsAt") ? new Date(String(formData.get("endsAt"))).toISOString() : null,
     allowMultipleResponses: formData.get("allowMultipleResponses") === "on",
-    publishImmediately: formData.get("publishImmediately") === "on",
     questions
   };
 }
@@ -558,16 +561,19 @@ async function bootstrap() {
     event.preventDefault();
     if (!validateStep()) return;
     try {
+      const action = event.submitter?.dataset?.action || "draft";
       const payload = collectPayload();
       const created = await api.request("/api/surveys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      if (payload.publishImmediately) {
+      if (action === "publish") {
         await api.request(`/api/surveys/${created.id}/publish`, { method: "POST" });
       }
-      setStatus(t("draftCreated").replace("#{id}", created.id));
+      setStatus(
+        (action === "publish" ? t("publishedCreated") : t("draftCreated")).replace("#{id}", created.id)
+      );
       surveyForm.reset();
       questionsWrap.innerHTML = "";
       templateSelect.value = "";

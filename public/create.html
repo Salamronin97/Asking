@@ -86,12 +86,6 @@
                 <span data-i18n="allowMultiple">Allow multiple responses</span>
               </label>
             </div>
-            <div class="form-row">
-              <label class="inline-check">
-                <input type="checkbox" name="publishImmediately" />
-                <span data-i18n="publishImmediately">Publish immediately after draft creation</span>
-              </label>
-            </div>
             <div class="card">
               <strong data-i18n="afterDraft">After draft creation:</strong>
               <p style="margin:8px 0 0;" data-i18n="afterDraftLead">Publish in cabinet, copy public link, and share with participants.</p>
@@ -101,7 +95,10 @@
           <div class="action-row">
             <button type="button" id="prevStepBtn" class="btn btn--outline" data-i18n="back">Back</button>
             <button type="button" id="nextStepBtn" class="btn btn--ghost" data-i18n="next">Next</button>
-            <button type="submit" id="createBtn" class="btn" hidden data-i18n="createDraft">Create draft</button>
+            <button type="submit" id="createBtn" class="btn" hidden data-action="draft" data-i18n="createDraft">Create draft</button>
+            <button type="submit" id="createPublishBtn" class="btn btn--outline" hidden data-action="publish" data-i18n="createAndPublish">
+              Create and publish
+            </button>
           </div>
           <p id="status" class="status"></p>
         </form>
