@@ -2,7 +2,8 @@
 const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, "data", "app.db");
+const DB_PATH =
+  process.env.DB_PATH || (process.env.RAILWAY_ENVIRONMENT ? "/data/app.db" : path.join(__dirname, "data", "app.db"));
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 const db = new sqlite3.Database(DB_PATH);

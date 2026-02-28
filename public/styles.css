@@ -689,6 +689,50 @@ thead th {
   font-size: 13px;
 }
 
+/* Shared workspace style for auth/create/cabinet pages */
+.workspace-page {
+  background:
+    radial-gradient(900px 480px at -10% -10%, rgba(14, 165, 164, 0.14), transparent 58%),
+    radial-gradient(900px 500px at 110% -10%, rgba(13, 148, 136, 0.12), transparent 60%),
+    linear-gradient(180deg, #f6faf9 0%, #eef4f2 100%);
+}
+
+.workspace-page .topbar {
+  background: rgba(246, 251, 250, 0.88);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.09);
+}
+
+.workspace-page .card,
+.workspace-page .survey-card,
+.workspace-page .hero-card {
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  background: linear-gradient(180deg, #ffffff 0%, #f7fcfb 100%);
+}
+
+.workspace-page .btn {
+  background: #0f766e;
+}
+
+.workspace-page .btn:hover {
+  background: #0e6a63;
+}
+
+.workspace-page .btn--outline {
+  border-color: #0f766e;
+  color: #0f766e;
+  background: transparent;
+}
+
+.workspace-page .btn--ghost {
+  background: #e8f6f3;
+  color: #0f766e;
+}
+
+.workspace-page .wizard-step {
+  background: #e8f5f2;
+  border-color: rgba(15, 118, 110, 0.2);
+}
+
 @media (max-width: 960px) {
   .hero__grid,
   .split {
