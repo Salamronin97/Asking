@@ -4,9 +4,15 @@ const addQuestionBtn = document.getElementById("addQuestion");
 const templateSelect = document.getElementById("templateSelect");
 const statusNode = document.getElementById("status");
 const logoutBtn = document.getElementById("logoutBtn");
+const prevStepBtn = document.getElementById("prevStepBtn");
+const nextStepBtn = document.getElementById("nextStepBtn");
+const createBtn = document.getElementById("createBtn");
+const wizardPanes = Array.from(document.querySelectorAll(".wizard-pane"));
+const wizardStepButtons = Array.from(document.querySelectorAll("[data-step-btn]"));
 
 let questionCounter = 0;
 let templates = [];
+let step = 1;
 
 const api = {
   async request(url, options) {
@@ -20,6 +26,38 @@ const api = {
 function setStatus(message, isError = false) {
   statusNode.textContent = message;
   statusNode.style.color = isError ? "#b6201f" : "#c33f17";
+}
+
+function setStep(nextStep) {
+  step = Math.max(1, Math.min(3, Number(nextStep)));
+  wizardPanes.forEach((pane) => {
+    pane.hidden = Number(pane.dataset.step) !== step;
+  });
+  wizardStepButtons.forEach((button) => {
+    button.classList.toggle("is-active", Number(button.dataset.stepBtn) === step);
+  });
+  prevStepBtn.disabled = step === 1;
+  nextStepBtn.hidden = step === 3;
+  createBtn.hidden = step !== 3;
+}
+
+function validateStep() {
+  if (step === 1) {
+    const title = String(new FormData(surveyForm).get("title") || "").trim();
+    if (title.length < 3) {
+      setStatus("Title must be at least 3 characters.", true);
+      return false;
+    }
+  }
+  if (step === 2) {
+    const count = questionsWrap.querySelectorAll(".question").length;
+    if (count < 1) {
+      setStatus("Add at least one question.", true);
+      return false;
+    }
+  }
+  setStatus("");
+  return true;
 }
 
 function addOptionInput(wrap, value = "") {
@@ -140,7 +178,21 @@ async function bootstrap() {
   }
 
   addQuestion();
+  setStep(1);
+
   addQuestionBtn.addEventListener("click", () => addQuestion());
+  prevStepBtn.addEventListener("click", () => setStep(step - 1));
+  nextStepBtn.addEventListener("click", () => {
+    if (!validateStep()) return;
+    setStep(step + 1);
+  });
+  wizardStepButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = Number(button.dataset.stepBtn);
+      if (target <= step || validateStep()) setStep(target);
+    });
+  });
+
   logoutBtn.addEventListener("click", async () => {
     await api.request("/api/auth/logout", { method: "POST" });
     window.location.href = "/auth";
@@ -148,16 +200,18 @@ async function bootstrap() {
 
   surveyForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (!validateStep()) return;
     try {
       const created = await api.request("/api/surveys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(collectPayload())
       });
-      setStatus(`Draft #${created.id} created. Open cabinet to publish/share.`);
+      setStatus(`Draft #${created.id} created. Publish and share from cabinet.`);
       surveyForm.reset();
       questionsWrap.innerHTML = "";
       addQuestion();
+      setStep(1);
     } catch (error) {
       setStatus(error.message, true);
     }

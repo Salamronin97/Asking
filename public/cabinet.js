@@ -109,6 +109,12 @@ function renderCard(survey) {
   exportBtn.textContent = "Export CSV";
   actions.appendChild(exportBtn);
 
+  const exportXlsxBtn = document.createElement("a");
+  exportXlsxBtn.className = "btn btn--ghost";
+  exportXlsxBtn.href = `/api/surveys/${survey.id}/export.xlsx`;
+  exportXlsxBtn.textContent = "Export XLSX";
+  actions.appendChild(exportXlsxBtn);
+
   if (survey.status === "draft") {
     const publishBtn = document.createElement("button");
     publishBtn.className = "btn";

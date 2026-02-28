@@ -2,6 +2,7 @@
 const express = require("express");
 const path = require("path");
 const nodemailer = require("nodemailer");
+const XLSX = require("xlsx");
 const { OAuth2Client } = require("google-auth-library");
 const { init, run, all, get } = require("./db");
 
@@ -1408,6 +1409,79 @@ app.get("/api/surveys/:id/responses-table", requireAuth, async (req, res, next) 
       columns: ["response_id", "created_at", ...questions.map((q) => q.question_text)],
       rows
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/surveys/:id/export.xlsx", requireAuth, async (req, res, next) => {
+  try {
+    const surveyId = Number(req.params.id);
+    if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
+
+    const survey = await get("SELECT id, owner_user_id, title FROM surveys WHERE id = ?", [surveyId]);
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+    if (survey.owner_user_id !== req.user.id) return res.status(403).json({ error: "Forbidden" });
+
+    const questions = await all(
+      `SELECT id, question_text, question_order
+       FROM questions
+       WHERE survey_id = ?
+       ORDER BY question_order ASC`,
+      [surveyId]
+    );
+
+    const responses = await all(
+      `SELECT id, created_at
+       FROM responses
+       WHERE survey_id = ?
+       ORDER BY created_at ASC`,
+      [surveyId]
+    );
+
+    const responseIds = responses.map((row) => row.id);
+    const answerMap = new Map();
+    if (responseIds.length) {
+      const placeholders = responseIds.map(() => "?").join(",");
+      const answers = await all(
+        `SELECT response_id, question_id, answer_json
+         FROM answers
+         WHERE response_id IN (${placeholders})`,
+        responseIds
+      );
+      answers.forEach((item) => {
+        const value = safeJsonParse(item.answer_json, "");
+        const normalized = Array.isArray(value) ? value.join(" | ") : value == null ? "" : String(value);
+        answerMap.set(`${item.response_id}:${item.question_id}`, normalized);
+      });
+    }
+
+    const columns = ["response_id", "created_at", ...questions.map((q) => q.question_text)];
+    const rows = responses.map((response) => {
+      const row = [response.id, response.created_at];
+      questions.forEach((question) => {
+        row.push(answerMap.get(`${response.id}:${question.id}`) || "");
+      });
+      return row;
+    });
+
+    const worksheet = XLSX.utils.aoa_to_sheet([columns, ...rows]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Responses");
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+    const safeTitle = String(survey.title || `survey-${surveyId}`)
+      .replace(/[^\w.-]+/g, "_")
+      .slice(0, 64);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${safeTitle || `survey-${surveyId}`}-responses.xlsx"`
+    );
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.send(buffer);
   } catch (error) {
     next(error);
   }

@@ -26,58 +26,80 @@
     <main class="section">
       <div class="container split">
         <form id="surveyForm" class="card">
-          <h2>Create survey</h2>
-          <div class="form-row">
-            <label>Title</label>
-            <input name="title" required minlength="3" />
-          </div>
-          <div class="form-row">
-            <label>Description</label>
-            <textarea name="description"></textarea>
-          </div>
-          <div class="form-row">
-            <label>Audience</label>
-            <input name="audience" />
-          </div>
-          <div class="form-row">
-            <label>Template</label>
-            <select id="templateSelect"><option value="">Select template</option></select>
-          </div>
-          <div class="form-row grid-2">
-            <div>
-              <label>Starts at</label>
-              <input type="datetime-local" name="startsAt" />
-            </div>
-            <div>
-              <label>Ends at</label>
-              <input type="datetime-local" name="endsAt" />
-            </div>
-          </div>
-          <div class="form-row">
-            <label class="inline-check">
-              <input type="checkbox" name="allowMultipleResponses" />
-              <span>Allow multiple responses</span>
-            </label>
+          <h2>Create Survey Wizard</h2>
+
+          <div class="wizard-steps" id="wizardSteps">
+            <button type="button" class="wizard-step is-active" data-step-btn="1">1. Basics</button>
+            <button type="button" class="wizard-step" data-step-btn="2">2. Questions</button>
+            <button type="button" class="wizard-step" data-step-btn="3">3. Launch</button>
           </div>
 
-          <div class="divider"></div>
-          <div id="questions" class="questions"></div>
+          <section data-step="1" class="wizard-pane">
+            <div class="form-row">
+              <label>Title</label>
+              <input name="title" required minlength="3" />
+            </div>
+            <div class="form-row">
+              <label>Description</label>
+              <textarea name="description"></textarea>
+            </div>
+            <div class="form-row">
+              <label>Audience</label>
+              <input name="audience" />
+            </div>
+            <div class="form-row">
+              <label>Template</label>
+              <select id="templateSelect"><option value="">Select template</option></select>
+            </div>
+          </section>
+
+          <section data-step="2" class="wizard-pane" hidden>
+            <div id="questions" class="questions"></div>
+            <div class="action-row">
+              <button type="button" id="addQuestion" class="btn btn--ghost">+ Add question</button>
+            </div>
+          </section>
+
+          <section data-step="3" class="wizard-pane" hidden>
+            <div class="form-row grid-2">
+              <div>
+                <label>Starts at</label>
+                <input type="datetime-local" name="startsAt" />
+              </div>
+              <div>
+                <label>Ends at</label>
+                <input type="datetime-local" name="endsAt" />
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="inline-check">
+                <input type="checkbox" name="allowMultipleResponses" />
+                <span>Allow multiple responses</span>
+              </label>
+            </div>
+            <div class="card">
+              <strong>After draft creation:</strong>
+              <p style="margin:8px 0 0;">Publish in cabinet, copy public link, and share with participants.</p>
+            </div>
+          </section>
+
           <div class="action-row">
-            <button type="button" id="addQuestion" class="btn btn--ghost">+ Add question</button>
-            <button type="submit" class="btn">Create draft</button>
+            <button type="button" id="prevStepBtn" class="btn btn--outline">Back</button>
+            <button type="button" id="nextStepBtn" class="btn btn--ghost">Next</button>
+            <button type="submit" id="createBtn" class="btn" hidden>Create draft</button>
           </div>
           <p id="status" class="status"></p>
         </form>
 
         <div class="card">
-          <h3>Share workflow</h3>
+          <h3>Professional flow</h3>
           <ol>
-            <li>Create survey and publish in cabinet.</li>
-            <li>Copy public link.</li>
-            <li>Send link to participants.</li>
-            <li>Track results table in cabinet.</li>
+            <li>Build structure with clear goals and audience.</li>
+            <li>Prepare question blocks for measurable feedback.</li>
+            <li>Publish and distribute public link by messengers/email.</li>
+            <li>Use cabinet response table and export files for reporting.</li>
           </ol>
-          <a class="btn btn--outline" href="/cabinet">Go to cabinet</a>
+          <a class="btn btn--outline" href="/cabinet">Open cabinet</a>
         </div>
       </div>
     </main>
