@@ -11,7 +11,6 @@ const logoutBtn = document.getElementById("logoutBtn");
 const languageSelect = document.getElementById("languageSelect");
 const prevStepBtn = document.getElementById("prevStepBtn");
 const nextStepBtn = document.getElementById("nextStepBtn");
-const createBtn = document.getElementById("createBtn");
 const createPublishBtn = document.getElementById("createPublishBtn");
 const wizardPanes = Array.from(document.querySelectorAll(".wizard-pane"));
 const wizardStepButtons = Array.from(document.querySelectorAll("[data-step-btn]"));
@@ -51,13 +50,11 @@ const i18n = {
     labelEndsAt: "Ends at",
     allowMultiple: "Allow multiple responses",
     afterDraft: "After create:",
-    afterDraftLead: "Publish, copy public link, send respondents, open analytics in cabinet.",
+    afterDraftLead: "Copy public link, send respondents, open analytics in cabinet.",
     back: "Back",
     next: "Next",
-    createDraft: "Save draft",
-    createAndPublish: "Create and publish",
-    publishedCreated: "Survey #{id} created and published.",
-    draftCreated: "Draft #{id} created.",
+    createAndPublish: "Create survey",
+    publishedCreated: "Survey #{id} created.",
     openCabinet: "Open cabinet",
     livePreview: "Live preview",
     questionText: "Question text",
@@ -107,13 +104,11 @@ const i18n = {
     labelEndsAt: "Окончание",
     allowMultiple: "Разрешить повторные ответы",
     afterDraft: "После создания:",
-    afterDraftLead: "Опубликуйте, скопируйте ссылку, отправьте респондентам и откройте аналитику в кабинете.",
+    afterDraftLead: "Скопируйте ссылку, отправьте респондентам и откройте аналитику в кабинете.",
     back: "Назад",
     next: "Далее",
-    createDraft: "Сохранить черновик",
-    createAndPublish: "Создать и опубликовать",
-    publishedCreated: "Анкета #{id} создана и опубликована.",
-    draftCreated: "Черновик #{id} создан.",
+    createAndPublish: "Создать анкету",
+    publishedCreated: "Анкета #{id} создана.",
     openCabinet: "Открыть кабинет",
     livePreview: "Предпросмотр",
     questionText: "Текст вопроса",
@@ -284,7 +279,6 @@ function setStep(nextStep) {
   });
   prevStepBtn.disabled = step === 1;
   nextStepBtn.hidden = step === 3;
-  createBtn.hidden = step !== 3;
   createPublishBtn.hidden = step !== 3;
   cacheDraft();
 }
@@ -546,9 +540,7 @@ async function bootstrap() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      const action = event.submitter?.dataset?.action || "draft";
-      if (action === "publish") await api.request(`/api/surveys/${created.id}/publish`, { method: "POST" });
-      setStatus((action === "publish" ? t("publishedCreated") : t("draftCreated")).replace("#{id}", created.id));
+      setStatus(t("publishedCreated").replace("#{id}", created.id));
 
       surveyForm.reset();
       questionsWrap.innerHTML = "";

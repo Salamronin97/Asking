@@ -41,17 +41,14 @@ const i18n = {
     logoutAll: "Logout all devices",
     openLink: "Open link",
     copyLink: "Copy link",
-    publishToShare: "Publish the survey to open and share public link.",
     copied: "Copied",
     analysisOneClick: "1-click analysis",
     exportCsv: "Export CSV",
     exportXlsx: "Export XLSX",
-    publish: "Publish",
     archive: "Archive",
     del: "Delete",
     deleteSurveyConfirm: "Delete survey?",
     noSurveys: "No surveys yet.",
-    statusDraft: "Draft",
     statusPublished: "Published",
     statusArchived: "Archived",
     responses: "Responses",
@@ -221,9 +218,7 @@ function escapeHtml(value) {
 }
 
 function localizeStatus(status) {
-  if (status === "published") return t("statusPublished");
-  if (status === "archived") return t("statusArchived");
-  return t("statusDraft");
+  return status === "archived" ? t("statusArchived") : t("statusPublished");
 }
 
 async function copyLink(id) {
@@ -286,7 +281,7 @@ function renderCard(survey) {
         <h3>${escapeHtml(survey.title || t("unnamed"))}</h3>
         <p>${escapeHtml(survey.description || t("noDescription"))}</p>
       </div>
-      <span class="${survey.status === "published" ? "badge badge--published" : survey.status === "archived" ? "badge badge--archived" : "badge badge--draft"}">
+      <span class="${survey.status === "archived" ? "badge badge--archived" : "badge badge--published"}">
         ${escapeHtml(localizeStatus(survey.status))}
       </span>
     </div>
@@ -316,12 +311,6 @@ function renderCard(survey) {
       setTimeout(() => (copyBtn.textContent = t("copyLink")), 1000);
     });
     actions.appendChild(copyBtn);
-  } else {
-    const note = document.createElement("span");
-    note.className = "meta-line";
-    note.style.width = "100%";
-    note.textContent = t("publishToShare");
-    actions.appendChild(note);
   }
 
   const analysisBtn = document.createElement("button");
@@ -346,17 +335,6 @@ function renderCard(survey) {
   xlsxBtn.href = `/api/surveys/${survey.id}/export.xlsx`;
   xlsxBtn.textContent = t("exportXlsx");
   actions.appendChild(xlsxBtn);
-
-  if (survey.status === "draft") {
-    const publishBtn = document.createElement("button");
-    publishBtn.className = "btn btn--outline";
-    publishBtn.textContent = t("publish");
-    publishBtn.addEventListener("click", async () => {
-      await api.request(`/api/surveys/${survey.id}/publish`, { method: "POST" });
-      await loadSurveys();
-    });
-    actions.appendChild(publishBtn);
-  }
 
   if (survey.status === "published") {
     const archiveBtn = document.createElement("button");

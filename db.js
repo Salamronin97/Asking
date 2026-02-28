@@ -70,7 +70,7 @@ async function init() {
       title TEXT NOT NULL,
       description TEXT,
       audience TEXT,
-      status TEXT NOT NULL DEFAULT 'draft',
+      status TEXT NOT NULL DEFAULT 'published',
       allow_multiple_responses INTEGER NOT NULL DEFAULT 0,
       starts_at TEXT,
       ends_at TEXT,

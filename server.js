@@ -50,7 +50,7 @@ function safeJsonParse(value, fallback) {
 }
 
 function normalizeStatus(status) {
-  return ["draft", "published", "archived"].includes(status) ? status : null;
+  return ["published", "archived"].includes(status) ? status : null;
 }
 
 function computeIsActive(survey) {
@@ -1433,7 +1433,7 @@ app.post("/api/surveys/:id/duplicate", requireAuth, async (req, res, next) => {
     const clone = await run(
       `INSERT INTO surveys
         (owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, 'published', ?, ?, ?, ?, ?)`,
       [
         req.user.id,
         `${survey.title} (Copy)`,
@@ -1515,7 +1515,7 @@ app.post("/api/surveys", requireAuth, async (req, res, next) => {
     const created = await run(
       `INSERT INTO surveys
         (owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, 'published', ?, ?, ?, ?, ?)`,
       [
         req.user.id,
         payload.title,
@@ -1557,9 +1557,7 @@ app.put("/api/surveys/:id", requireAuth, async (req, res, next) => {
 
     const survey = await get("SELECT id, status FROM surveys WHERE id = ? AND owner_user_id = ?", [surveyId, req.user.id]);
     if (!survey) return res.status(404).json({ error: "Survey not found" });
-    if (survey.status !== "draft") {
-      return res.status(400).json({ error: "Only draft surveys can be edited" });
-    }
+    if (survey.status === "archived") return res.status(400).json({ error: "Archived survey cannot be edited" });
 
     const { fields, payload } = validateSurveyPayload(req.body);
     if (fields.length) return res.status(400).json({ error: "Invalid survey payload", fields });
@@ -2048,6 +2046,7 @@ app.use((error, _req, res, _next) => {
 
 init()
   .then(async () => {
+    await run("UPDATE surveys SET status = 'published', updated_at = ? WHERE status = 'draft'", [nowIso()]);
     await seedDemoSurvey();
     app.listen(PORT, () => {
       console.log(`Server listening on http://localhost:${PORT}`);
