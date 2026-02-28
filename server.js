@@ -1390,9 +1390,11 @@ app.get("/api/public/surveys/:id", async (req, res, next) => {
       [surveyId]
     );
 
+    const publicOpen = survey.status === "published";
+
     res.json({
       survey,
-      active: surveyIsActive(survey),
+      active: publicOpen || (isOwnerPreview && survey.status !== "published"),
       preview: isOwnerPreview && survey.status !== "published",
       questions: questions.map((q) => ({
         id: q.id,
@@ -1653,7 +1655,7 @@ app.post("/api/surveys/:id/respond", async (req, res, next) => {
     );
 
     if (!survey) return res.status(404).json({ error: "Survey not found" });
-    if (!surveyIsActive(survey)) return res.status(400).json({ error: "Survey is not active" });
+    if (survey.status !== "published") return res.status(400).json({ error: "Survey is not published" });
 
     const questions = await all(
       `SELECT id, type, options_json, required
