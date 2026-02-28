@@ -18,6 +18,8 @@
         <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking Pro</span></a>
         <div class="topbar__actions">
           <a class="btn btn--ghost" href="/create" data-i18n="newSurvey">New Survey</a>
+          <a class="btn btn--ghost" href="/guide" data-i18n="guide">Guide</a>
+          <a class="btn btn--ghost" href="/author" data-i18n="author">Author</a>
           <select id="languageSelect" class="lang-select" aria-label="Language">
             <option value="en">EN</option>
             <option value="ru">RU</option>
@@ -34,7 +36,7 @@
           <div class="section__head section__head--row">
             <div>
               <h2 data-i18n="mySurveys">My surveys</h2>
-              <p data-i18n="mySurveysLead">Draft, publish, share and monitor response tables.</p>
+              <p data-i18n="mySurveysLead">Create, publish, share, and analyze in one place.</p>
             </div>
           </div>
           <div id="surveyList" class="survey-list"></div>
@@ -44,34 +46,33 @@
       <section class="section section--alt">
         <div class="container split">
           <form id="profileForm" class="card">
-            <h3 data-i18n="profileSettings">Profile settings</h3>
-            <p class="lead" data-i18n="profileLead">Manage your account identity and workspace language.</p>
+            <h3 data-i18n="profileTitle">Profile</h3>
             <div class="grid-2">
               <div class="form-row">
-                <label for="profileName" data-i18n="fullName">Full name</label>
+                <label data-i18n="fullName">Full name</label>
                 <input id="profileName" name="name" type="text" minlength="2" maxlength="80" required />
               </div>
               <div class="form-row">
-                <label for="accountEmail" data-i18n="accountEmail">Account email</label>
+                <label data-i18n="accountEmail">Email</label>
                 <input id="accountEmail" type="email" disabled />
               </div>
             </div>
             <div class="grid-2">
               <div class="form-row">
-                <label for="profileCompany" data-i18n="company">Company</label>
+                <label data-i18n="company">Company</label>
                 <input id="profileCompany" name="company" type="text" maxlength="120" />
               </div>
               <div class="form-row">
-                <label for="profilePosition" data-i18n="position">Position</label>
+                <label data-i18n="position">Position</label>
                 <input id="profilePosition" name="position" type="text" maxlength="120" />
               </div>
             </div>
             <div class="form-row">
-              <label for="profileLocale" data-i18n="profileLanguage">Profile language</label>
+              <label data-i18n="profileLanguage">Language</label>
               <select id="profileLocale" name="locale">
                 <option value="en">English</option>
-                <option value="ru">Russian</option>
-                <option value="kz">Kazakh</option>
+                <option value="ru">Русский</option>
+                <option value="kz">Қазақша</option>
               </select>
             </div>
             <p id="profileMeta" class="meta-line"></p>
@@ -82,46 +83,25 @@
           </form>
 
           <div class="card">
-            <h3 data-i18n="securityTitle">Security</h3>
-            <p class="lead" data-i18n="securityLead">Update password and control active sessions.</p>
-            <form id="accountPasswordForm">
-              <div class="form-row">
-                <label data-i18n="currentPassword">Current password</label>
-                <input name="currentPassword" type="password" required />
-              </div>
-              <div class="form-row">
-                <label data-i18n="newPassword">New password</label>
-                <input name="newPassword" type="password" minlength="8" required />
-              </div>
-              <div class="action-row">
-                <button class="btn" type="submit" data-i18n="changePassword">Change password</button>
-                <button id="logoutAllBtn" class="btn btn--outline" type="button" data-i18n="logoutAll">Logout all devices</button>
-              </div>
-              <p id="accountStatus" class="status"></p>
-            </form>
-
-            <div class="divider"></div>
-            <h4 style="margin: 0 0 8px" data-i18n="sessionsTitle">Active sessions</h4>
-            <p class="lead" style="margin-top: 0" data-i18n="sessionsLead">Revoke old sessions if you do not recognize a login.</p>
+            <h3 data-i18n="sessionsTitle">Sessions</h3>
+            <p class="lead" data-i18n="sessionsLead">Close sessions you don't recognize.</p>
             <div id="sessionsList" class="session-list"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="section">
-        <div class="container">
-          <div class="card">
-            <h3 data-i18n="dangerZone">Danger zone</h3>
-            <p class="lead" style="margin-top: 6px" data-i18n="dangerLead">Delete account permanently.</p>
-            <div class="form-row">
-              <label data-i18n="confirmPassword">Confirm password</label>
-              <input id="deletePassword" type="password" />
+            <div class="action-row">
+              <button id="logoutAllBtn" class="btn btn--outline" type="button" data-i18n="logoutAll">Logout all devices</button>
             </div>
-            <button id="deleteAccountBtn" class="btn btn--danger" type="button" data-i18n="deleteAccount">Delete account</button>
           </div>
         </div>
       </section>
     </main>
+
+    <div id="analysisModal" class="modal" hidden>
+      <div class="modal__content">
+        <button id="analysisCloseBtn" class="modal__close" type="button">x</button>
+        <h3 id="analysisTitle">Survey analysis</h3>
+        <div id="analysisBody"></div>
+      </div>
+    </div>
+
     <script src="/cabinet.js"></script>
   </body>
 </html>

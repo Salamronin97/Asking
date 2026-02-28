@@ -17,6 +17,8 @@
       <div class="container topbar__inner">
         <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking Pro</span></a>
         <div class="topbar__actions">
+          <a class="btn btn--ghost" href="/guide" data-i18n="guide">Guide</a>
+          <a class="btn btn--ghost" href="/author" data-i18n="author">Author</a>
           <a class="btn btn--ghost" href="/cabinet" data-i18n="cabinet">Cabinet</a>
           <select id="languageSelect" class="lang-select" aria-label="Language">
             <option value="en">EN</option>
@@ -59,7 +61,10 @@
               </select>
             </div>
             <p id="templateCounter" class="meta-line"></p>
-            <div id="templateCards" class="survey-list"></div>
+            <button type="button" id="toggleTemplatesBtn" class="btn btn--outline" data-i18n="showTemplates">Show templates</button>
+            <div id="templatePanel" class="template-panel" hidden>
+              <div id="templateCards" class="survey-list" style="margin-top: 10px"></div>
+            </div>
           </section>
 
           <section data-step="2" class="wizard-pane" hidden>

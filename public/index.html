@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Asking Pro | Surveys and Voting</title>
+    <title>Asking Pro | Surveys, Forms, Voting</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -18,19 +18,18 @@
 
     <header class="topbar">
       <div class="container topbar__inner">
-        <a class="brand" href="/">
-          <span class="brand__mark">A</span>
-          <span>Asking Pro</span>
-        </a>
+        <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking Pro</span></a>
         <div class="topbar__actions">
-          <a class="btn btn--ghost" href="/create" data-i18n="createSurvey">Create Survey</a>
-          <a class="btn btn--ghost" href="/cabinet" data-i18n="cabinet">Cabinet</a>
+          <a class="btn btn--ghost" href="/create" data-i18n="navCreate">Create</a>
+          <a class="btn btn--ghost" href="/guide" data-i18n="navGuide">Guide</a>
+          <a class="btn btn--ghost" href="/author" data-i18n="navAuthor">Author</a>
+          <a class="btn btn--ghost" href="/cabinet" data-i18n="navCabinet">Cabinet</a>
           <select id="languageSelect" class="lang-select" aria-label="Language">
             <option value="en">EN</option>
             <option value="ru">RU</option>
             <option value="kz">KZ</option>
           </select>
-          <a id="authBtn" class="btn btn--outline" href="/auth" data-i18n="signIn">Sign In</a>
+          <a id="authBtn" class="btn btn--outline" href="/auth" data-i18n="navSignIn">Sign in</a>
         </div>
       </div>
     </header>
@@ -39,38 +38,28 @@
       <section class="hero hero--landing">
         <div class="container hero__grid">
           <div>
-            <p class="eyebrow landing-pill" data-i18n="eyebrow">SURVEYS, FORMS, VOTING</p>
-            <h1 data-i18n="heroTitle">Build surveys. Share one link. Get structured results.</h1>
+            <p class="eyebrow landing-pill" data-i18n="heroEyebrow">SURVEYS FOR EDUCATION AND BUSINESS</p>
+            <h1 data-i18n="heroTitle">Create a survey in minutes. Share one link. Track results live.</h1>
             <p class="lead" data-i18n="heroLead">
-              Create professional questionnaires and voting forms for events, education, teams, and research. Send the public
-              link to respondents and manage all analytics in your personal cabinet.
+              Build questionnaires, polls, and voting pages. Send them by link and get clean analytics with CSV/XLSX export.
             </p>
             <div class="hero__actions">
-              <a class="btn" href="/create" data-i18n="startCreating">Start Creating</a>
-              <a class="btn btn--outline" href="/cabinet" data-i18n="openCabinet">Open Cabinet</a>
+              <a class="btn" href="/create" data-i18n="heroCreate">Create survey</a>
+              <a class="btn btn--outline" href="/guide" data-i18n="heroGuide">Open guide</a>
             </div>
           </div>
           <div class="hero-card hero-card--landing">
-            <h3 data-i18n="howWorks">How it works</h3>
+            <h3 data-i18n="heroCardTitle">Workflow</h3>
             <ul>
-              <li data-i18n="how1">Create survey with flexible question types</li>
-              <li data-i18n="how2">Publish and copy share link</li>
-              <li data-i18n="how3">Collect responses from participants</li>
-              <li data-i18n="how4">Review response table and export CSV</li>
+              <li data-i18n="flow1">1. Build survey from scratch or template</li>
+              <li data-i18n="flow2">2. Publish and share public link</li>
+              <li data-i18n="flow3">3. Respondents complete multi-page form</li>
+              <li data-i18n="flow4">4. Open one-click analysis in cabinet</li>
             </ul>
             <div class="landing-kpis">
-              <div class="landing-kpi">
-                <strong>3 min</strong>
-                <span data-i18n="kpiBuild">average setup</span>
-              </div>
-              <div class="landing-kpi">
-                <strong>1 link</strong>
-                <span data-i18n="kpiShare">for distribution</span>
-              </div>
-              <div class="landing-kpi">
-                <strong>CSV/XLSX</strong>
-                <span data-i18n="kpiExport">export ready</span>
-              </div>
+              <div class="landing-kpi"><strong>12+</strong><span data-i18n="kpi1">professional templates</span></div>
+              <div class="landing-kpi"><strong>1 click</strong><span data-i18n="kpi2">analysis and exports</span></div>
+              <div class="landing-kpi"><strong>3 langs</strong><span data-i18n="kpi3">RU / EN / KZ interface</span></div>
             </div>
           </div>
         </div>
@@ -80,65 +69,70 @@
     <script>
       const i18n = {
         en: {
-          createSurvey: "Create Survey",
-          cabinet: "Cabinet",
-          eyebrow: "SURVEYS, FORMS, VOTING",
-          heroTitle: "Build surveys. Share one link. Get structured results.",
-          heroLead:
-            "Create professional questionnaires and voting forms for events, education, teams, and research. Send the public link to respondents and manage all analytics in your personal cabinet.",
-          startCreating: "Start Creating",
-          openCabinet: "Open Cabinet",
-          howWorks: "How it works",
-          kpiBuild: "average setup",
-          kpiShare: "for distribution",
-          kpiExport: "export ready",
-          signIn: "Sign In",
-          how1: "Create survey with flexible question types",
-          how2: "Publish and copy share link",
-          how3: "Collect responses from participants",
-          how4: "Review response table and export CSV"
+          navCreate: "Create",
+          navGuide: "Guide",
+          navAuthor: "Author",
+          navCabinet: "Cabinet",
+          navSignIn: "Sign in",
+          heroEyebrow: "SURVEYS FOR EDUCATION AND BUSINESS",
+          heroTitle: "Create a survey in minutes. Share one link. Track results live.",
+          heroLead: "Build questionnaires, polls, and voting pages. Send them by link and get clean analytics with CSV/XLSX export.",
+          heroCreate: "Create survey",
+          heroGuide: "Open guide",
+          heroCardTitle: "Workflow",
+          flow1: "1. Build survey from scratch or template",
+          flow2: "2. Publish and share public link",
+          flow3: "3. Respondents complete multi-page form",
+          flow4: "4. Open one-click analysis in cabinet",
+          kpi1: "professional templates",
+          kpi2: "analysis and exports",
+          kpi3: "RU / EN / KZ interface"
         },
         ru: {
-          createSurvey: "Создать анкету",
-          cabinet: "Кабинет",
-          eyebrow: "ОПРОСЫ, АНКЕТЫ, ГОЛОСОВАНИЯ",
-          heroTitle: "Создавайте опросы. Делитесь одной ссылкой. Получайте структурированные результаты.",
-          heroLead:
-            "Собирайте профессиональные анкеты и голосования для мероприятий, обучения и команд. Отправляйте публичную ссылку респондентам и управляйте аналитикой в личном кабинете.",
-          startCreating: "Начать создание",
-          openCabinet: "Открыть кабинет",
-          howWorks: "Как это работает",
-          kpiBuild: "среднее время настройки",
-          kpiShare: "для рассылки",
-          kpiExport: "готово к выгрузке",
-          signIn: "Войти",
-          how1: "Создайте анкету с нужными типами вопросов",
-          how2: "Опубликуйте и скопируйте ссылку",
-          how3: "Соберите ответы от участников",
-          how4: "Смотрите таблицу и экспортируйте CSV"
+          navCreate: "Создать",
+          navGuide: "Гайд",
+          navAuthor: "Автор",
+          navCabinet: "Кабинет",
+          navSignIn: "Войти",
+          heroEyebrow: "ОПРОСЫ ДЛЯ ОБРАЗОВАНИЯ И БИЗНЕСА",
+          heroTitle: "Создайте анкету за минуты. Отправьте одну ссылку. Получайте результаты в реальном времени.",
+          heroLead: "Делайте анкеты, опросы и голосования. Рассылайте ссылку и получайте аккуратную аналитику с экспортом CSV/XLSX.",
+          heroCreate: "Создать анкету",
+          heroGuide: "Открыть гайд",
+          heroCardTitle: "Сценарий работы",
+          flow1: "1. Сборка анкеты с нуля или по шаблону",
+          flow2: "2. Публикация и отправка публичной ссылки",
+          flow3: "3. Респонденты проходят опрос по страницам",
+          flow4: "4. Анализ результатов в кабинете в 1 клик",
+          kpi1: "профессиональных шаблонов",
+          kpi2: "до анализа и выгрузки",
+          kpi3: "RU / EN / KZ интерфейс"
         },
         kz: {
-          createSurvey: "Сауалнама жасау",
-          cabinet: "Кабинет",
-          eyebrow: "САУАЛНАМА, АНКЕТА, ДАУЫС БЕРУ",
-          heroTitle: "Сауалнама жасаңыз. Бір сілтемемен бөлісіңіз. Нәтижені реттелген түрде алыңыз.",
-          heroLead:
-            "Іс-шара, білім беру және командалар үшін кәсіби сауалнама құрыңыз. Қатысушыларға ашық сілтеме жіберіп, аналитиканы жеке кабинетте басқарыңыз.",
-          startCreating: "Құруды бастау",
-          openCabinet: "Кабинетті ашу",
-          howWorks: "Қалай жұмыс істейді",
-          kpiBuild: "орташа баптау уақыты",
-          kpiShare: "таратуға дайын",
-          kpiExport: "экспорт дайын",
-          signIn: "Кіру",
-          how1: "Қажетті сұрақ түрлерімен сауалнама құрыңыз",
-          how2: "Жариялап, сілтемені көшіріңіз",
-          how3: "Қатысушылардан жауап жинаңыз",
-          how4: "Кестені қарап, CSV жүктеңіз"
+          navCreate: "Құру",
+          navGuide: "Нұсқаулық",
+          navAuthor: "Автор",
+          navCabinet: "Кабинет",
+          navSignIn: "Кіру",
+          heroEyebrow: "БІЛІМ МЕН БИЗНЕСКЕ АРНАЛҒАН САУАЛНАМАЛАР",
+          heroTitle: "Сауалнаманы бірнеше минутта жасаңыз. Бір сілтеме бөлісіңіз. Нәтижені бірден көріңіз.",
+          heroLead: "Анкета, сауалнама және дауыс беру беттерін жасаңыз. Сілтеме таратып, таза аналитика мен CSV/XLSX экспорт алыңыз.",
+          heroCreate: "Сауалнама құру",
+          heroGuide: "Нұсқаулық ашу",
+          heroCardTitle: "Жұмыс ағымы",
+          flow1: "1. Үлгімен немесе нөлден жасау",
+          flow2: "2. Жариялау және сілтеме тарату",
+          flow3: "3. Респонденттер опросты бет-бетпен өтеді",
+          flow4: "4. Кабинетте 1 рет басып анализ алу",
+          kpi1: "кәсіби үлгі",
+          kpi2: "анализ және экспорт",
+          kpi3: "RU / EN / KZ интерфейс"
         }
       };
-      const langKey = "asking-pro-lang";
+
+      const LANG_KEY = "asking-pro-lang";
       const languageSelect = document.getElementById("languageSelect");
+      const authBtn = document.getElementById("authBtn");
 
       function t(lang, key) {
         return i18n[lang]?.[key] || i18n.en[key] || key;
@@ -147,20 +141,16 @@
       function applyLang(lang) {
         document.documentElement.lang = lang;
         document.querySelectorAll("[data-i18n]").forEach((node) => {
-          const key = node.getAttribute("data-i18n");
-          node.textContent = t(lang, key);
+          node.textContent = t(lang, node.getAttribute("data-i18n"));
         });
       }
 
-      const currentLang = ["en", "ru", "kz"].includes(localStorage.getItem(langKey))
-        ? localStorage.getItem(langKey)
-        : "ru";
-      languageSelect.value = currentLang;
-      applyLang(currentLang);
+      const lang = ["en", "ru", "kz"].includes(localStorage.getItem(LANG_KEY)) ? localStorage.getItem(LANG_KEY) : "ru";
+      languageSelect.value = lang;
+      applyLang(lang);
       languageSelect.addEventListener("change", () => {
-        const lang = languageSelect.value;
-        localStorage.setItem(langKey, lang);
-        applyLang(lang);
+        localStorage.setItem(LANG_KEY, languageSelect.value);
+        applyLang(languageSelect.value);
       });
 
       (async () => {
@@ -168,13 +158,10 @@
           const response = await fetch("/api/auth/me");
           const data = await response.json();
           if (data.user) {
-            const authBtn = document.getElementById("authBtn");
-            authBtn.textContent = data.user.email || "Account";
+            authBtn.textContent = data.user.email || "Cabinet";
             authBtn.href = "/cabinet";
           }
-        } catch {
-          // ignore
-        }
+        } catch {}
       })();
     </script>
   </body>

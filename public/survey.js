@@ -10,36 +10,51 @@ const i18n = {
     invalidLink: "Invalid survey link",
     selectRating: "Select rating",
     selectOption: "Select option",
-    submit: "Submit response",
+    next: "Next",
+    back: "Back",
+    finish: "Submit",
     success: "Response submitted successfully.",
     inactiveTitle: "Survey is currently inactive",
     inactiveLead: "This form is not accepting responses now.",
-    cannotOpen: "Cannot open survey"
+    cannotOpen: "Cannot open survey",
+    progress: "Question {current} of {total}"
   },
   ru: {
     invalidLink: "Некорректная ссылка на анкету",
     selectRating: "Выберите оценку",
     selectOption: "Выберите вариант",
-    submit: "Отправить ответ",
+    next: "Далее",
+    back: "Назад",
+    finish: "Отправить",
     success: "Ответ успешно отправлен.",
     inactiveTitle: "Анкета сейчас недоступна",
     inactiveLead: "Форма временно не принимает ответы.",
-    cannotOpen: "Не удалось открыть анкету"
+    cannotOpen: "Не удалось открыть анкету",
+    progress: "Вопрос {current} из {total}"
   },
   kz: {
     invalidLink: "Сауалнама сілтемесі қате",
     selectRating: "Бағаны таңдаңыз",
     selectOption: "Нұсқаны таңдаңыз",
-    submit: "Жауап жіберу",
+    next: "Келесі",
+    back: "Артқа",
+    finish: "Жіберу",
     success: "Жауап сәтті жіберілді.",
     inactiveTitle: "Сауалнама қазір белсенді емес",
-    inactiveLead: "Бұл форма қазір жауап қабылдамайды.",
-    cannotOpen: "Сауалнаманы ашу мүмкін болмады"
+    inactiveLead: "Форма қазір жауап қабылдамайды.",
+    cannotOpen: "Сауалнаманы ашу мүмкін болмады",
+    progress: "{total} ішінен {current}-сұрақ"
   }
 };
 
+let current = 0;
+
 function t(key) {
   return i18n[lang]?.[key] || i18n.en[key] || key;
+}
+
+function formatText(template, values) {
+  return Object.keys(values).reduce((acc, key) => acc.replaceAll(`{${key}}`, values[key]), template);
 }
 
 async function request(url, options) {
@@ -58,80 +73,132 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function buildForm(survey, questions) {
+function buildQuestion(question) {
+  const row = document.createElement("div");
+  row.className = "form-row";
+  row.dataset.questionId = String(question.id);
+  row.dataset.questionType = question.type;
+  row.innerHTML = `<label>${escapeHtml(question.text)}${question.required ? " *" : ""}</label>`;
+  const key = `q_${question.id}`;
+
+  if (question.type === "text") {
+    const textarea = document.createElement("textarea");
+    textarea.name = key;
+    row.appendChild(textarea);
+  } else if (question.type === "rating") {
+    const select = document.createElement("select");
+    select.name = key;
+    select.appendChild(new Option(t("selectRating"), ""));
+    [1, 2, 3, 4, 5].forEach((value) => select.appendChild(new Option(String(value), String(value))));
+    row.appendChild(select);
+  } else if (question.type === "single") {
+    const select = document.createElement("select");
+    select.name = key;
+    select.appendChild(new Option(t("selectOption"), ""));
+    (question.options || []).forEach((option) => select.appendChild(new Option(option, option)));
+    row.appendChild(select);
+  } else {
+    const wrap = document.createElement("div");
+    wrap.className = "options";
+    (question.options || []).forEach((option) => {
+      const label = document.createElement("label");
+      label.className = "inline-check";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.name = key;
+      input.value = option;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(option));
+      wrap.appendChild(label);
+    });
+    row.appendChild(wrap);
+  }
+  return row;
+}
+
+function collectAnswers(form, questions) {
+  const answers = [];
+  questions.forEach((question) => {
+    const key = `q_${question.id}`;
+    if (question.type === "multi") {
+      const values = Array.from(form.querySelectorAll(`input[name='${key}']:checked`)).map((node) => node.value);
+      if (values.length) answers.push({ questionId: question.id, value: values });
+    } else {
+      const input = form.querySelector(`[name='${key}']`);
+      const value = String(input?.value || "").trim();
+      if (value) answers.push({ questionId: question.id, value });
+    }
+  });
+  return answers;
+}
+
+function renderPagedForm(survey, questions) {
   const wrap = document.createElement("div");
   wrap.innerHTML = `<h2>${escapeHtml(survey.title)}</h2><p>${escapeHtml(survey.description || "")}</p>`;
+
+  const progress = document.createElement("p");
+  progress.className = "meta-line";
+  wrap.appendChild(progress);
+
   const form = document.createElement("form");
   form.className = "card";
-  form.style.marginTop = "14px";
+  form.style.marginTop = "12px";
 
-  questions.forEach((question) => {
-    const row = document.createElement("div");
-    row.className = "form-row";
-    row.innerHTML = `<label>${escapeHtml(question.text)}${question.required ? " *" : ""}</label>`;
-    const key = `q_${question.id}`;
-
-    if (question.type === "text") {
-      const textarea = document.createElement("textarea");
-      textarea.name = key;
-      row.appendChild(textarea);
-    } else if (question.type === "rating") {
-      const select = document.createElement("select");
-      select.name = key;
-      select.appendChild(new Option(t("selectRating"), ""));
-      [1, 2, 3, 4, 5].forEach((value) => select.appendChild(new Option(String(value), String(value))));
-      row.appendChild(select);
-    } else if (question.type === "single") {
-      const select = document.createElement("select");
-      select.name = key;
-      select.appendChild(new Option(t("selectOption"), ""));
-      (question.options || []).forEach((option) => select.appendChild(new Option(option, option)));
-      row.appendChild(select);
-    } else {
-      const optWrap = document.createElement("div");
-      optWrap.className = "options";
-      (question.options || []).forEach((option) => {
-        const label = document.createElement("label");
-        label.className = "inline-check";
-        const check = document.createElement("input");
-        check.type = "checkbox";
-        check.name = key;
-        check.value = option;
-        label.appendChild(check);
-        label.appendChild(document.createTextNode(option));
-        optWrap.appendChild(label);
-      });
-      row.appendChild(optWrap);
-    }
-    form.appendChild(row);
+  const panes = questions.map((question) => {
+    const pane = document.createElement("section");
+    pane.className = "wizard-pane";
+    pane.appendChild(buildQuestion(question));
+    form.appendChild(pane);
+    return pane;
   });
 
-  const submit = document.createElement("button");
-  submit.className = "btn";
-  submit.type = "submit";
-  submit.textContent = t("submit");
-  form.appendChild(submit);
+  const actionRow = document.createElement("div");
+  actionRow.className = "action-row";
+  const backBtn = document.createElement("button");
+  backBtn.type = "button";
+  backBtn.className = "btn btn--outline";
+  backBtn.textContent = t("back");
+  const nextBtn = document.createElement("button");
+  nextBtn.type = "button";
+  nextBtn.className = "btn";
+  nextBtn.textContent = t("next");
+  const finishBtn = document.createElement("button");
+  finishBtn.type = "submit";
+  finishBtn.className = "btn";
+  finishBtn.textContent = t("finish");
+  actionRow.append(backBtn, nextBtn, finishBtn);
+  form.appendChild(actionRow);
 
   const status = document.createElement("p");
   status.className = "status";
   form.appendChild(status);
 
+  const renderStep = () => {
+    panes.forEach((pane, index) => {
+      pane.hidden = index !== current;
+    });
+    progress.textContent = formatText(t("progress"), {
+      current: String(current + 1),
+      total: String(questions.length)
+    });
+    backBtn.hidden = current === 0;
+    nextBtn.hidden = current === questions.length - 1;
+    finishBtn.hidden = current !== questions.length - 1;
+  };
+
+  backBtn.addEventListener("click", () => {
+    current = Math.max(0, current - 1);
+    renderStep();
+  });
+  nextBtn.addEventListener("click", () => {
+    current = Math.min(questions.length - 1, current + 1);
+    renderStep();
+  });
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const answers = [];
-    questions.forEach((question) => {
-      const key = `q_${question.id}`;
-      if (question.type === "multi") {
-        const values = Array.from(form.querySelectorAll(`input[name='${key}']:checked`)).map((node) => node.value);
-        if (values.length) answers.push({ questionId: question.id, value: values });
-      } else {
-        const input = form.querySelector(`[name='${key}']`);
-        const value = String(input?.value || "").trim();
-        if (value) answers.push({ questionId: question.id, value });
-      }
-    });
-
     try {
+      const answers = collectAnswers(form, questions);
       await request(`/api/surveys/${survey.id}/respond`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -139,13 +206,16 @@ function buildForm(survey, questions) {
       });
       status.textContent = t("success");
       status.style.color = "#166534";
-      submit.disabled = true;
+      finishBtn.disabled = true;
+      nextBtn.disabled = true;
+      backBtn.disabled = true;
     } catch (error) {
       status.textContent = error.message;
       status.style.color = "#b91c1c";
     }
   });
 
+  renderStep();
   wrap.appendChild(form);
   return wrap;
 }
@@ -170,7 +240,7 @@ async function bootstrap() {
       return;
     }
     surveyCard.innerHTML = "";
-    surveyCard.appendChild(buildForm(data.survey, data.questions || []));
+    surveyCard.appendChild(renderPagedForm(data.survey, data.questions || []));
   } catch (error) {
     surveyCard.innerHTML = `<h2>${t("cannotOpen")}</h2><p>${escapeHtml(error.message)}</p>`;
   }

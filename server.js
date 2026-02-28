@@ -445,6 +445,14 @@ app.get("/cabinet", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "cabinet.html"));
 });
 
+app.get("/guide", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "guide.html"));
+});
+
+app.get("/author", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "author.html"));
+});
+
 app.get("/survey/:id", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "survey.html"));
 });
@@ -1718,17 +1726,18 @@ app.post("/api/surveys/:id/respond", async (req, res, next) => {
   }
 });
 
-app.get("/api/surveys/:id/results", async (req, res, next) => {
+app.get("/api/surveys/:id/results", requireAuth, async (req, res, next) => {
   try {
     const surveyId = Number(req.params.id);
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
-      `SELECT id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at
+      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at
        FROM surveys WHERE id = ?`,
       [surveyId]
     );
     if (!survey) return res.status(404).json({ error: "Survey not found" });
+    if (survey.owner_user_id !== req.user.id) return res.status(403).json({ error: "Forbidden" });
 
     const [questions, responses, answers, trend] = await Promise.all([
       all(
