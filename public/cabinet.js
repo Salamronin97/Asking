@@ -1,9 +1,17 @@
 const surveyList = document.getElementById("surveyList");
 const logoutBtn = document.getElementById("logoutBtn");
 const languageSelect = document.getElementById("languageSelect");
+const profileForm = document.getElementById("profileForm");
+const profileName = document.getElementById("profileName");
+const profileCompany = document.getElementById("profileCompany");
+const profilePosition = document.getElementById("profilePosition");
+const profileLocale = document.getElementById("profileLocale");
+const profileMeta = document.getElementById("profileMeta");
+const profileStatus = document.getElementById("profileStatus");
 const accountPasswordForm = document.getElementById("accountPasswordForm");
 const accountEmail = document.getElementById("accountEmail");
 const accountStatus = document.getElementById("accountStatus");
+const sessionsList = document.getElementById("sessionsList");
 const logoutAllBtn = document.getElementById("logoutAllBtn");
 const deletePassword = document.getElementById("deletePassword");
 const deleteAccountBtn = document.getElementById("deleteAccountBtn");
@@ -18,16 +26,35 @@ const i18n = {
     logout: "Logout",
     mySurveys: "My surveys",
     mySurveysLead: "Draft, publish, share and monitor response tables.",
-    accountSettings: "Account settings",
+    profileSettings: "Profile settings",
+    profileLead: "Manage your account identity and workspace language.",
+    fullName: "Full name",
     accountEmail: "Account email",
+    company: "Company",
+    position: "Position",
+    profileLanguage: "Profile language",
+    saveProfile: "Save profile",
+    profileSaved: "Profile updated.",
+    profileMeta: "Created: {createdAt}. Last update: {updatedAt}.",
+    securityTitle: "Security",
+    securityLead: "Update password and control active sessions.",
     currentPassword: "Current password",
     newPassword: "New password",
     changePassword: "Change password",
+    passwordUpdated: "Password updated.",
     logoutAll: "Logout all devices",
+    sessionsTitle: "Active sessions",
+    sessionsLead: "Revoke old sessions if you do not recognize a login.",
+    currentSession: "Current session",
+    revoke: "Revoke",
+    noSessions: "No active sessions.",
+    started: "Started",
+    expires: "Expires",
     dangerZone: "Danger zone",
     dangerLead: "Delete account permanently.",
     confirmPassword: "Confirm password",
     deleteAccount: "Delete account",
+    deleteAccountConfirm: "Delete account permanently?",
     noSurveys: "No surveys yet. Create your first one.",
     failedLoad: "Failed to load cabinet",
     responses: "Responses",
@@ -44,27 +71,49 @@ const i18n = {
     del: "Delete",
     deleteSurveyConfirm: "Delete survey?",
     noResponses: "No responses yet.",
-    passwordUpdated: "Password updated.",
-    deleteAccountConfirm: "Delete account permanently?"
+    statusDraft: "Draft",
+    statusPublished: "Published",
+    statusArchived: "Archived",
+    noDescription: "No description",
+    unnamed: "Unnamed"
   },
   ru: {
     newSurvey: "Новая анкета",
     logout: "Выйти",
     mySurveys: "Мои анкеты",
-    mySurveysLead: "Черновики, публикация, ссылки и таблицы ответов.",
-    accountSettings: "Настройки аккаунта",
+    mySurveysLead: "Черновики, публикация, шаринг и контроль ответов.",
+    profileSettings: "Профиль",
+    profileLead: "Управляйте данными аккаунта и языком кабинета.",
+    fullName: "Полное имя",
     accountEmail: "Email аккаунта",
+    company: "Организация",
+    position: "Должность",
+    profileLanguage: "Язык интерфейса",
+    saveProfile: "Сохранить профиль",
+    profileSaved: "Профиль обновлен.",
+    profileMeta: "Создан: {createdAt}. Обновлен: {updatedAt}.",
+    securityTitle: "Безопасность",
+    securityLead: "Смена пароля и контроль активных сессий.",
     currentPassword: "Текущий пароль",
     newPassword: "Новый пароль",
     changePassword: "Сменить пароль",
+    passwordUpdated: "Пароль обновлен.",
     logoutAll: "Выйти на всех устройствах",
+    sessionsTitle: "Активные сессии",
+    sessionsLead: "Завершайте сессии, которые вы не узнаете.",
+    currentSession: "Текущая сессия",
+    revoke: "Завершить",
+    noSessions: "Активных сессий нет.",
+    started: "Начало",
+    expires: "Истекает",
     dangerZone: "Опасная зона",
     dangerLead: "Удаление аккаунта без возможности восстановления.",
     confirmPassword: "Подтвердите пароль",
     deleteAccount: "Удалить аккаунт",
+    deleteAccountConfirm: "Удалить аккаунт без возможности восстановления?",
     noSurveys: "Анкет пока нет. Создайте первую.",
     failedLoad: "Не удалось загрузить кабинет",
-    responses: "Ответы",
+    responses: "Ответов",
     starts: "Начало",
     ends: "Окончание",
     openLink: "Открыть ссылку",
@@ -74,30 +123,52 @@ const i18n = {
     exportCsv: "Экспорт CSV",
     exportXlsx: "Экспорт XLSX",
     publish: "Опубликовать",
-    archive: "Архив",
+    archive: "В архив",
     del: "Удалить",
     deleteSurveyConfirm: "Удалить анкету?",
     noResponses: "Ответов пока нет.",
-    passwordUpdated: "Пароль обновлен.",
-    deleteAccountConfirm: "Удалить аккаунт без возможности восстановления?"
+    statusDraft: "Черновик",
+    statusPublished: "Опубликована",
+    statusArchived: "Архив",
+    noDescription: "Без описания",
+    unnamed: "Без названия"
   },
   kz: {
     newSurvey: "Жаңа сауалнама",
     logout: "Шығу",
     mySurveys: "Менің сауалнамаларым",
-    mySurveysLead: "Жоба, жариялау, сілтеме және жауап кестелері.",
-    accountSettings: "Аккаунт баптаулары",
+    mySurveysLead: "Жоба, жариялау, сілтеме жіберу және жауаптарды бақылау.",
+    profileSettings: "Профиль",
+    profileLead: "Аккаунт деректері мен кабинет тілін басқарыңыз.",
+    fullName: "Толық аты",
     accountEmail: "Аккаунт email-ы",
+    company: "Ұйым",
+    position: "Лауазым",
+    profileLanguage: "Интерфейс тілі",
+    saveProfile: "Профильді сақтау",
+    profileSaved: "Профиль жаңартылды.",
+    profileMeta: "Құрылған: {createdAt}. Жаңартылған: {updatedAt}.",
+    securityTitle: "Қауіпсіздік",
+    securityLead: "Құпиясөзді жаңарту және сессияларды басқару.",
     currentPassword: "Ағымдағы құпиясөз",
     newPassword: "Жаңа құпиясөз",
-    changePassword: "Құпиясөзді ауыстыру",
-    logoutAll: "Барлық құрылғыдан шығу",
+    changePassword: "Құпиясөзді өзгерту",
+    passwordUpdated: "Құпиясөз жаңартылды.",
+    logoutAll: "Барлық құрылғылардан шығу",
+    sessionsTitle: "Белсенді сессиялар",
+    sessionsLead: "Танымайтын сессияларды тоқтатыңыз.",
+    currentSession: "Ағымдағы сессия",
+    revoke: "Тоқтату",
+    noSessions: "Белсенді сессия жоқ.",
+    started: "Басталуы",
+    expires: "Аяқталуы",
     dangerZone: "Қауіпті аймақ",
-    dangerLead: "Аккаунтты біржола жою.",
-    confirmPassword: "Құпиясөзді растау",
+    dangerLead: "Аккаунт біржола жойылады.",
+    confirmPassword: "Құпиясөзді растаңыз",
     deleteAccount: "Аккаунтты жою",
-    noSurveys: "Сауалнама әлі жоқ. Алғашқысын жасаңыз.",
-    failedLoad: "Кабинет жүктелмеді",
+    deleteAccountConfirm: "Аккаунтты біржола жою керек пе?",
+    noSurveys: "Сауалнама әлі жоқ. Біріншісін жасаңыз.",
+    failedLoad: "Кабинетті жүктеу сәтсіз",
     responses: "Жауаптар",
     starts: "Басталуы",
     ends: "Аяқталуы",
@@ -108,12 +179,15 @@ const i18n = {
     exportCsv: "CSV жүктеу",
     exportXlsx: "XLSX жүктеу",
     publish: "Жариялау",
-    archive: "Мұрағат",
+    archive: "Мұрағаттау",
     del: "Жою",
     deleteSurveyConfirm: "Сауалнаманы жою керек пе?",
-    noResponses: "Әзірге жауап жоқ.",
-    passwordUpdated: "Құпиясөз жаңартылды.",
-    deleteAccountConfirm: "Аккаунтты біржола жоясыз ба?"
+    noResponses: "Жауаптар жоқ.",
+    statusDraft: "Жоба",
+    statusPublished: "Жарияланған",
+    statusArchived: "Мұрағат",
+    noDescription: "Сипаттама жоқ",
+    unnamed: "Атаусыз"
   }
 };
 
@@ -128,6 +202,16 @@ const api = {
 
 function t(key) {
   return i18n[lang]?.[key] || i18n.en[key] || key;
+}
+
+function formatText(template, values = {}) {
+  return Object.keys(values).reduce((acc, key) => acc.replaceAll(`{${key}}`, values[key] ?? ""), template);
+}
+
+function userLocale() {
+  if (lang === "ru") return "ru-RU";
+  if (lang === "kz") return "kk-KZ";
+  return "en-US";
 }
 
 function applyI18n() {
@@ -150,11 +234,24 @@ function formatDate(value) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleString();
+  return new Intl.DateTimeFormat(userLocale(), {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function localizeSurveyStatus(status) {
+  if (status === "published") return t("statusPublished");
+  if (status === "archived") return t("statusArchived");
+  return t("statusDraft");
 }
 
 async function copyLink(id) {
-  await navigator.clipboard.writeText(`${window.location.origin}/survey/${id}`);
+  const link = `${window.location.origin}/survey/${id}`;
+  await navigator.clipboard.writeText(link);
 }
 
 function buildTable(columns, rows) {
@@ -172,11 +269,11 @@ function renderCard(survey) {
   node.innerHTML = `
     <div class="survey-card__top">
       <div>
-        <h3>${escapeHtml(survey.title)}</h3>
-        <p>${escapeHtml(survey.description || "No description")}</p>
+        <h3>${escapeHtml(survey.title || t("unnamed"))}</h3>
+        <p>${escapeHtml(survey.description || t("noDescription"))}</p>
       </div>
       <span class="${survey.status === "published" ? "badge badge--published" : survey.status === "archived" ? "badge badge--archived" : "badge badge--draft"}">
-        ${escapeHtml(survey.status)}
+        ${escapeHtml(localizeSurveyStatus(survey.status))}
       </span>
     </div>
     <div class="meta">
@@ -204,7 +301,9 @@ function renderCard(survey) {
   copyBtn.addEventListener("click", async () => {
     await copyLink(survey.id);
     copyBtn.textContent = t("copied");
-    setTimeout(() => (copyBtn.textContent = t("copyLink")), 1000);
+    window.setTimeout(() => {
+      copyBtn.textContent = t("copyLink");
+    }, 1200);
   });
   actions.appendChild(copyBtn);
 
@@ -269,21 +368,121 @@ function renderCard(survey) {
   return node;
 }
 
+function renderProfileMeta(profile) {
+  profileMeta.textContent = formatText(t("profileMeta"), {
+    createdAt: formatDate(profile.createdAt),
+    updatedAt: formatDate(profile.updatedAt || profile.createdAt)
+  });
+}
+
+function renderSessions(items) {
+  sessionsList.innerHTML = "";
+  if (!items.length) {
+    sessionsList.innerHTML = `<div class="session-item"><span>${escapeHtml(t("noSessions"))}</span></div>`;
+    return;
+  }
+
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "session-item";
+    row.innerHTML = `
+      <div>
+        <div class="session-item__title">${item.isCurrent ? escapeHtml(t("currentSession")) : `#${item.id}`}</div>
+        <div class="session-item__meta">${escapeHtml(t("started"))}: ${escapeHtml(formatDate(item.createdAt))}</div>
+        <div class="session-item__meta">${escapeHtml(t("expires"))}: ${escapeHtml(formatDate(item.expiresAt))}</div>
+      </div>
+      <div>
+        <button class="btn btn--outline" type="button" data-revoke="${item.id}">${escapeHtml(t("revoke"))}</button>
+      </div>
+    `;
+    sessionsList.appendChild(row);
+  });
+
+  sessionsList.querySelectorAll("[data-revoke]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const sessionId = Number.parseInt(btn.getAttribute("data-revoke"), 10);
+      if (!sessionId) return;
+      btn.disabled = true;
+      try {
+        await api.request(`/api/account/sessions/${sessionId}`, { method: "DELETE" });
+        const data = await api.request("/api/account/sessions");
+        const stillCurrent = (data.sessions || []).some((item) => item.isCurrent);
+        renderSessions(data.sessions || []);
+        if (!stillCurrent) {
+          window.location.href = "/auth";
+        }
+      } catch (error) {
+        btn.disabled = false;
+        accountStatus.textContent = error.message;
+      }
+    });
+  });
+}
+
 async function loadSurveys() {
   const data = await api.request("/api/surveys?mine=1");
   surveyList.innerHTML = "";
   const surveys = data.surveys || [];
   if (!surveys.length) {
-    surveyList.innerHTML = `<div class='card'>${t("noSurveys")}</div>`;
+    surveyList.innerHTML = `<div class="card">${escapeHtml(t("noSurveys"))}</div>`;
     return;
   }
   surveys.forEach((survey) => surveyList.appendChild(renderCard(survey)));
 }
 
-function wireAccountActions() {
-  accountEmail.value = currentUser.email || "";
+async function loadProfileAndSessions() {
+  const [profileData, sessionsData] = await Promise.all([
+    api.request("/api/account/profile"),
+    api.request("/api/account/sessions")
+  ]);
+  const profile = profileData.profile;
+  if (!profile) throw new Error("Profile not found");
+
+  currentUser = { ...(currentUser || {}), ...profile };
+  accountEmail.value = profile.email || "";
+  profileName.value = profile.name || "";
+  profileCompany.value = profile.company || "";
+  profilePosition.value = profile.position || "";
+  profileLocale.value = ["en", "ru", "kz"].includes(profile.locale) ? profile.locale : "ru";
+  renderProfileMeta(profile);
+  renderSessions(sessionsData.sessions || []);
+}
+
+function wireActions() {
+  profileForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    profileStatus.textContent = "";
+    const payload = {
+      name: String(profileName.value || "").trim(),
+      company: String(profileCompany.value || "").trim(),
+      position: String(profilePosition.value || "").trim(),
+      locale: String(profileLocale.value || "ru"),
+      website: ""
+    };
+    try {
+      const data = await api.request("/api/account/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      renderProfileMeta(data.profile);
+      profileStatus.textContent = t("profileSaved");
+
+      if (payload.locale !== lang) {
+        lang = payload.locale;
+        localStorage.setItem(LANG_KEY, lang);
+        languageSelect.value = lang;
+        applyI18n();
+        await Promise.all([loadSurveys(), loadProfileAndSessions()]);
+      }
+    } catch (error) {
+      profileStatus.textContent = error.message;
+    }
+  });
+
   accountPasswordForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    accountStatus.textContent = "";
     const formData = new FormData(accountPasswordForm);
     try {
       await api.request("/api/account/password", {
@@ -297,7 +496,6 @@ function wireAccountActions() {
       });
       accountStatus.textContent = t("passwordUpdated");
       accountPasswordForm.reset();
-      accountEmail.value = currentUser.email || "";
     } catch (error) {
       accountStatus.textContent = error.message;
     }
@@ -319,17 +517,23 @@ function wireAccountActions() {
     });
     window.location.href = "/auth";
   });
+
+  logoutBtn.addEventListener("click", async () => {
+    await api.request("/api/auth/logout", { method: "POST" });
+    window.location.href = "/auth";
+  });
+
+  languageSelect.addEventListener("change", async () => {
+    lang = languageSelect.value;
+    localStorage.setItem(LANG_KEY, lang);
+    applyI18n();
+    await Promise.all([loadSurveys(), loadProfileAndSessions()]);
+  });
 }
 
 async function bootstrap() {
   languageSelect.value = lang;
   applyI18n();
-  languageSelect.addEventListener("change", async () => {
-    lang = languageSelect.value;
-    localStorage.setItem(LANG_KEY, lang);
-    applyI18n();
-    await loadSurveys();
-  });
 
   const me = await api.request("/api/auth/me");
   if (!me.user) {
@@ -338,15 +542,17 @@ async function bootstrap() {
   }
   currentUser = me.user;
 
-  logoutBtn.addEventListener("click", async () => {
-    await api.request("/api/auth/logout", { method: "POST" });
-    window.location.href = "/auth";
-  });
+  if (["en", "ru", "kz"].includes(currentUser.locale) && currentUser.locale !== lang) {
+    lang = currentUser.locale;
+    localStorage.setItem(LANG_KEY, lang);
+    languageSelect.value = lang;
+    applyI18n();
+  }
 
-  wireAccountActions();
-  await loadSurveys();
+  wireActions();
+  await Promise.all([loadSurveys(), loadProfileAndSessions()]);
 }
 
 bootstrap().catch(() => {
-  surveyList.innerHTML = `<div class='card'>${t("failedLoad")}</div>`;
+  surveyList.innerHTML = `<div class="card">${escapeHtml(t("failedLoad"))}</div>`;
 });

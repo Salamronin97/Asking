@@ -46,10 +46,14 @@ async function init() {
       name TEXT NOT NULL,
       username TEXT UNIQUE,
       email TEXT NOT NULL UNIQUE,
+      company TEXT,
+      position TEXT,
+      locale TEXT,
       email_verified INTEGER NOT NULL DEFAULT 0,
       password_hash TEXT,
       google_sub TEXT UNIQUE,
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL,
+      updated_at TEXT
     )
   `);
 
@@ -142,6 +146,18 @@ async function init() {
   }
   if (!userColumns.some((column) => column.name === "email_verified")) {
     await run("ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!userColumns.some((column) => column.name === "company")) {
+    await run("ALTER TABLE users ADD COLUMN company TEXT");
+  }
+  if (!userColumns.some((column) => column.name === "position")) {
+    await run("ALTER TABLE users ADD COLUMN position TEXT");
+  }
+  if (!userColumns.some((column) => column.name === "locale")) {
+    await run("ALTER TABLE users ADD COLUMN locale TEXT");
+  }
+  if (!userColumns.some((column) => column.name === "updated_at")) {
+    await run("ALTER TABLE users ADD COLUMN updated_at TEXT");
   }
 
   await run("CREATE INDEX IF NOT EXISTS idx_surveys_status ON surveys(status)");

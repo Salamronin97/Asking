@@ -300,37 +300,12 @@ function toPublicUser(row) {
   return {
     id: row.id,
     name: row.name,
-    username: row.username,
     email: row.email,
-    emailVerified: row.email_verified === 1
+    emailVerified: row.email_verified === 1,
+    company: row.company || "",
+    position: row.position || "",
+    locale: row.locale || "ru"
   };
-}
-
-function normalizeUsername(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
-}
-
-function sanitizeUsernameBase(value) {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]/g, "")
-    .replace(/^[._-]+|[._-]+$/g, "")
-    .slice(0, 24);
-}
-
-async function ensureUniqueUsername(baseRaw) {
-  const base = sanitizeUsernameBase(baseRaw) || `user${Math.floor(Date.now() / 1000)}`;
-  let candidate = base.slice(0, 32);
-  let suffix = 0;
-  while (true) {
-    const existing = await get("SELECT id FROM users WHERE lower(username) = lower(?) LIMIT 1", [candidate]);
-    if (!existing) return candidate;
-    suffix += 1;
-    const tail = String(suffix);
-    candidate = `${base.slice(0, Math.max(3, 32 - tail.length))}${tail}`;
-  }
 }
 
 async function attachAuthUser(req, _res, next) {
@@ -341,7 +316,7 @@ async function attachAuthUser(req, _res, next) {
     if (!token) return next();
 
     const session = await get(
-      `SELECT s.token, s.user_id, s.expires_at, u.id, u.name, u.username, u.email, u.email_verified
+      `SELECT s.token, s.user_id, s.expires_at, u.id, u.name, u.email, u.email_verified, u.company, u.position, u.locale
        FROM auth_sessions s
        JOIN users u ON u.id = s.user_id
        WHERE s.token = ?`,
@@ -498,13 +473,23 @@ app.post("/api/auth/register", rateLimitAuth("register"), antiBotPayload, async 
 
     const createdAt = nowIso();
     const result = await run(
-      "INSERT INTO users (name, username, email, email_verified, password_hash, created_at) VALUES (?, NULL, ?, 1, ?, ?)",
-      [name, email, hashPassword(password), createdAt]
+      "INSERT INTO users (name, username, email, email_verified, password_hash, created_at, updated_at, locale) VALUES (?, NULL, ?, 1, ?, ?, ?, ?)",
+      [name, email, hashPassword(password), createdAt, createdAt, "ru"]
     );
 
     const session = await createSession(result.lastID);
     setSessionCookie(req, res, session.token, session.expiresAt);
-    res.status(201).json({ user: { id: result.lastID, name, email, email_verified: 1 } });
+    res.status(201).json({
+      user: {
+        id: result.lastID,
+        name,
+        email,
+        emailVerified: true,
+        company: "",
+        position: "",
+        locale: "ru"
+      }
+    });
   } catch (error) {
     next(error);
   }
@@ -518,7 +503,7 @@ app.post("/api/auth/login", rateLimitAuth("login"), antiBotPayload, async (req, 
     const password = String(req.body?.password || "");
     if (!email) return res.status(400).json({ error: "Email is required" });
     const user = await get(
-      `SELECT id, name, username, email, email_verified, password_hash FROM users WHERE lower(email) = ?`,
+      `SELECT id, name, email, email_verified, company, position, locale, password_hash FROM users WHERE lower(email) = ?`,
       [email]
     );
     if (!user || !verifyPassword(password, user.password_hash)) {
@@ -545,31 +530,28 @@ app.post("/api/auth/google", async (req, res, next) => {
     const googleSub = payload.sub;
     const email = String(payload.email).toLowerCase();
     const name = String(payload.name || email.split("@")[0] || "Google User").trim();
-    const preferredUsername = sanitizeUsernameBase(payload.given_name || name || email.split("@")[0]);
 
-    let user = await get("SELECT id, name, username, email, email_verified FROM users WHERE google_sub = ?", [googleSub]);
+    let user = await get("SELECT id, name, email, email_verified, company, position, locale FROM users WHERE google_sub = ?", [
+      googleSub
+    ]);
     if (!user) {
-      const byEmail = await get("SELECT id, name, username, email, email_verified FROM users WHERE email = ?", [email]);
+      const byEmail = await get("SELECT id, name, email, email_verified, company, position, locale FROM users WHERE email = ?", [
+        email
+      ]);
       if (byEmail) {
-        let username = byEmail.username;
-        if (!username) {
-          username = await ensureUniqueUsername(preferredUsername || email.split("@")[0]);
-          await run("UPDATE users SET google_sub = ?, username = ?, email_verified = 1 WHERE id = ?", [
-            googleSub,
-            username,
-            byEmail.id
-          ]);
-        } else {
-          await run("UPDATE users SET google_sub = ?, email_verified = 1 WHERE id = ?", [googleSub, byEmail.id]);
-        }
-        user = { ...byEmail, username, email_verified: 1 };
+        await run("UPDATE users SET google_sub = ?, email_verified = 1, updated_at = ? WHERE id = ?", [
+          googleSub,
+          nowIso(),
+          byEmail.id
+        ]);
+        user = { ...byEmail, email_verified: 1 };
       } else {
-        const username = await ensureUniqueUsername(preferredUsername || email.split("@")[0]);
+        const createdAt = nowIso();
         const created = await run(
-          "INSERT INTO users (name, username, email, email_verified, google_sub, created_at) VALUES (?, ?, ?, 1, ?, ?)",
-          [name, username, email, googleSub, nowIso()]
+          "INSERT INTO users (name, username, email, email_verified, google_sub, created_at, updated_at, locale) VALUES (?, NULL, ?, 1, ?, ?, ?, ?)",
+          [name, email, googleSub, createdAt, createdAt, "ru"]
         );
-        user = { id: created.lastID, name, username, email, email_verified: 1 };
+        user = { id: created.lastID, name, email, email_verified: 1, company: "", position: "", locale: "ru" };
       }
     }
 
@@ -587,7 +569,7 @@ app.post("/api/auth/verify-email", rateLimitAuth("verify"), async (req, res, nex
     if (!token) return res.status(400).json({ error: "Missing verification token" });
 
     const row = await get(
-      `SELECT t.token, t.user_id, t.expires_at, u.id, u.name, u.username, u.email, u.email_verified
+      `SELECT t.token, t.user_id, t.expires_at, u.id, u.name, u.email, u.email_verified, u.company, u.position, u.locale
        FROM email_verification_tokens t
        JOIN users u ON u.id = t.user_id
        WHERE t.token = ?`,
@@ -606,13 +588,7 @@ app.post("/api/auth/verify-email", rateLimitAuth("verify"), async (req, res, nex
     setSessionCookie(req, res, session.token, session.expiresAt);
     res.json({
       ok: true,
-      user: {
-        id: row.id,
-        name: row.name,
-        username: row.username,
-        email: row.email,
-        emailVerified: true
-      }
+      user: toPublicUser({ ...row, email_verified: 1 })
     });
   } catch (error) {
     next(error);
@@ -687,7 +663,9 @@ app.post("/api/auth/reset-password", rateLimitAuth("reset"), antiBotPayload, asy
     await run("DELETE FROM password_reset_tokens WHERE user_id = ?", [tokenRow.user_id]);
     await run("DELETE FROM auth_sessions WHERE user_id = ?", [tokenRow.user_id]);
 
-    const user = await get("SELECT id, name, username, email, email_verified FROM users WHERE id = ?", [tokenRow.user_id]);
+    const user = await get("SELECT id, name, email, email_verified, company, position, locale FROM users WHERE id = ?", [
+      tokenRow.user_id
+    ]);
     const session = await createSession(tokenRow.user_id);
     setSessionCookie(req, res, session.token, session.expiresAt);
     res.json({ ok: true, user: toPublicUser(user) });
@@ -707,6 +685,121 @@ app.post("/api/auth/logout", async (req, res, next) => {
   }
 });
 
+app.get("/api/account/profile", requireAuth, async (req, res, next) => {
+  try {
+    const profile = await get(
+      `SELECT id, name, email, email_verified, company, position, locale, created_at, updated_at
+       FROM users
+       WHERE id = ?`,
+      [req.user.id]
+    );
+    if (!profile) return res.status(404).json({ error: "User not found" });
+    res.json({
+      profile: {
+        id: profile.id,
+        name: profile.name || "",
+        email: profile.email,
+        emailVerified: profile.email_verified === 1,
+        company: profile.company || "",
+        position: profile.position || "",
+        locale: profile.locale || "ru",
+        createdAt: profile.created_at || null,
+        updatedAt: profile.updated_at || null
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/account/profile", requireAuth, antiBotPayload, async (req, res, next) => {
+  try {
+    const name = String(req.body?.name || "").trim();
+    const company = String(req.body?.company || "").trim();
+    const position = String(req.body?.position || "").trim();
+    const locale = String(req.body?.locale || "ru")
+      .trim()
+      .toLowerCase();
+
+    if (!name || name.length < 2 || name.length > 80) {
+      return res.status(400).json({ error: "Name must be 2-80 characters" });
+    }
+    if (company.length > 120) return res.status(400).json({ error: "Company is too long" });
+    if (position.length > 120) return res.status(400).json({ error: "Position is too long" });
+    if (!["en", "ru", "kz"].includes(locale)) return res.status(400).json({ error: "Unsupported language" });
+
+    const updatedAt = nowIso();
+    await run("UPDATE users SET name = ?, company = ?, position = ?, locale = ?, updated_at = ? WHERE id = ?", [
+      name,
+      company || null,
+      position || null,
+      locale,
+      updatedAt,
+      req.user.id
+    ]);
+
+    const profile = await get(
+      `SELECT id, name, email, email_verified, company, position, locale, created_at, updated_at
+       FROM users
+       WHERE id = ?`,
+      [req.user.id]
+    );
+    res.json({
+      profile: {
+        id: profile.id,
+        name: profile.name || "",
+        email: profile.email,
+        emailVerified: profile.email_verified === 1,
+        company: profile.company || "",
+        position: profile.position || "",
+        locale: profile.locale || "ru",
+        createdAt: profile.created_at || null,
+        updatedAt: profile.updated_at || null
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/account/sessions", requireAuth, async (req, res, next) => {
+  try {
+    const rows = await all(
+      `SELECT rowid as id, token, created_at, expires_at
+       FROM auth_sessions
+       WHERE user_id = ?
+       ORDER BY datetime(created_at) DESC`,
+      [req.user.id]
+    );
+    res.json({
+      sessions: rows.map((item) => ({
+        id: item.id,
+        createdAt: item.created_at,
+        expiresAt: item.expires_at,
+        isCurrent: item.token === req.sessionToken
+      }))
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/account/sessions/:sessionId", requireAuth, async (req, res, next) => {
+  try {
+    const sessionId = Number.parseInt(req.params.sessionId, 10);
+    if (!Number.isInteger(sessionId) || sessionId <= 0) return res.status(400).json({ error: "Invalid session id" });
+
+    const row = await get("SELECT rowid as id, token, user_id FROM auth_sessions WHERE rowid = ?", [sessionId]);
+    if (!row || row.user_id !== req.user.id) return res.status(404).json({ error: "Session not found" });
+
+    await run("DELETE FROM auth_sessions WHERE rowid = ?", [sessionId]);
+    if (row.token === req.sessionToken) clearSessionCookie(req, res);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post("/api/account/password", requireAuth, antiBotPayload, async (req, res, next) => {
   try {
     const currentPassword = String(req.body?.currentPassword || "");
@@ -719,7 +812,7 @@ app.post("/api/account/password", requireAuth, antiBotPayload, async (req, res, 
       return res.status(401).json({ error: "Current password is invalid" });
     }
 
-    await run("UPDATE users SET password_hash = ? WHERE id = ?", [hashPassword(newPassword), req.user.id]);
+    await run("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?", [hashPassword(newPassword), nowIso(), req.user.id]);
     res.json({ ok: true });
   } catch (error) {
     next(error);

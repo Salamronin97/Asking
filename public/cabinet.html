@@ -43,27 +43,73 @@
 
       <section class="section section--alt">
         <div class="container split">
-          <form id="accountPasswordForm" class="card">
-            <h3 data-i18n="accountSettings">Account settings</h3>
-            <div class="form-row">
-              <label data-i18n="accountEmail">Account email</label>
-              <input id="accountEmail" type="email" disabled />
+          <form id="profileForm" class="card">
+            <h3 data-i18n="profileSettings">Profile settings</h3>
+            <p class="lead" data-i18n="profileLead">Manage your account identity and workspace language.</p>
+            <div class="grid-2">
+              <div class="form-row">
+                <label for="profileName" data-i18n="fullName">Full name</label>
+                <input id="profileName" name="name" type="text" minlength="2" maxlength="80" required />
+              </div>
+              <div class="form-row">
+                <label for="accountEmail" data-i18n="accountEmail">Account email</label>
+                <input id="accountEmail" type="email" disabled />
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-row">
+                <label for="profileCompany" data-i18n="company">Company</label>
+                <input id="profileCompany" name="company" type="text" maxlength="120" />
+              </div>
+              <div class="form-row">
+                <label for="profilePosition" data-i18n="position">Position</label>
+                <input id="profilePosition" name="position" type="text" maxlength="120" />
+              </div>
             </div>
             <div class="form-row">
-              <label data-i18n="currentPassword">Current password</label>
-              <input name="currentPassword" type="password" required />
+              <label for="profileLocale" data-i18n="profileLanguage">Profile language</label>
+              <select id="profileLocale" name="locale">
+                <option value="en">English</option>
+                <option value="ru">Russian</option>
+                <option value="kz">Kazakh</option>
+              </select>
             </div>
-            <div class="form-row">
-              <label data-i18n="newPassword">New password</label>
-              <input name="newPassword" type="password" required />
-            </div>
+            <p id="profileMeta" class="meta-line"></p>
             <div class="action-row">
-              <button class="btn" type="submit" data-i18n="changePassword">Change password</button>
-              <button id="logoutAllBtn" class="btn btn--outline" type="button" data-i18n="logoutAll">Logout all devices</button>
+              <button class="btn" type="submit" data-i18n="saveProfile">Save profile</button>
             </div>
-            <p id="accountStatus" class="status"></p>
+            <p id="profileStatus" class="status"></p>
           </form>
 
+          <div class="card">
+            <h3 data-i18n="securityTitle">Security</h3>
+            <p class="lead" data-i18n="securityLead">Update password and control active sessions.</p>
+            <form id="accountPasswordForm">
+              <div class="form-row">
+                <label data-i18n="currentPassword">Current password</label>
+                <input name="currentPassword" type="password" required />
+              </div>
+              <div class="form-row">
+                <label data-i18n="newPassword">New password</label>
+                <input name="newPassword" type="password" minlength="8" required />
+              </div>
+              <div class="action-row">
+                <button class="btn" type="submit" data-i18n="changePassword">Change password</button>
+                <button id="logoutAllBtn" class="btn btn--outline" type="button" data-i18n="logoutAll">Logout all devices</button>
+              </div>
+              <p id="accountStatus" class="status"></p>
+            </form>
+
+            <div class="divider"></div>
+            <h4 style="margin: 0 0 8px" data-i18n="sessionsTitle">Active sessions</h4>
+            <p class="lead" style="margin-top: 0" data-i18n="sessionsLead">Revoke old sessions if you do not recognize a login.</p>
+            <div id="sessionsList" class="session-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
           <div class="card">
             <h3 data-i18n="dangerZone">Danger zone</h3>
             <p class="lead" style="margin-top: 6px" data-i18n="dangerLead">Delete account permanently.</p>
