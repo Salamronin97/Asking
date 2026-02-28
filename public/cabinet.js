@@ -41,6 +41,7 @@ const i18n = {
     logoutAll: "Logout all devices",
     openLink: "Open link",
     copyLink: "Copy link",
+    publishToShare: "Publish the survey to open and share public link.",
     copied: "Copied",
     analysisOneClick: "1-click analysis",
     exportCsv: "Export CSV",
@@ -93,6 +94,7 @@ const i18n = {
     logoutAll: "Выйти на всех устройствах",
     openLink: "Открыть ссылку",
     copyLink: "Копировать ссылку",
+    publishToShare: "Опубликуйте анкету, чтобы открыть и отправить публичную ссылку.",
     copied: "Скопировано",
     analysisOneClick: "Анализ в 1 клик",
     exportCsv: "Экспорт CSV",
@@ -297,22 +299,30 @@ function renderCard(survey) {
   `;
   const actions = node.querySelector(".survey-card__actions");
 
-  const openBtn = document.createElement("a");
-  openBtn.className = "btn btn--ghost";
-  openBtn.href = `/survey/${survey.id}`;
-  openBtn.target = "_blank";
-  openBtn.textContent = t("openLink");
-  actions.appendChild(openBtn);
+  if (survey.status === "published") {
+    const openBtn = document.createElement("a");
+    openBtn.className = "btn btn--ghost";
+    openBtn.href = `/survey/${survey.id}`;
+    openBtn.target = "_blank";
+    openBtn.textContent = t("openLink");
+    actions.appendChild(openBtn);
 
-  const copyBtn = document.createElement("button");
-  copyBtn.className = "btn btn--ghost";
-  copyBtn.textContent = t("copyLink");
-  copyBtn.addEventListener("click", async () => {
-    await copyLink(survey.id);
-    copyBtn.textContent = t("copied");
-    setTimeout(() => (copyBtn.textContent = t("copyLink")), 1000);
-  });
-  actions.appendChild(copyBtn);
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "btn btn--ghost";
+    copyBtn.textContent = t("copyLink");
+    copyBtn.addEventListener("click", async () => {
+      await copyLink(survey.id);
+      copyBtn.textContent = t("copied");
+      setTimeout(() => (copyBtn.textContent = t("copyLink")), 1000);
+    });
+    actions.appendChild(copyBtn);
+  } else {
+    const note = document.createElement("span");
+    note.className = "meta-line";
+    note.style.width = "100%";
+    note.textContent = t("publishToShare");
+    actions.appendChild(note);
+  }
 
   const analysisBtn = document.createElement("button");
   analysisBtn.className = "btn";

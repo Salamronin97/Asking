@@ -34,36 +34,45 @@
       </div>
     </header>
 
-    <main>
-      <section class="hero hero--landing">
-        <div class="container hero__grid">
-          <div>
-            <p class="eyebrow landing-pill" data-i18n="heroEyebrow">SURVEYS FOR EDUCATION AND BUSINESS</p>
-            <h1 data-i18n="heroTitle">Create a survey in minutes. Share one link. Track results live.</h1>
-            <p class="lead" data-i18n="heroLead">
-              Build questionnaires, polls, and voting pages. Send them by link and get clean analytics with CSV/XLSX export.
-            </p>
-            <div class="hero__actions">
-              <a class="btn" href="/create" data-i18n="heroCreate">Create survey</a>
-              <a class="btn btn--outline" href="/guide" data-i18n="heroGuide">Open guide</a>
-            </div>
+    <main class="section">
+      <div class="container demo-layout">
+        <aside class="demo-sidebar card">
+          <h3 data-i18n="heroCardTitle">Workflow</h3>
+          <a class="btn" href="/create" data-i18n="heroCreate">Create survey</a>
+          <a class="btn btn--ghost" href="/guide" data-i18n="heroGuide">Open guide</a>
+          <ul class="demo-list">
+            <li data-i18n="flow1">1. Build survey from scratch or template</li>
+            <li data-i18n="flow2">2. Publish and share public link</li>
+            <li data-i18n="flow3">3. Respondents complete multi-page form</li>
+            <li data-i18n="flow4">4. Open one-click analysis in cabinet</li>
+          </ul>
+        </aside>
+
+        <section class="demo-main">
+          <p class="eyebrow landing-pill" data-i18n="heroEyebrow">SURVEYS FOR EDUCATION AND BUSINESS</p>
+          <h1 data-i18n="heroTitle">Create a survey in minutes. Share one link. Track results live.</h1>
+          <p class="lead" data-i18n="heroLead">
+            Build questionnaires, polls, and voting pages. Send them by link and get clean analytics with CSV/XLSX export.
+          </p>
+          <div class="landing-kpis landing-kpis--grid">
+            <div class="landing-kpi"><strong>12+</strong><span data-i18n="kpi1">professional templates</span></div>
+            <div class="landing-kpi"><strong>1 click</strong><span data-i18n="kpi2">analysis and exports</span></div>
+            <div class="landing-kpi"><strong>3 langs</strong><span data-i18n="kpi3">RU / EN / KZ interface</span></div>
           </div>
-          <div class="hero-card hero-card--landing">
-            <h3 data-i18n="heroCardTitle">Workflow</h3>
-            <ul>
-              <li data-i18n="flow1">1. Build survey from scratch or template</li>
-              <li data-i18n="flow2">2. Publish and share public link</li>
-              <li data-i18n="flow3">3. Respondents complete multi-page form</li>
-              <li data-i18n="flow4">4. Open one-click analysis in cabinet</li>
-            </ul>
-            <div class="landing-kpis">
-              <div class="landing-kpi"><strong>12+</strong><span data-i18n="kpi1">professional templates</span></div>
-              <div class="landing-kpi"><strong>1 click</strong><span data-i18n="kpi2">analysis and exports</span></div>
-              <div class="landing-kpi"><strong>3 langs</strong><span data-i18n="kpi3">RU / EN / KZ interface</span></div>
-            </div>
+          <div class="demo-cards">
+            <article class="card">
+              <h3 data-i18n="navCabinet">Cabinet</h3>
+              <p data-i18n="heroLead">Build questionnaires, polls, and voting pages. Send them by link and get clean analytics with CSV/XLSX export.</p>
+              <a class="btn btn--outline" href="/cabinet" data-i18n="navCabinet">Cabinet</a>
+            </article>
+            <article class="card">
+              <h3 data-i18n="navCreate">Create</h3>
+              <p data-i18n="flow3">3. Respondents complete multi-page form</p>
+              <a class="btn btn--outline" href="/create" data-i18n="heroCreate">Create survey</a>
+            </article>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
 
     <script>

@@ -30,22 +30,34 @@
       </div>
     </header>
 
-    <main>
-      <section class="section">
-        <div class="container">
+    <main class="section">
+      <div class="container cabinet-layout">
+        <aside class="cabinet-sidebar card">
+          <a class="btn" href="/create" data-i18n="newSurvey">New Survey</a>
+          <a class="btn btn--ghost" href="/guide" data-i18n="guide">Guide</a>
+          <a class="btn btn--ghost" href="/author" data-i18n="author">Author</a>
+          <div class="card plan-card">
+            <strong>Asking Pro</strong>
+            <p data-i18n="mySurveysLead">Create, publish, share, and analyze in one place.</p>
+          </div>
+        </aside>
+
+        <section class="cabinet-main">
           <div class="section__head section__head--row">
             <div>
               <h2 data-i18n="mySurveys">My surveys</h2>
               <p data-i18n="mySurveysLead">Create, publish, share, and analyze in one place.</p>
             </div>
+            <a class="btn" href="/create" data-i18n="newSurvey">New Survey</a>
           </div>
-          <div id="surveyList" class="survey-list"></div>
-        </div>
-      </section>
+          <div id="surveyList" class="survey-list survey-list--tiles"></div>
+        </section>
+      </div>
+    </main>
 
-      <section class="section section--alt">
-        <div class="container split">
-          <form id="profileForm" class="card">
+    <section class="section section--alt">
+      <div class="container split">
+        <form id="profileForm" class="card">
             <h3 data-i18n="profileTitle">Profile</h3>
             <div class="grid-2">
               <div class="form-row">
@@ -80,19 +92,18 @@
               <button class="btn" type="submit" data-i18n="saveProfile">Save profile</button>
             </div>
             <p id="profileStatus" class="status"></p>
-          </form>
+        </form>
 
-          <div class="card">
-            <h3 data-i18n="sessionsTitle">Sessions</h3>
-            <p class="lead" data-i18n="sessionsLead">Close sessions you don't recognize.</p>
-            <div id="sessionsList" class="session-list"></div>
-            <div class="action-row">
-              <button id="logoutAllBtn" class="btn btn--outline" type="button" data-i18n="logoutAll">Logout all devices</button>
-            </div>
+        <div class="card">
+          <h3 data-i18n="sessionsTitle">Sessions</h3>
+          <p class="lead" data-i18n="sessionsLead">Close sessions you don't recognize.</p>
+          <div id="sessionsList" class="session-list"></div>
+          <div class="action-row">
+            <button id="logoutAllBtn" class="btn btn--outline" type="button" data-i18n="logoutAll">Logout all devices</button>
           </div>
         </div>
-      </section>
-    </main>
+      </div>
+    </section>
 
     <div id="analysisModal" class="modal" hidden>
       <div class="modal__content">
