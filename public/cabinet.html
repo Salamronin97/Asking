@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cabinet | Asking Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar__inner">
+        <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking Pro</span></a>
+        <div class="topbar__actions">
+          <a class="btn btn--ghost" href="/create">New Survey</a>
+          <button id="logoutBtn" class="btn btn--outline">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="section">
+        <div class="container">
+          <div class="section__head section__head--row">
+            <div>
+              <h2>My surveys</h2>
+              <p>Draft, publish, share and monitor response tables.</p>
+            </div>
+          </div>
+          <div id="surveyList" class="survey-list"></div>
+        </div>
+      </section>
+
+      <section class="section section--alt">
+        <div class="container split">
+          <form id="accountPasswordForm" class="card">
+            <h3>Account settings</h3>
+            <div class="form-row">
+              <label>Account email</label>
+              <input id="accountEmail" type="email" disabled />
+            </div>
+            <div class="form-row">
+              <label>Current password</label>
+              <input name="currentPassword" type="password" required />
+            </div>
+            <div class="form-row">
+              <label>New password</label>
+              <input name="newPassword" type="password" required />
+            </div>
+            <div class="action-row">
+              <button class="btn" type="submit">Change password</button>
+              <button id="logoutAllBtn" class="btn btn--outline" type="button">Logout all devices</button>
+            </div>
+            <p id="accountStatus" class="status"></p>
+          </form>
+
+          <div class="card">
+            <h3>Danger zone</h3>
+            <p class="lead" style="margin-top: 6px">Delete account permanently.</p>
+            <div class="form-row">
+              <label>Confirm password</label>
+              <input id="deletePassword" type="password" />
+            </div>
+            <button id="deleteAccountBtn" class="btn btn--danger" type="button">Delete account</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="/cabinet.js"></script>
+  </body>
+</html>

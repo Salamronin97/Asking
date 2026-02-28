@@ -555,6 +555,26 @@ textarea {
   background: #9f1d1d;
 }
 
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th,
+td {
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+thead th {
+  background: #f4ecdf;
+  position: sticky;
+  top: 0;
+}
+
 @media (max-width: 960px) {
   .hero__grid,
   .split {

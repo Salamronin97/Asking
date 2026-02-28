@@ -461,6 +461,18 @@ app.get("/auth", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "auth.html"));
 });
 
+app.get("/create", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "create.html"));
+});
+
+app.get("/cabinet", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "cabinet.html"));
+});
+
+app.get("/survey/:id", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "survey.html"));
+});
+
 app.get("/api/auth/google-config", (_req, res) => {
   res.json({ enabled: Boolean(GOOGLE_CLIENT_ID), clientId: GOOGLE_CLIENT_ID || null });
 });
@@ -824,9 +836,16 @@ app.get("/api/surveys", async (req, res, next) => {
   try {
     const status = normalizeStatus(String(req.query.status || ""));
     const q = String(req.query.q || "").trim();
+    const mine = parseBool(req.query.mine, false);
 
     const filters = [];
     const params = [];
+
+    if (mine) {
+      if (!req.user) return res.status(401).json({ error: "Authentication required" });
+      filters.push("owner_user_id = ?");
+      params.push(req.user.id);
+    }
 
     if (status) {
       filters.push("status = ?");
@@ -855,6 +874,45 @@ app.get("/api/surveys", async (req, res, next) => {
     }));
 
     res.json({ surveys });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/public/surveys/:id", async (req, res, next) => {
+  try {
+    const surveyId = Number(req.params.id);
+    if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
+
+    const survey = await get(
+      `SELECT id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at
+       FROM surveys
+       WHERE id = ?`,
+      [surveyId]
+    );
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+    if (survey.status !== "published") return res.status(403).json({ error: "Survey is not published" });
+
+    const questions = await all(
+      `SELECT id, question_text, type, options_json, required, question_order
+       FROM questions
+       WHERE survey_id = ?
+       ORDER BY question_order ASC`,
+      [surveyId]
+    );
+
+    res.json({
+      survey,
+      active: surveyIsActive(survey),
+      questions: questions.map((q) => ({
+        id: q.id,
+        text: q.question_text,
+        type: q.type,
+        options: safeJsonParse(q.options_json, []),
+        required: q.required === 1,
+        order: q.question_order
+      }))
+    });
   } catch (error) {
     next(error);
   }
@@ -1283,6 +1341,72 @@ app.get("/api/surveys/:id/results", async (req, res, next) => {
       },
       trend,
       results
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/surveys/:id/responses-table", requireAuth, async (req, res, next) => {
+  try {
+    const surveyId = Number(req.params.id);
+    if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
+
+    const survey = await get("SELECT id, owner_user_id, title FROM surveys WHERE id = ?", [surveyId]);
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+    if (survey.owner_user_id !== req.user.id) return res.status(403).json({ error: "Forbidden" });
+
+    const questions = await all(
+      `SELECT id, question_text, question_order
+       FROM questions
+       WHERE survey_id = ?
+       ORDER BY question_order ASC`,
+      [surveyId]
+    );
+
+    const responses = await all(
+      `SELECT id, created_at
+       FROM responses
+       WHERE survey_id = ?
+       ORDER BY created_at DESC
+       LIMIT 300`,
+      [surveyId]
+    );
+
+    const responseIds = responses.map((row) => row.id);
+    if (!responseIds.length) {
+      return res.json({
+        columns: ["response_id", "created_at", ...questions.map((q) => q.question_text)],
+        rows: []
+      });
+    }
+
+    const placeholders = responseIds.map(() => "?").join(",");
+    const answers = await all(
+      `SELECT response_id, question_id, answer_json
+       FROM answers
+       WHERE response_id IN (${placeholders})`,
+      responseIds
+    );
+
+    const answerMap = new Map();
+    answers.forEach((item) => {
+      const value = safeJsonParse(item.answer_json, "");
+      const normalized = Array.isArray(value) ? value.join(" | ") : value == null ? "" : String(value);
+      answerMap.set(`${item.response_id}:${item.question_id}`, normalized);
+    });
+
+    const rows = responses.map((response) => {
+      const cells = [response.id, response.created_at];
+      questions.forEach((question) => {
+        cells.push(answerMap.get(`${response.id}:${question.id}`) || "");
+      });
+      return cells;
+    });
+
+    res.json({
+      columns: ["response_id", "created_at", ...questions.map((q) => q.question_text)],
+      rows
     });
   } catch (error) {
     next(error);

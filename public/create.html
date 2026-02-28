@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Survey | Asking Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar__inner">
+        <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking Pro</span></a>
+        <div class="topbar__actions">
+          <a class="btn btn--ghost" href="/cabinet">Cabinet</a>
+          <button id="logoutBtn" class="btn btn--outline">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container split">
+        <form id="surveyForm" class="card">
+          <h2>Create survey</h2>
+          <div class="form-row">
+            <label>Title</label>
+            <input name="title" required minlength="3" />
+          </div>
+          <div class="form-row">
+            <label>Description</label>
+            <textarea name="description"></textarea>
+          </div>
+          <div class="form-row">
+            <label>Audience</label>
+            <input name="audience" />
+          </div>
+          <div class="form-row">
+            <label>Template</label>
+            <select id="templateSelect"><option value="">Select template</option></select>
+          </div>
+          <div class="form-row grid-2">
+            <div>
+              <label>Starts at</label>
+              <input type="datetime-local" name="startsAt" />
+            </div>
+            <div>
+              <label>Ends at</label>
+              <input type="datetime-local" name="endsAt" />
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="inline-check">
+              <input type="checkbox" name="allowMultipleResponses" />
+              <span>Allow multiple responses</span>
+            </label>
+          </div>
+
+          <div class="divider"></div>
+          <div id="questions" class="questions"></div>
+          <div class="action-row">
+            <button type="button" id="addQuestion" class="btn btn--ghost">+ Add question</button>
+            <button type="submit" class="btn">Create draft</button>
+          </div>
+          <p id="status" class="status"></p>
+        </form>
+
+        <div class="card">
+          <h3>Share workflow</h3>
+          <ol>
+            <li>Create survey and publish in cabinet.</li>
+            <li>Copy public link.</li>
+            <li>Send link to participants.</li>
+            <li>Track results table in cabinet.</li>
+          </ol>
+          <a class="btn btn--outline" href="/cabinet">Go to cabinet</a>
+        </div>
+      </div>
+    </main>
+    <script src="/create.js"></script>
+  </body>
+</html>
