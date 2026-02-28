@@ -2,6 +2,7 @@ const surveyForm = document.getElementById("surveyForm");
 const questionsWrap = document.getElementById("questions");
 const addQuestionBtn = document.getElementById("addQuestion");
 const templateSelect = document.getElementById("templateSelect");
+const templateCards = document.getElementById("templateCards");
 const statusNode = document.getElementById("status");
 const logoutBtn = document.getElementById("logoutBtn");
 const languageSelect = document.getElementById("languageSelect");
@@ -10,8 +11,14 @@ const nextStepBtn = document.getElementById("nextStepBtn");
 const createBtn = document.getElementById("createBtn");
 const wizardPanes = Array.from(document.querySelectorAll(".wizard-pane"));
 const wizardStepButtons = Array.from(document.querySelectorAll("[data-step-btn]"));
+const previewTitle = document.getElementById("previewTitle");
+const previewDescription = document.getElementById("previewDescription");
+const previewAudience = document.getElementById("previewAudience");
+const previewQuestions = document.getElementById("previewQuestions");
+const previewQuestionList = document.getElementById("previewQuestionList");
 
 const LANG_KEY = "asking-pro-lang";
+const DRAFT_KEY = "asking-pro-create-wizard-draft";
 let lang = ["en", "ru", "kz"].includes(localStorage.getItem(LANG_KEY)) ? localStorage.getItem(LANG_KEY) : "ru";
 let questionCounter = 0;
 let templates = [];
@@ -54,6 +61,12 @@ const i18n = {
     option1: "Option 1",
     option2: "Option 2",
     selectTemplate: "Select template",
+    audiencePreview: "Audience",
+    questionsPreview: "Questions",
+    untitled: "Survey title",
+    undescribed: "Description preview",
+    noQuestions: "No questions yet",
+    restorePrompt: "Restore saved draft?",
     titleTooShort: "Title must be at least 3 characters.",
     needQuestion: "Add at least one question.",
     draftCreated: "Draft #{id} created. Publish and share from cabinet.",
@@ -95,6 +108,12 @@ const i18n = {
     option1: "Вариант 1",
     option2: "Вариант 2",
     selectTemplate: "Выберите шаблон",
+    audiencePreview: "Аудитория",
+    questionsPreview: "Вопросы",
+    untitled: "Название анкеты",
+    undescribed: "Предпросмотр описания",
+    noQuestions: "Пока нет вопросов",
+    restorePrompt: "Восстановить сохраненный черновик?",
     titleTooShort: "Название должно быть не короче 3 символов.",
     needQuestion: "Добавьте хотя бы один вопрос.",
     draftCreated: "Черновик #{id} создан. Публикуйте и делитесь ссылкой из кабинета.",
@@ -136,6 +155,12 @@ const i18n = {
     option1: "Нұсқа 1",
     option2: "Нұсқа 2",
     selectTemplate: "Үлгіні таңдаңыз",
+    audiencePreview: "Аудитория",
+    questionsPreview: "Сұрақтар",
+    untitled: "Сауалнама атауы",
+    undescribed: "Сипаттама алдын ала көрінісі",
+    noQuestions: "Әзірге сұрақ жоқ",
+    restorePrompt: "Сақталған жобаны қалпына келтіру керек пе?",
     titleTooShort: "Атауы кемінде 3 таңба болуы керек.",
     needQuestion: "Кемінде бір сұрақ қосыңыз.",
     draftCreated: "#{id} нөмірлі жоба жасалды. Кабинеттен жариялап, сілтеме таратыңыз.",
@@ -162,11 +187,68 @@ function applyI18n() {
     const key = node.getAttribute("data-i18n");
     node.textContent = t(key);
   });
+  renderPreview();
 }
 
 function setStatus(message, isError = false) {
   statusNode.textContent = message;
   statusNode.style.color = isError ? "#b6201f" : "#c33f17";
+}
+
+function cacheDraft() {
+  try {
+    localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        payload: collectPayload(),
+        step
+      })
+    );
+  } catch {
+    // ignore
+  }
+}
+
+function restoreDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    if (!window.confirm(t("restorePrompt"))) return;
+    const saved = JSON.parse(raw);
+    const payload = saved?.payload || {};
+    surveyForm.title.value = payload.title || "";
+    surveyForm.description.value = payload.description || "";
+    surveyForm.audience.value = payload.audience || "";
+    surveyForm.startsAt.value = payload.startsAt ? new Date(payload.startsAt).toISOString().slice(0, 16) : "";
+    surveyForm.endsAt.value = payload.endsAt ? new Date(payload.endsAt).toISOString().slice(0, 16) : "";
+    surveyForm.allowMultipleResponses.checked = !!payload.allowMultipleResponses;
+    surveyForm.publishImmediately.checked = !!payload.publishImmediately;
+    questionsWrap.innerHTML = "";
+    (payload.questions || []).forEach((q) => addQuestion(q));
+    if (!(payload.questions || []).length) addQuestion();
+    setStep(Number(saved?.step || 1));
+  } catch {
+    // ignore
+  }
+}
+
+function renderPreview() {
+  const payload = collectPayload();
+  previewTitle.textContent = payload.title || t("untitled");
+  previewDescription.textContent = payload.description || t("undescribed");
+  previewAudience.textContent = `${t("audiencePreview")}: ${payload.audience || "-"}`;
+  previewQuestions.textContent = `${t("questionsPreview")}: ${payload.questions.length}`;
+  previewQuestionList.innerHTML = "";
+  if (!payload.questions.length) {
+    previewQuestionList.innerHTML = `<div class="recent-item">${t("noQuestions")}</div>`;
+    return;
+  }
+  payload.questions.slice(0, 6).forEach((q, i) => {
+    const item = document.createElement("div");
+    item.className = "recent-item";
+    item.innerHTML = `<strong>${i + 1}. ${q.text || "..."}</strong><span>${q.type}</span>`;
+    previewQuestionList.appendChild(item);
+  });
 }
 
 function setStep(nextStep) {
@@ -180,6 +262,7 @@ function setStep(nextStep) {
   prevStepBtn.disabled = step === 1;
   nextStepBtn.hidden = step === 3;
   createBtn.hidden = step !== 3;
+  cacheDraft();
 }
 
 function validateStep() {
@@ -207,6 +290,10 @@ function addOptionInput(wrap, value = "") {
   input.placeholder = t("option");
   input.value = value;
   wrap.appendChild(input);
+  input.addEventListener("input", () => {
+    cacheDraft();
+    renderPreview();
+  });
 }
 
 function addQuestion(question = null) {
@@ -262,8 +349,21 @@ function addQuestion(question = null) {
   };
 
   type.addEventListener("change", sync);
+  type.addEventListener("change", () => {
+    cacheDraft();
+    renderPreview();
+  });
+  text.addEventListener("input", () => {
+    cacheDraft();
+    renderPreview();
+  });
+  required.addEventListener("change", cacheDraft);
   addOption.addEventListener("click", () => addOptionInput(options));
-  node.querySelector(".remove-question").addEventListener("click", () => node.remove());
+  node.querySelector(".remove-question").addEventListener("click", () => {
+    node.remove();
+    cacheDraft();
+    renderPreview();
+  });
 
   if (question) {
     text.value = question.text || "";
@@ -276,6 +376,7 @@ function addQuestion(question = null) {
   }
   sync();
   questionsWrap.appendChild(node);
+  renderPreview();
 }
 
 function collectPayload() {
@@ -297,6 +398,7 @@ function collectPayload() {
     startsAt: formData.get("startsAt") ? new Date(String(formData.get("startsAt"))).toISOString() : null,
     endsAt: formData.get("endsAt") ? new Date(String(formData.get("endsAt"))).toISOString() : null,
     allowMultipleResponses: formData.get("allowMultipleResponses") === "on",
+    publishImmediately: formData.get("publishImmediately") === "on",
     questions
   };
 }
@@ -309,6 +411,18 @@ function fillTemplateSelect() {
     option.textContent = tpl.title;
     templateSelect.appendChild(option);
   });
+  templateCards.innerHTML = "";
+  templates.slice(0, 6).forEach((tpl) => {
+    const card = document.createElement("article");
+    card.className = "survey-card";
+    card.innerHTML = `<h3>${tpl.title}</h3><p>${tpl.description || ""}</p><div class="survey-card__actions"><button type="button" class="btn btn--ghost">Use</button></div>`;
+    card.querySelector("button").addEventListener("click", () => {
+      templateSelect.value = tpl.key;
+      templateSelect.dispatchEvent(new Event("change"));
+      setStep(2);
+    });
+    templateCards.appendChild(card);
+  });
 }
 
 function rerenderQuestionsWithLang() {
@@ -316,6 +430,7 @@ function rerenderQuestionsWithLang() {
   questionsWrap.innerHTML = "";
   (saved.questions || []).forEach((q) => addQuestion(q));
   if (!saved.questions?.length) addQuestion();
+  renderPreview();
 }
 
 async function bootstrap() {
@@ -337,6 +452,8 @@ async function bootstrap() {
 
   addQuestion();
   setStep(1);
+  restoreDraft();
+  renderPreview();
 
   addQuestionBtn.addEventListener("click", () => addQuestion());
   prevStepBtn.addEventListener("click", () => setStep(step - 1));
@@ -355,6 +472,10 @@ async function bootstrap() {
     await api.request("/api/auth/logout", { method: "POST" });
     window.location.href = "/auth";
   });
+  surveyForm.addEventListener("input", () => {
+    cacheDraft();
+    renderPreview();
+  });
 
   surveyForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -365,11 +486,15 @@ async function bootstrap() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(collectPayload())
       });
+      if (collectPayload().publishImmediately) {
+        await api.request(`/api/surveys/${created.id}/publish`, { method: "POST" });
+      }
       setStatus(t("draftCreated").replace("#{id}", created.id));
       surveyForm.reset();
       questionsWrap.innerHTML = "";
       addQuestion();
       setStep(1);
+      localStorage.removeItem(DRAFT_KEY);
     } catch (error) {
       setStatus(error.message, true);
     }
@@ -387,6 +512,8 @@ async function bootstrap() {
     surveyForm.audience.value = selected.audience || "";
     questionsWrap.innerHTML = "";
     (selected.questions || []).forEach((q) => addQuestion(q));
+    cacheDraft();
+    renderPreview();
   });
 }
 

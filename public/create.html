@@ -56,6 +56,7 @@
               <label data-i18n="labelTemplate">Template</label>
               <select id="templateSelect"><option value="" data-i18n="selectTemplate">Select template</option></select>
             </div>
+            <div id="templateCards" class="survey-list"></div>
           </section>
 
           <section data-step="2" class="wizard-pane" hidden>
@@ -82,6 +83,12 @@
                 <span data-i18n="allowMultiple">Allow multiple responses</span>
               </label>
             </div>
+            <div class="form-row">
+              <label class="inline-check">
+                <input type="checkbox" name="publishImmediately" />
+                <span>Publish immediately after draft creation</span>
+              </label>
+            </div>
             <div class="card">
               <strong data-i18n="afterDraft">After draft creation:</strong>
               <p style="margin:8px 0 0;" data-i18n="afterDraftLead">Publish in cabinet, copy public link, and share with participants.</p>
@@ -97,14 +104,17 @@
         </form>
 
         <div class="card">
-          <h3 data-i18n="flowTitle">Professional flow</h3>
-          <ol>
-            <li data-i18n="flow1">Build structure with clear goals and audience.</li>
-            <li data-i18n="flow2">Prepare question blocks for measurable feedback.</li>
-            <li data-i18n="flow3">Publish and distribute public link by messengers/email.</li>
-            <li data-i18n="flow4">Use cabinet response table and export files for reporting.</li>
-          </ol>
-          <a class="btn btn--outline" href="/cabinet" data-i18n="openCabinet">Open cabinet</a>
+          <h3>Live preview</h3>
+          <div class="meta">
+            <span id="previewAudience">Audience: -</span>
+            <span id="previewQuestions">Questions: 0</span>
+          </div>
+          <div class="card" style="margin-top:10px;">
+            <h4 id="previewTitle" style="margin:0 0 8px;">Survey title</h4>
+            <p id="previewDescription" style="margin:0;color:var(--muted);">Description preview</p>
+          </div>
+          <div id="previewQuestionList" class="recent-list" style="margin-top:10px;"></div>
+          <a class="btn btn--outline" href="/cabinet">Open cabinet</a>
         </div>
       </div>
     </main>
