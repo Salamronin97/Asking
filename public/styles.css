@@ -793,10 +793,18 @@ thead th {
   .toolbar,
   .section__head--row,
   .survey-card__top,
-  .topbar__inner,
-  .topbar__actions {
+  .topbar__inner {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .topbar__actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .topbar__actions .btn {
+    width: auto;
   }
 
   .grid-2 {

@@ -77,7 +77,6 @@ function buildQuestion(question) {
   const row = document.createElement("div");
   row.className = "form-row";
   row.dataset.questionId = String(question.id);
-  row.dataset.questionType = question.type;
   row.innerHTML = `<label>${escapeHtml(question.text)}${question.required ? " *" : ""}</label>`;
   const key = `q_${question.id}`;
 
@@ -98,8 +97,8 @@ function buildQuestion(question) {
     (question.options || []).forEach((option) => select.appendChild(new Option(option, option)));
     row.appendChild(select);
   } else {
-    const wrap = document.createElement("div");
-    wrap.className = "options";
+    const optionsWrap = document.createElement("div");
+    optionsWrap.className = "options";
     (question.options || []).forEach((option) => {
       const label = document.createElement("label");
       label.className = "inline-check";
@@ -109,10 +108,11 @@ function buildQuestion(question) {
       input.value = option;
       label.appendChild(input);
       label.appendChild(document.createTextNode(option));
-      wrap.appendChild(label);
+      optionsWrap.appendChild(label);
     });
-    row.appendChild(wrap);
+    row.appendChild(optionsWrap);
   }
+
   return row;
 }
 
@@ -233,6 +233,7 @@ async function bootstrap() {
     surveyCard.innerHTML = `<h2>${t("invalidLink")}</h2>`;
     return;
   }
+
   try {
     const data = await request(`/api/public/surveys/${surveyId}`);
     if (!data.active) {
