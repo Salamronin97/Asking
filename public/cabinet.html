@@ -17,8 +17,13 @@
       <div class="container topbar__inner">
         <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking Pro</span></a>
         <div class="topbar__actions">
-          <a class="btn btn--ghost" href="/create">New Survey</a>
-          <button id="logoutBtn" class="btn btn--outline">Logout</button>
+          <a class="btn btn--ghost" href="/create" data-i18n="newSurvey">New Survey</a>
+          <select id="languageSelect" class="lang-select" aria-label="Language">
+            <option value="en">EN</option>
+            <option value="ru">RU</option>
+            <option value="kz">KZ</option>
+          </select>
+          <button id="logoutBtn" class="btn btn--outline" data-i18n="logout">Logout</button>
         </div>
       </div>
     </header>
@@ -28,8 +33,8 @@
         <div class="container">
           <div class="section__head section__head--row">
             <div>
-              <h2>My surveys</h2>
-              <p>Draft, publish, share and monitor response tables.</p>
+              <h2 data-i18n="mySurveys">My surveys</h2>
+              <p data-i18n="mySurveysLead">Draft, publish, share and monitor response tables.</p>
             </div>
           </div>
           <div id="surveyList" class="survey-list"></div>
@@ -39,34 +44,34 @@
       <section class="section section--alt">
         <div class="container split">
           <form id="accountPasswordForm" class="card">
-            <h3>Account settings</h3>
+            <h3 data-i18n="accountSettings">Account settings</h3>
             <div class="form-row">
-              <label>Account email</label>
+              <label data-i18n="accountEmail">Account email</label>
               <input id="accountEmail" type="email" disabled />
             </div>
             <div class="form-row">
-              <label>Current password</label>
+              <label data-i18n="currentPassword">Current password</label>
               <input name="currentPassword" type="password" required />
             </div>
             <div class="form-row">
-              <label>New password</label>
+              <label data-i18n="newPassword">New password</label>
               <input name="newPassword" type="password" required />
             </div>
             <div class="action-row">
-              <button class="btn" type="submit">Change password</button>
-              <button id="logoutAllBtn" class="btn btn--outline" type="button">Logout all devices</button>
+              <button class="btn" type="submit" data-i18n="changePassword">Change password</button>
+              <button id="logoutAllBtn" class="btn btn--outline" type="button" data-i18n="logoutAll">Logout all devices</button>
             </div>
             <p id="accountStatus" class="status"></p>
           </form>
 
           <div class="card">
-            <h3>Danger zone</h3>
-            <p class="lead" style="margin-top: 6px">Delete account permanently.</p>
+            <h3 data-i18n="dangerZone">Danger zone</h3>
+            <p class="lead" style="margin-top: 6px" data-i18n="dangerLead">Delete account permanently.</p>
             <div class="form-row">
-              <label>Confirm password</label>
+              <label data-i18n="confirmPassword">Confirm password</label>
               <input id="deletePassword" type="password" />
             </div>
-            <button id="deleteAccountBtn" class="btn btn--danger" type="button">Delete account</button>
+            <button id="deleteAccountBtn" class="btn btn--danger" type="button" data-i18n="deleteAccount">Delete account</button>
           </div>
         </div>
       </section>

@@ -1,5 +1,46 @@
 const surveyCard = document.getElementById("surveyCard");
+const languageSelect = document.getElementById("languageSelect");
 const surveyId = Number(window.location.pathname.split("/").pop() || 0);
+
+const LANG_KEY = "asking-pro-lang";
+let lang = ["en", "ru", "kz"].includes(localStorage.getItem(LANG_KEY)) ? localStorage.getItem(LANG_KEY) : "ru";
+
+const i18n = {
+  en: {
+    invalidLink: "Invalid survey link",
+    selectRating: "Select rating",
+    selectOption: "Select option",
+    submit: "Submit response",
+    success: "Response submitted successfully.",
+    inactiveTitle: "Survey is currently inactive",
+    inactiveLead: "This form is not accepting responses now.",
+    cannotOpen: "Cannot open survey"
+  },
+  ru: {
+    invalidLink: "Некорректная ссылка анкеты",
+    selectRating: "Выберите оценку",
+    selectOption: "Выберите вариант",
+    submit: "Отправить ответ",
+    success: "Ответ успешно отправлен.",
+    inactiveTitle: "Анкета сейчас неактивна",
+    inactiveLead: "Сейчас форма не принимает ответы.",
+    cannotOpen: "Невозможно открыть анкету"
+  },
+  kz: {
+    invalidLink: "Сауалнама сілтемесі жарамсыз",
+    selectRating: "Бағаны таңдаңыз",
+    selectOption: "Нұсқаны таңдаңыз",
+    submit: "Жауап жіберу",
+    success: "Жауап сәтті жіберілді.",
+    inactiveTitle: "Сауалнама қазір белсенді емес",
+    inactiveLead: "Бұл форма қазір жауап қабылдамайды.",
+    cannotOpen: "Сауалнаманы ашу мүмкін емес"
+  }
+};
+
+function t(key) {
+  return i18n[lang]?.[key] || i18n.en[key] || key;
+}
 
 async function request(url, options) {
   const response = await fetch(url, options);
@@ -37,13 +78,13 @@ function buildForm(survey, questions) {
     } else if (question.type === "rating") {
       const select = document.createElement("select");
       select.name = key;
-      select.appendChild(new Option("Select rating", ""));
+      select.appendChild(new Option(t("selectRating"), ""));
       [1, 2, 3, 4, 5].forEach((v) => select.appendChild(new Option(String(v), String(v))));
       row.appendChild(select);
     } else if (question.type === "single") {
       const select = document.createElement("select");
       select.name = key;
-      select.appendChild(new Option("Select option", ""));
+      select.appendChild(new Option(t("selectOption"), ""));
       (question.options || []).forEach((option) => select.appendChild(new Option(option, option)));
       row.appendChild(select);
     } else {
@@ -68,7 +109,7 @@ function buildForm(survey, questions) {
   const submit = document.createElement("button");
   submit.className = "btn";
   submit.type = "submit";
-  submit.textContent = "Submit response";
+  submit.textContent = t("submit");
   form.appendChild(submit);
 
   const status = document.createElement("p");
@@ -96,7 +137,7 @@ function buildForm(survey, questions) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers })
       });
-      status.textContent = "Response submitted successfully.";
+      status.textContent = t("success");
       status.style.color = "#166534";
       submit.disabled = true;
     } catch (error) {
@@ -110,20 +151,28 @@ function buildForm(survey, questions) {
 }
 
 async function bootstrap() {
+  languageSelect.value = lang;
+  document.documentElement.lang = lang;
+  languageSelect.addEventListener("change", () => {
+    lang = languageSelect.value;
+    localStorage.setItem(LANG_KEY, lang);
+    window.location.reload();
+  });
+
   if (!Number.isInteger(surveyId) || surveyId <= 0) {
-    surveyCard.innerHTML = "<h2>Invalid survey link</h2>";
+    surveyCard.innerHTML = `<h2>${t("invalidLink")}</h2>`;
     return;
   }
   try {
     const data = await request(`/api/public/surveys/${surveyId}`);
     if (!data.active) {
-      surveyCard.innerHTML = "<h2>Survey is currently inactive</h2><p>This form is not accepting responses now.</p>";
+      surveyCard.innerHTML = `<h2>${t("inactiveTitle")}</h2><p>${t("inactiveLead")}</p>`;
       return;
     }
     surveyCard.innerHTML = "";
     surveyCard.appendChild(buildForm(data.survey, data.questions || []));
   } catch (error) {
-    surveyCard.innerHTML = `<h2>Cannot open survey</h2><p>${escapeHtml(error.message)}</p>`;
+    surveyCard.innerHTML = `<h2>${t("cannotOpen")}</h2><p>${escapeHtml(error.message)}</p>`;
   }
 }
 

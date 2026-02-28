@@ -23,9 +23,14 @@
           <span>Asking Pro</span>
         </a>
         <div class="topbar__actions">
-          <a class="btn btn--ghost" href="/create">Create Survey</a>
-          <a class="btn btn--ghost" href="/cabinet">Cabinet</a>
-          <a id="authBtn" class="btn btn--outline" href="/auth">Sign In</a>
+          <a class="btn btn--ghost" href="/create" data-i18n="createSurvey">Create Survey</a>
+          <a class="btn btn--ghost" href="/cabinet" data-i18n="cabinet">Cabinet</a>
+          <select id="languageSelect" class="lang-select" aria-label="Language">
+            <option value="en">EN</option>
+            <option value="ru">RU</option>
+            <option value="kz">KZ</option>
+          </select>
+          <a id="authBtn" class="btn btn--outline" href="/auth" data-i18n="signIn">Sign In</a>
         </div>
       </div>
     </header>
@@ -34,24 +39,24 @@
       <section class="hero">
         <div class="container hero__grid">
           <div>
-            <p class="eyebrow">SURVEYS, FORMS, VOTING</p>
-            <h1>Build surveys. Share one link. Get structured results.</h1>
-            <p class="lead">
+            <p class="eyebrow" data-i18n="eyebrow">SURVEYS, FORMS, VOTING</p>
+            <h1 data-i18n="heroTitle">Build surveys. Share one link. Get structured results.</h1>
+            <p class="lead" data-i18n="heroLead">
               Create professional questionnaires and voting forms for events, education, teams, and research. Send the public
               link to respondents and manage all analytics in your personal cabinet.
             </p>
             <div class="hero__actions">
-              <a class="btn" href="/create">Start Creating</a>
-              <a class="btn btn--outline" href="/cabinet">Open Cabinet</a>
+              <a class="btn" href="/create" data-i18n="startCreating">Start Creating</a>
+              <a class="btn btn--outline" href="/cabinet" data-i18n="openCabinet">Open Cabinet</a>
             </div>
           </div>
           <div class="hero-card">
-            <h3>How it works</h3>
+            <h3 data-i18n="howWorks">How it works</h3>
             <ul>
-              <li>Create survey with flexible question types</li>
-              <li>Publish and copy share link</li>
-              <li>Collect responses from participants</li>
-              <li>Review response table and export CSV</li>
+              <li data-i18n="how1">Create survey with flexible question types</li>
+              <li data-i18n="how2">Publish and copy share link</li>
+              <li data-i18n="how3">Collect responses from participants</li>
+              <li data-i18n="how4">Review response table and export CSV</li>
             </ul>
           </div>
         </div>
@@ -59,6 +64,82 @@
     </main>
 
     <script>
+      const i18n = {
+        en: {
+          createSurvey: "Create Survey",
+          cabinet: "Cabinet",
+          eyebrow: "SURVEYS, FORMS, VOTING",
+          heroTitle: "Build surveys. Share one link. Get structured results.",
+          heroLead:
+            "Create professional questionnaires and voting forms for events, education, teams, and research. Send the public link to respondents and manage all analytics in your personal cabinet.",
+          startCreating: "Start Creating",
+          openCabinet: "Open Cabinet",
+          howWorks: "How it works",
+          signIn: "Sign In",
+          how1: "Create survey with flexible question types",
+          how2: "Publish and copy share link",
+          how3: "Collect responses from participants",
+          how4: "Review response table and export CSV"
+        },
+        ru: {
+          createSurvey: "Создать анкету",
+          cabinet: "Кабинет",
+          eyebrow: "ОПРОСЫ, АНКЕТЫ, ГОЛОСОВАНИЯ",
+          heroTitle: "Создавайте опросы. Делитесь одной ссылкой. Получайте структурированные результаты.",
+          heroLead:
+            "Собирайте профессиональные анкеты и голосования для мероприятий, обучения и команд. Отправляйте публичную ссылку респондентам и управляйте аналитикой в личном кабинете.",
+          startCreating: "Начать создание",
+          openCabinet: "Открыть кабинет",
+          howWorks: "Как это работает",
+          signIn: "Войти",
+          how1: "Создайте анкету с нужными типами вопросов",
+          how2: "Опубликуйте и скопируйте ссылку",
+          how3: "Соберите ответы от участников",
+          how4: "Смотрите таблицу и экспортируйте CSV"
+        },
+        kz: {
+          createSurvey: "Сауалнама жасау",
+          cabinet: "Кабинет",
+          eyebrow: "САУАЛНАМА, АНКЕТА, ДАУЫС БЕРУ",
+          heroTitle: "Сауалнама жасаңыз. Бір сілтемемен бөлісіңіз. Нәтижені реттелген түрде алыңыз.",
+          heroLead:
+            "Іс-шара, білім беру және командалар үшін кәсіби сауалнама құрыңыз. Қатысушыларға ашық сілтеме жіберіп, аналитиканы жеке кабинетте басқарыңыз.",
+          startCreating: "Құруды бастау",
+          openCabinet: "Кабинетті ашу",
+          howWorks: "Қалай жұмыс істейді",
+          signIn: "Кіру",
+          how1: "Қажетті сұрақ түрлерімен сауалнама құрыңыз",
+          how2: "Жариялап, сілтемені көшіріңіз",
+          how3: "Қатысушылардан жауап жинаңыз",
+          how4: "Кестені қарап, CSV жүктеңіз"
+        }
+      };
+      const langKey = "asking-pro-lang";
+      const languageSelect = document.getElementById("languageSelect");
+
+      function t(lang, key) {
+        return i18n[lang]?.[key] || i18n.en[key] || key;
+      }
+
+      function applyLang(lang) {
+        document.documentElement.lang = lang;
+        document.querySelectorAll("[data-i18n]").forEach((node) => {
+          const key = node.getAttribute("data-i18n");
+          node.textContent = t(lang, key);
+        });
+      }
+
+      const currentLang = ["en", "ru", "kz"].includes(localStorage.getItem(langKey))
+        ? localStorage.getItem(langKey)
+        : "ru";
+      languageSelect.value = currentLang;
+      applyLang(currentLang);
+      languageSelect.addEventListener("change", () => {
+        const lang = languageSelect.value;
+        localStorage.setItem(langKey, lang);
+        applyLang(lang);
+      });
+
       (async () => {
         try {
           const response = await fetch("/api/auth/me");

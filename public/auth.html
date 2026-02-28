@@ -99,14 +99,21 @@
   <body>
     <div class="auth-page">
       <form id="authForm" class="card auth-card">
+        <div class="auth-switch" style="justify-content: flex-end;">
+          <select id="languageSelect" class="lang-select" aria-label="Language">
+            <option value="en">EN</option>
+            <option value="ru">RU</option>
+            <option value="kz">KZ</option>
+          </select>
+        </div>
         <div class="auth-head">
-          <h2 id="authTitle">Sign In</h2>
-          <p class="muted" id="authLead">Use your email and password.</p>
+          <h2 id="authTitle" data-i18n="signIn">Sign In</h2>
+          <p class="muted" id="authLead" data-i18n="authLead">Use your email and password.</p>
         </div>
         <div class="auth-switch">
-          <button type="button" class="btn auth-mode is-active" id="toLogin">Login</button>
-          <button type="button" class="btn auth-mode" id="toRegister">Register</button>
-          <a class="btn btn--outline" href="/">Back</a>
+          <button type="button" class="btn auth-mode is-active" id="toLogin" data-i18n="login">Login</button>
+          <button type="button" class="btn auth-mode" id="toRegister" data-i18n="register">Register</button>
+          <a class="btn btn--outline" href="/" data-i18n="back">Back</a>
         </div>
 
         <div class="auth-grid">
@@ -115,20 +122,20 @@
             <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
           </div>
           <div class="auth-row">
-            <label for="email">Email</label>
-            <input id="email" type="email" required autocomplete="email" placeholder="you@mail.com" />
+            <label for="email" data-i18n="email">Email</label>
+            <input id="email" type="email" required autocomplete="email" placeholder="you@mail.com" data-i18n-placeholder="emailPlaceholder" />
           </div>
           <div class="auth-row">
-            <label for="password">Password</label>
+            <label for="password" data-i18n="password">Password</label>
             <input id="password" type="password" required autocomplete="current-password" />
           </div>
           <div class="auth-row" id="resetTokenRow" hidden>
-            <label for="resetToken">Reset token</label>
+            <label for="resetToken" data-i18n="resetToken">Reset token</label>
             <input id="resetToken" type="text" autocomplete="off" />
           </div>
-          <button class="btn" id="submitBtn" type="submit">Login</button>
+          <button class="btn" id="submitBtn" type="submit" data-i18n="login">Login</button>
           <div class="auth-aux" id="authAux">
-            <button class="ghost-link" id="forgotBtn" type="button">Forgot password?</button>
+            <button class="ghost-link" id="forgotBtn" type="button" data-i18n="forgotPassword">Forgot password?</button>
           </div>
         </div>
 
@@ -136,12 +143,12 @@
         <div class="ok" id="okBox"></div>
 
         <div class="panel" id="forgotPanel" hidden>
-          <strong>Password recovery</strong>
+          <strong data-i18n="passwordRecovery">Password recovery</strong>
           <div class="auth-row">
-            <label for="forgotEmail">Account email</label>
-            <input id="forgotEmail" type="email" autocomplete="email" placeholder="you@mail.com" />
+            <label for="forgotEmail" data-i18n="accountEmail">Account email</label>
+            <input id="forgotEmail" type="email" autocomplete="email" placeholder="you@mail.com" data-i18n-placeholder="emailPlaceholder" />
           </div>
-          <button class="btn btn--outline" id="forgotSendBtn" type="button">Send reset link</button>
+          <button class="btn btn--outline" id="forgotSendBtn" type="button" data-i18n="sendResetLink">Send reset link</button>
         </div>
       </form>
     </div>

@@ -16,11 +16,89 @@ const forgotSendBtn = document.getElementById("forgotSendBtn");
 const websiteInput = document.getElementById("website");
 const errorBox = document.getElementById("errorBox");
 const okBox = document.getElementById("okBox");
+const languageSelect = document.getElementById("languageSelect");
 
+const LANG_KEY = "asking-pro-lang";
+let lang = ["en", "ru", "kz"].includes(localStorage.getItem(LANG_KEY)) ? localStorage.getItem(LANG_KEY) : "ru";
 const params = new URLSearchParams(window.location.search);
 const resetTokenFromUrl = params.get("reset") || "";
-
 let mode = "login";
+
+const i18n = {
+  en: {
+    signIn: "Sign In",
+    createAccount: "Create Account",
+    resetPassword: "Reset Password",
+    back: "Back",
+    email: "Email",
+    emailPlaceholder: "you@mail.com",
+    password: "Password",
+    resetToken: "Reset token",
+    forgotPassword: "Forgot password?",
+    passwordRecovery: "Password recovery",
+    accountEmail: "Account email",
+    sendResetLink: "Send reset link",
+    authLead: "Use your email and password.",
+    authLeadRegister: "Create your account with email and password.",
+    authLeadReset: "Set a new password for your account.",
+    login: "Login",
+    register: "Register",
+    saveNewPassword: "Save new password",
+    accountCreated: "Account created. Redirecting...",
+    successRedirect: "Success. Redirecting...",
+    forgotSent: "If the email exists, reset instructions were sent."
+  },
+  ru: {
+    signIn: "Вход",
+    createAccount: "Регистрация",
+    resetPassword: "Сброс пароля",
+    back: "Назад",
+    email: "Email",
+    emailPlaceholder: "you@mail.com",
+    password: "Пароль",
+    resetToken: "Токен сброса",
+    forgotPassword: "Забыли пароль?",
+    passwordRecovery: "Восстановление пароля",
+    accountEmail: "Email аккаунта",
+    sendResetLink: "Отправить ссылку для сброса",
+    authLead: "Используйте email и пароль.",
+    authLeadRegister: "Создайте аккаунт по email и паролю.",
+    authLeadReset: "Задайте новый пароль для аккаунта.",
+    login: "Войти",
+    register: "Регистрация",
+    saveNewPassword: "Сохранить новый пароль",
+    accountCreated: "Аккаунт создан. Перенаправление...",
+    successRedirect: "Успешно. Перенаправление...",
+    forgotSent: "Если email существует, инструкция по сбросу отправлена."
+  },
+  kz: {
+    signIn: "Кіру",
+    createAccount: "Тіркелу",
+    resetPassword: "Құпиясөзді қалпына келтіру",
+    back: "Артқа",
+    email: "Email",
+    emailPlaceholder: "you@mail.com",
+    password: "Құпиясөз",
+    resetToken: "Қалпына келтіру токені",
+    forgotPassword: "Құпиясөзді ұмыттыңыз ба?",
+    passwordRecovery: "Құпиясөзді қалпына келтіру",
+    accountEmail: "Аккаунт email-ы",
+    sendResetLink: "Қалпына келтіру сілтемесін жіберу",
+    authLead: "Email мен құпиясөзді қолданыңыз.",
+    authLeadRegister: "Email және құпиясөз арқылы аккаунт жасаңыз.",
+    authLeadReset: "Аккаунт үшін жаңа құпиясөз орнатыңыз.",
+    login: "Кіру",
+    register: "Тіркелу",
+    saveNewPassword: "Жаңа құпиясөзді сақтау",
+    accountCreated: "Аккаунт жасалды. Бағытталуда...",
+    successRedirect: "Сәтті. Бағытталуда...",
+    forgotSent: "Егер email бар болса, қалпына келтіру нұсқауы жіберілді."
+  }
+};
+
+function t(key) {
+  return i18n[lang]?.[key] || i18n.en[key] || key;
+}
 
 function cleanUrlParams() {
   const clean = new URL(window.location.href);
@@ -29,9 +107,19 @@ function cleanUrlParams() {
 }
 
 function antiBotMeta() {
-  return {
-    website: websiteInput.value || ""
-  };
+  return { website: websiteInput.value || "" };
+}
+
+function applyI18n() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    const key = node.getAttribute("data-i18n");
+    node.textContent = t(key);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    const key = node.getAttribute("data-i18n-placeholder");
+    node.setAttribute("placeholder", t(key));
+  });
 }
 
 function setMode(nextMode) {
@@ -39,13 +127,9 @@ function setMode(nextMode) {
   const isRegister = mode === "register";
   const isReset = mode === "reset";
 
-  authTitle.textContent = isRegister ? "Create Account" : isReset ? "Reset Password" : "Sign In";
-  authLead.textContent = isRegister
-    ? "Create your account with email and password."
-    : isReset
-      ? "Set a new password for your account."
-      : "Use your email and password.";
-  submitBtn.textContent = isRegister ? "Register" : isReset ? "Save new password" : "Login";
+  authTitle.textContent = isRegister ? t("createAccount") : isReset ? t("resetPassword") : t("signIn");
+  authLead.textContent = isRegister ? t("authLeadRegister") : isReset ? t("authLeadReset") : t("authLead");
+  submitBtn.textContent = isRegister ? t("register") : isReset ? t("saveNewPassword") : t("login");
 
   emailInput.required = !isReset;
   emailInput.disabled = isReset;
@@ -108,7 +192,7 @@ async function submitAuth(event) {
       body: JSON.stringify(payload)
     });
 
-    showOk(mode === "register" ? "Account created. Redirecting..." : "Success. Redirecting...");
+    showOk(mode === "register" ? t("accountCreated") : t("successRedirect"));
     setTimeout(() => {
       window.location.href = "/";
     }, 600);
@@ -127,15 +211,23 @@ async function sendForgotPassword() {
         ...antiBotMeta()
       })
     });
-    showOk("If the email exists, reset instructions were sent.");
+    showOk(t("forgotSent"));
   } catch (error) {
     showError(error.message);
   }
 }
 
 async function bootstrap() {
-  setMode("login");
+  languageSelect.value = lang;
+  applyI18n();
+  languageSelect.addEventListener("change", () => {
+    lang = languageSelect.value;
+    localStorage.setItem(LANG_KEY, lang);
+    applyI18n();
+    setMode(mode);
+  });
 
+  setMode("login");
   toLogin.addEventListener("click", () => setMode("login"));
   toRegister.addEventListener("click", () => setMode("register"));
   forgotBtn.addEventListener("click", () => {
@@ -153,9 +245,7 @@ async function bootstrap() {
 
   try {
     const me = await request("/api/auth/me");
-    if (me.user) {
-      window.location.href = "/";
-    }
+    if (me.user) window.location.href = "/";
   } catch {
     // ignore
   }
