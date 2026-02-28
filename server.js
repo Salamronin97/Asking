@@ -882,48 +882,427 @@ app.get("/api/dashboard", async (_req, res, next) => {
   }
 });
 
-app.get("/api/templates", (_req, res) => {
-  res.json({
-    templates: [
+app.get("/api/templates", (req, res) => {
+  const lang = ["en", "ru", "kz"].includes(String(req.query.lang || "").toLowerCase())
+    ? String(req.query.lang).toLowerCase()
+    : "ru";
+
+  const templatesByLang = {
+    en: [
       {
         key: "product-feedback",
         title: "Product Feedback",
-        description: "Оценка удовлетворенности и приоритетов продукта.",
-        audience: "Пользователи продукта",
+        description: "Measure satisfaction and product priorities.",
+        audience: "Product users",
         questions: [
-          { text: "Как вы оцениваете продукт в целом?", type: "rating", options: [], required: true },
+          { text: "How do you rate the product overall?", type: "rating", options: [], required: true },
           {
-            text: "Что улучшить в первую очередь?",
+            text: "What should be improved first?",
             type: "single",
-            options: ["Скорость", "Дизайн", "Надежность", "Интеграции"],
+            options: ["Speed", "Design", "Stability", "Integrations"],
             required: true
           },
-          { text: "Что вам нравится больше всего?", type: "text", options: [], required: false }
+          { text: "What do you like most?", type: "text", options: [], required: false }
         ]
       },
       {
         key: "event-voting",
         title: "Event Voting",
-        description: "Голосование за темы и формат мероприятия.",
+        description: "Vote for event topics and formats.",
+        audience: "Event participants",
+        questions: [
+          { text: "Which topic do you vote for?", type: "single", options: ["AI", "Frontend", "Backend", "Product"], required: true },
+          {
+            text: "Which formats are most useful?",
+            type: "multi",
+            options: ["Talks", "Workshops", "Panel discussion", "Networking"],
+            required: true
+          },
+          { text: "Additional comments", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "education-quality",
+        title: "Education Quality",
+        description: "Collect student feedback about program quality.",
+        audience: "Students",
+        questions: [
+          { text: "How do you rate the quality of classes?", type: "rating", options: [], required: true },
+          { text: "Which area needs improvement first?", type: "single", options: ["Schedule", "Teaching style", "Materials", "Support"], required: true },
+          { text: "What should we keep unchanged?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "teacher-evaluation",
+        title: "Teacher Evaluation",
+        description: "Anonymous feedback on teaching practice.",
+        audience: "Students and parents",
+        questions: [
+          { text: "How clear are explanations?", type: "rating", options: [], required: true },
+          { text: "How approachable is the teacher?", type: "rating", options: [], required: true },
+          { text: "What should be improved?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "employee-engagement",
+        title: "Employee Engagement",
+        description: "Assess motivation and team climate.",
+        audience: "Company employees",
+        questions: [
+          { text: "How motivated are you at work?", type: "rating", options: [], required: true },
+          { text: "What influences your motivation most?", type: "multi", options: ["Compensation", "Leadership", "Growth", "Team culture"], required: true },
+          { text: "One action that would improve engagement", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "pulse-check",
+        title: "Weekly Pulse Check",
+        description: "Quick operational check for teams.",
+        audience: "Project team",
+        questions: [
+          { text: "How was your week overall?", type: "rating", options: [], required: true },
+          { text: "What blocked your work?", type: "multi", options: ["Dependencies", "Unclear tasks", "Lack of time", "Technical issues"], required: false },
+          { text: "What help do you need next week?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "customer-satisfaction",
+        title: "Customer Satisfaction",
+        description: "Post-service quality survey for clients.",
+        audience: "Customers",
+        questions: [
+          { text: "How satisfied are you with our service?", type: "rating", options: [], required: true },
+          { text: "Would you recommend us?", type: "single", options: ["Yes", "No"], required: true },
+          { text: "How can we improve?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "nps",
+        title: "NPS Survey",
+        description: "Classic recommendation score with context.",
+        audience: "Users or customers",
+        questions: [
+          { text: "How likely are you to recommend us (1-5)?", type: "rating", options: [], required: true },
+          { text: "Main reason for your score", type: "text", options: [], required: true },
+          { text: "What one improvement would raise your score?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "service-quality",
+        title: "Service Quality Audit",
+        description: "Evaluate support quality across key criteria.",
+        audience: "Clients and partners",
+        questions: [
+          { text: "How do you rate response speed?", type: "rating", options: [], required: true },
+          { text: "How do you rate communication quality?", type: "rating", options: [], required: true },
+          { text: "Where did the process fail?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "meeting-retro",
+        title: "Meeting Retrospective",
+        description: "Improve meetings and decision quality.",
+        audience: "Meeting attendees",
+        questions: [
+          { text: "Was the meeting productive?", type: "rating", options: [], required: true },
+          { text: "What worked well?", type: "text", options: [], required: false },
+          { text: "What should be changed next time?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "campus-event-review",
+        title: "Campus Event Review",
+        description: "Collect school/college event feedback.",
+        audience: "Students, teachers, administrators",
+        questions: [
+          { text: "How do you rate the event overall?", type: "rating", options: [], required: true },
+          { text: "Which part was best?", type: "single", options: ["Program", "Speakers", "Organization", "Venue"], required: true },
+          { text: "What should be improved for the next event?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "public-opinion",
+        title: "Public Opinion Poll",
+        description: "Run a public vote with transparent options.",
+        audience: "Open audience",
+        questions: [
+          { text: "Choose your preferred option", type: "single", options: ["Option A", "Option B", "Option C", "Option D"], required: true },
+          { text: "How confident are you in your choice?", type: "rating", options: [], required: false },
+          { text: "Optional comment", type: "text", options: [], required: false }
+        ]
+      }
+    ],
+    ru: [
+      {
+        key: "product-feedback",
+        title: "Обратная связь по продукту",
+        description: "Оценка удовлетворенности и приоритетов продукта.",
+        audience: "Пользователи продукта",
+        questions: [
+          { text: "Как вы оцениваете продукт в целом?", type: "rating", options: [], required: true },
+          { text: "Что улучшить в первую очередь?", type: "single", options: ["Скорость", "Дизайн", "Стабильность", "Интеграции"], required: true },
+          { text: "Что вам нравится больше всего?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "event-voting",
+        title: "Голосование по мероприятию",
+        description: "Выбор тем и формата мероприятия.",
         audience: "Участники мероприятия",
         questions: [
-          {
-            text: "За какую тему вы голосуете?",
-            type: "single",
-            options: ["AI", "Frontend", "Backend", "Product"],
-            required: true
-          },
-          {
-            text: "Какие форматы вам интересны?",
-            type: "multi",
-            options: ["Доклады", "Воркшопы", "Панельные дискуссии", "Нетворкинг"],
-            required: true
-          },
-          { text: "Оставьте комментарий", type: "text", options: [], required: false }
+          { text: "За какую тему вы голосуете?", type: "single", options: ["AI", "Frontend", "Backend", "Product"], required: true },
+          { text: "Какие форматы вам интересны?", type: "multi", options: ["Доклады", "Воркшопы", "Панельная дискуссия", "Нетворкинг"], required: true },
+          { text: "Дополнительный комментарий", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "education-quality",
+        title: "Качество обучения",
+        description: "Сбор мнений о качестве учебной программы.",
+        audience: "Студенты",
+        questions: [
+          { text: "Как вы оцениваете качество занятий?", type: "rating", options: [], required: true },
+          { text: "Что нужно улучшить в первую очередь?", type: "single", options: ["Расписание", "Подача материала", "Материалы", "Поддержка"], required: true },
+          { text: "Что стоит оставить без изменений?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "teacher-evaluation",
+        title: "Оценка преподавателя",
+        description: "Анонимная оценка преподавательской практики.",
+        audience: "Студенты и родители",
+        questions: [
+          { text: "Насколько понятны объяснения?", type: "rating", options: [], required: true },
+          { text: "Насколько комфортна коммуникация?", type: "rating", options: [], required: true },
+          { text: "Что можно улучшить?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "employee-engagement",
+        title: "Вовлеченность сотрудников",
+        description: "Оценка мотивации и климата в команде.",
+        audience: "Сотрудники компании",
+        questions: [
+          { text: "Насколько вы мотивированы в работе?", type: "rating", options: [], required: true },
+          { text: "Что сильнее всего влияет на мотивацию?", type: "multi", options: ["Оплата", "Руководство", "Рост", "Культура команды"], required: true },
+          { text: "Какой один шаг повысит вовлеченность?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "pulse-check",
+        title: "Еженедельный пульс-опрос",
+        description: "Короткая проверка состояния команды.",
+        audience: "Проектная команда",
+        questions: [
+          { text: "Как прошла неделя в целом?", type: "rating", options: [], required: true },
+          { text: "Что блокировало вашу работу?", type: "multi", options: ["Зависимости", "Нечеткие задачи", "Нехватка времени", "Технические проблемы"], required: false },
+          { text: "Какая помощь нужна на следующей неделе?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "customer-satisfaction",
+        title: "Удовлетворенность клиентов",
+        description: "Опрос качества после оказания услуги.",
+        audience: "Клиенты",
+        questions: [
+          { text: "Насколько вы довольны нашим сервисом?", type: "rating", options: [], required: true },
+          { text: "Порекомендуете ли вы нас?", type: "single", options: ["Да", "Нет"], required: true },
+          { text: "Что можно улучшить?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "nps",
+        title: "NPS-опрос",
+        description: "Классический индекс готовности рекомендовать.",
+        audience: "Пользователи или клиенты",
+        questions: [
+          { text: "Насколько вероятно, что вы порекомендуете нас (1-5)?", type: "rating", options: [], required: true },
+          { text: "Главная причина вашей оценки", type: "text", options: [], required: true },
+          { text: "Какое одно улучшение повысит оценку?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "service-quality",
+        title: "Аудит качества сервиса",
+        description: "Оценка поддержки по ключевым критериям.",
+        audience: "Клиенты и партнеры",
+        questions: [
+          { text: "Как вы оцениваете скорость ответа?", type: "rating", options: [], required: true },
+          { text: "Как вы оцениваете качество коммуникации?", type: "rating", options: [], required: true },
+          { text: "Где в процессе возникли проблемы?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "meeting-retro",
+        title: "Ретроспектива встречи",
+        description: "Улучшение рабочих встреч и решений.",
+        audience: "Участники встречи",
+        questions: [
+          { text: "Насколько продуктивной была встреча?", type: "rating", options: [], required: true },
+          { text: "Что сработало хорошо?", type: "text", options: [], required: false },
+          { text: "Что изменить в следующий раз?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "campus-event-review",
+        title: "Оценка мероприятия колледжа",
+        description: "Сбор мнений о школьном/колледжном мероприятии.",
+        audience: "Студенты, преподаватели, администрация",
+        questions: [
+          { text: "Как вы оцениваете мероприятие в целом?", type: "rating", options: [], required: true },
+          { text: "Что понравилось больше всего?", type: "single", options: ["Программа", "Спикеры", "Организация", "Локация"], required: true },
+          { text: "Что улучшить в следующий раз?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "public-opinion",
+        title: "Публичное голосование",
+        description: "Открытый опрос с прозрачным выбором вариантов.",
+        audience: "Широкая аудитория",
+        questions: [
+          { text: "Выберите предпочтительный вариант", type: "single", options: ["Вариант A", "Вариант B", "Вариант C", "Вариант D"], required: true },
+          { text: "Насколько вы уверены в выборе?", type: "rating", options: [], required: false },
+          { text: "Комментарий (необязательно)", type: "text", options: [], required: false }
+        ]
+      }
+    ],
+    kz: [
+      {
+        key: "product-feedback",
+        title: "Өнім бойынша кері байланыс",
+        description: "Өнім сапасы мен басымдықтарын бағалау.",
+        audience: "Өнім пайдаланушылары",
+        questions: [
+          { text: "Өнімді жалпы қалай бағалайсыз?", type: "rating", options: [], required: true },
+          { text: "Алдымен нені жақсарту керек?", type: "single", options: ["Жылдамдық", "Дизайн", "Тұрақтылық", "Интеграциялар"], required: true },
+          { text: "Сізге ең ұнайтын нәрсе не?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "event-voting",
+        title: "Іс-шара бойынша дауыс беру",
+        description: "Іс-шара тақырыптары мен форматын таңдау.",
+        audience: "Қатысушылар",
+        questions: [
+          { text: "Қай тақырыпқа дауыс бересіз?", type: "single", options: ["AI", "Frontend", "Backend", "Product"], required: true },
+          { text: "Қай форматтар пайдалы?", type: "multi", options: ["Баяндамалар", "Воркшоптар", "Панельдік талқылау", "Нетворкинг"], required: true },
+          { text: "Қосымша пікір", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "education-quality",
+        title: "Білім сапасы",
+        description: "Оқу бағдарламасының сапасы бойынша пікір жинау.",
+        audience: "Студенттер",
+        questions: [
+          { text: "Сабақ сапасын қалай бағалайсыз?", type: "rating", options: [], required: true },
+          { text: "Алдымен нені жақсарту қажет?", type: "single", options: ["Кесте", "Оқыту әдісі", "Материалдар", "Қолдау"], required: true },
+          { text: "Нені өзгеріссіз қалдырған дұрыс?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "teacher-evaluation",
+        title: "Оқытушыны бағалау",
+        description: "Оқыту тәжірибесіне анонимді кері байланыс.",
+        audience: "Студенттер және ата-аналар",
+        questions: [
+          { text: "Түсіндіру қаншалықты түсінікті?", type: "rating", options: [], required: true },
+          { text: "Қарым-қатынас қаншалықты ыңғайлы?", type: "rating", options: [], required: true },
+          { text: "Нені жақсартуға болады?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "employee-engagement",
+        title: "Қызметкерлердің тартылуы",
+        description: "Мотивация мен команда ахуалын бағалау.",
+        audience: "Компания қызметкерлері",
+        questions: [
+          { text: "Жұмыстағы мотивацияңызды қалай бағалайсыз?", type: "rating", options: [], required: true },
+          { text: "Мотивацияға ең көп не әсер етеді?", type: "multi", options: ["Жалақы", "Басшылық", "Өсу", "Команда мәдениеті"], required: true },
+          { text: "Тартылуды арттыратын бір қадам", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "pulse-check",
+        title: "Апталық pulse-сауалнама",
+        description: "Команда күйін жылдам тексеру.",
+        audience: "Жоба командасы",
+        questions: [
+          { text: "Аптаңыз жалпы қалай өтті?", type: "rating", options: [], required: true },
+          { text: "Жұмысыңызға не кедергі болды?", type: "multi", options: ["Тәуелділіктер", "Тапсырма түсініксіз", "Уақыт аз", "Техникалық ақау"], required: false },
+          { text: "Келесі аптада қандай көмек керек?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "customer-satisfaction",
+        title: "Клиент қанағаттануы",
+        description: "Қызметтен кейінгі сапа сауалнамасы.",
+        audience: "Клиенттер",
+        questions: [
+          { text: "Біздің сервиске қаншалықты қанағаттанасыз?", type: "rating", options: [], required: true },
+          { text: "Бізді ұсынасыз ба?", type: "single", options: ["Иә", "Жоқ"], required: true },
+          { text: "Нені жақсарту керек?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "nps",
+        title: "NPS сауалнамасы",
+        description: "Ұсыну ықтималдығын өлшейтін классикалық формат.",
+        audience: "Пайдаланушылар немесе клиенттер",
+        questions: [
+          { text: "Бізді ұсыну ықтималдығы қандай (1-5)?", type: "rating", options: [], required: true },
+          { text: "Бағаңыздың негізгі себебі", type: "text", options: [], required: true },
+          { text: "Қай өзгеріс бағаңызды арттырады?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "service-quality",
+        title: "Сервис сапасын аудиттеу",
+        description: "Қолдау сапасын негізгі критерийлер бойынша бағалау.",
+        audience: "Клиенттер мен серіктестер",
+        questions: [
+          { text: "Жауап беру жылдамдығын бағалаңыз", type: "rating", options: [], required: true },
+          { text: "Коммуникация сапасын бағалаңыз", type: "rating", options: [], required: true },
+          { text: "Процесте қай жерде мәселе болды?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "meeting-retro",
+        title: "Кездесу ретроспективасы",
+        description: "Жұмыс кездесулері мен шешім сапасын жақсарту.",
+        audience: "Кездесу қатысушылары",
+        questions: [
+          { text: "Кездесу қаншалықты өнімді болды?", type: "rating", options: [], required: true },
+          { text: "Не жақсы өтті?", type: "text", options: [], required: false },
+          { text: "Келесіде нені өзгерту керек?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "campus-event-review",
+        title: "Колледж іс-шарасын бағалау",
+        description: "Мектеп/колледж іс-шарасы бойынша пікір жинау.",
+        audience: "Студенттер, оқытушылар, әкімшілік",
+        questions: [
+          { text: "Іс-шараны жалпы қалай бағалайсыз?", type: "rating", options: [], required: true },
+          { text: "Ең ұнаған бөлік қайсы?", type: "single", options: ["Бағдарлама", "Спикерлер", "Ұйымдастыру", "Локация"], required: true },
+          { text: "Келесі жолы нені жақсарту керек?", type: "text", options: [], required: false }
+        ]
+      },
+      {
+        key: "public-opinion",
+        title: "Қоғамдық пікір сауалнамасы",
+        description: "Ашық аудиторияға арналған дауыс беру.",
+        audience: "Кең аудитория",
+        questions: [
+          { text: "Өзіңізге ұнайтын нұсқаны таңдаңыз", type: "single", options: ["Нұсқа A", "Нұсқа B", "Нұсқа C", "Нұсқа D"], required: true },
+          { text: "Таңдауыңызға қаншалықты сенімдісіз?", type: "rating", options: [], required: false },
+          { text: "Пікір (міндетті емес)", type: "text", options: [], required: false }
         ]
       }
     ]
-  });
+  };
+
+  res.json({ templates: templatesByLang[lang] || templatesByLang.ru });
 });
 
 app.get("/api/surveys", async (req, res, next) => {

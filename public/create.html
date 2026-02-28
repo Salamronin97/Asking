@@ -33,7 +33,7 @@
         <form id="surveyForm" class="card">
           <h2 data-i18n="title">Create Survey Wizard</h2>
 
-          <div class="wizard-steps" id="wizardSteps">
+          <div class="wizard-steps">
             <button type="button" class="wizard-step is-active" data-step-btn="1" data-i18n="step1">1. Basics</button>
             <button type="button" class="wizard-step" data-step-btn="2" data-i18n="step2">2. Questions</button>
             <button type="button" class="wizard-step" data-step-btn="3" data-i18n="step3">3. Launch</button>
@@ -54,8 +54,11 @@
             </div>
             <div class="form-row">
               <label data-i18n="labelTemplate">Template</label>
-              <select id="templateSelect"><option value="" data-i18n="selectTemplate">Select template</option></select>
+              <select id="templateSelect">
+                <option value="" data-i18n="selectTemplate">Select template</option>
+              </select>
             </div>
+            <p id="templateCounter" class="meta-line"></p>
             <div id="templateCards" class="survey-list"></div>
           </section>
 
@@ -86,7 +89,7 @@
             <div class="form-row">
               <label class="inline-check">
                 <input type="checkbox" name="publishImmediately" />
-                <span>Publish immediately after draft creation</span>
+                <span data-i18n="publishImmediately">Publish immediately after draft creation</span>
               </label>
             </div>
             <div class="card">
@@ -104,7 +107,7 @@
         </form>
 
         <div class="card">
-          <h3>Live preview</h3>
+          <h3 data-i18n="livePreview">Live preview</h3>
           <div class="meta">
             <span id="previewAudience">Audience: -</span>
             <span id="previewQuestions">Questions: 0</span>
@@ -114,7 +117,7 @@
             <p id="previewDescription" style="margin:0;color:var(--muted);">Description preview</p>
           </div>
           <div id="previewQuestionList" class="recent-list" style="margin-top:10px;"></div>
-          <a class="btn btn--outline" href="/cabinet">Open cabinet</a>
+          <a class="btn btn--outline" href="/cabinet" data-i18n="openCabinet">Open cabinet</a>
         </div>
       </div>
     </main>

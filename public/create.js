@@ -3,6 +3,7 @@ const questionsWrap = document.getElementById("questions");
 const addQuestionBtn = document.getElementById("addQuestion");
 const templateSelect = document.getElementById("templateSelect");
 const templateCards = document.getElementById("templateCards");
+const templateCounter = document.getElementById("templateCounter");
 const statusNode = document.getElementById("status");
 const logoutBtn = document.getElementById("logoutBtn");
 const languageSelect = document.getElementById("languageSelect");
@@ -36,21 +37,19 @@ const i18n = {
     labelDescription: "Description",
     labelAudience: "Audience",
     labelTemplate: "Template",
+    templatesCount: "Templates available: {count}",
     addQuestion: "+ Add question",
     labelStartsAt: "Starts at",
     labelEndsAt: "Ends at",
     allowMultiple: "Allow multiple responses",
+    publishImmediately: "Publish immediately after draft creation",
     afterDraft: "After draft creation:",
     afterDraftLead: "Publish in cabinet, copy public link, and share with participants.",
     back: "Back",
     next: "Next",
     createDraft: "Create draft",
-    flowTitle: "Professional flow",
-    flow1: "Build structure with clear goals and audience.",
-    flow2: "Prepare question blocks for measurable feedback.",
-    flow3: "Publish and distribute public link by messengers/email.",
-    flow4: "Use cabinet response table and export files for reporting.",
     openCabinet: "Open cabinet",
+    livePreview: "Live preview",
     questionText: "Question text",
     type: "Type",
     options: "Options",
@@ -60,7 +59,12 @@ const i18n = {
     option: "Option",
     option1: "Option 1",
     option2: "Option 2",
+    typeText: "Text",
+    typeSingle: "Single choice",
+    typeMulti: "Multiple choice",
+    typeRating: "Rating 1-5",
     selectTemplate: "Select template",
+    useTemplate: "Use",
     audiencePreview: "Audience",
     questionsPreview: "Questions",
     untitled: "Survey title",
@@ -70,7 +74,8 @@ const i18n = {
     titleTooShort: "Title must be at least 3 characters.",
     needQuestion: "Add at least one question.",
     draftCreated: "Draft #{id} created. Publish and share from cabinet.",
-    failedLoad: "Failed to load create page"
+    failedLoad: "Failed to load create page",
+    noDescription: "No description"
   },
   ru: {
     cabinet: "Кабинет",
@@ -78,26 +83,24 @@ const i18n = {
     title: "Мастер создания анкеты",
     step1: "1. Основа",
     step2: "2. Вопросы",
-    step3: "3. Запуск",
+    step3: "3. Публикация",
     labelTitle: "Название",
     labelDescription: "Описание",
     labelAudience: "Аудитория",
     labelTemplate: "Шаблон",
+    templatesCount: "Доступно шаблонов: {count}",
     addQuestion: "+ Добавить вопрос",
     labelStartsAt: "Начало",
     labelEndsAt: "Окончание",
     allowMultiple: "Разрешить повторные ответы",
-    afterDraft: "После создания черновика:",
-    afterDraftLead: "Опубликуйте в кабинете, скопируйте публичную ссылку и отправьте участникам.",
+    publishImmediately: "Опубликовать сразу после создания черновика",
+    afterDraft: "После создания:",
+    afterDraftLead: "Публикуйте в кабинете, копируйте публичную ссылку и отправляйте участникам.",
     back: "Назад",
     next: "Далее",
-    createDraft: "Создать черновик",
-    flowTitle: "Профессиональный сценарий",
-    flow1: "Определите цели и аудиторию.",
-    flow2: "Подготовьте измеримые вопросы.",
-    flow3: "Опубликуйте и разошлите публичную ссылку.",
-    flow4: "Анализируйте таблицу ответов и выгружайте файлы.",
+    createDraft: "Сохранить черновик",
     openCabinet: "Открыть кабинет",
+    livePreview: "Предпросмотр",
     questionText: "Текст вопроса",
     type: "Тип",
     options: "Варианты",
@@ -107,17 +110,23 @@ const i18n = {
     option: "Вариант",
     option1: "Вариант 1",
     option2: "Вариант 2",
+    typeText: "Текст",
+    typeSingle: "Один выбор",
+    typeMulti: "Несколько вариантов",
+    typeRating: "Рейтинг 1-5",
     selectTemplate: "Выберите шаблон",
+    useTemplate: "Использовать",
     audiencePreview: "Аудитория",
     questionsPreview: "Вопросы",
     untitled: "Название анкеты",
-    undescribed: "Предпросмотр описания",
-    noQuestions: "Пока нет вопросов",
+    undescribed: "Описание анкеты",
+    noQuestions: "Вопросов пока нет",
     restorePrompt: "Восстановить сохраненный черновик?",
-    titleTooShort: "Название должно быть не короче 3 символов.",
-    needQuestion: "Добавьте хотя бы один вопрос.",
-    draftCreated: "Черновик #{id} создан. Публикуйте и делитесь ссылкой из кабинета.",
-    failedLoad: "Не удалось загрузить страницу создания"
+    titleTooShort: "Название должно быть не менее 3 символов.",
+    needQuestion: "Добавьте минимум один вопрос.",
+    draftCreated: "Черновик #{id} создан. Опубликуйте его в кабинете.",
+    failedLoad: "Не удалось загрузить страницу создания",
+    noDescription: "Без описания"
   },
   kz: {
     cabinet: "Кабинет",
@@ -125,26 +134,24 @@ const i18n = {
     title: "Сауалнама құру шебері",
     step1: "1. Негізгі",
     step2: "2. Сұрақтар",
-    step3: "3. Іске қосу",
+    step3: "3. Жариялау",
     labelTitle: "Атауы",
     labelDescription: "Сипаттама",
     labelAudience: "Аудитория",
     labelTemplate: "Үлгі",
+    templatesCount: "Қолжетімді үлгілер: {count}",
     addQuestion: "+ Сұрақ қосу",
-    labelStartsAt: "Басталу уақыты",
-    labelEndsAt: "Аяқталу уақыты",
+    labelStartsAt: "Басталуы",
+    labelEndsAt: "Аяқталуы",
     allowMultiple: "Қайта жауап беруге рұқсат",
-    afterDraft: "Жоба жасалғаннан кейін:",
-    afterDraftLead: "Кабинетте жариялап, ашық сілтемені қатысушыларға жіберіңіз.",
+    publishImmediately: "Черновиктен кейін бірден жариялау",
+    afterDraft: "Құрылғаннан кейін:",
+    afterDraftLead: "Кабинетте жариялап, сілтемені көшіріп, қатысушыларға таратыңыз.",
     back: "Артқа",
     next: "Келесі",
-    createDraft: "Жоба жасау",
-    flowTitle: "Кәсіби жұмыс ағымы",
-    flow1: "Мақсат пен аудиторияны анықтаңыз.",
-    flow2: "Өлшенетін сұрақ блоктарын дайындаңыз.",
-    flow3: "Жариялап, ашық сілтемені таратыңыз.",
-    flow4: "Жауап кестесін қарап, файлдарды жүктеңіз.",
-    openCabinet: "Кабинетті ашу",
+    createDraft: "Черновик сақтау",
+    openCabinet: "Кабинет ашу",
+    livePreview: "Алдын ала көру",
     questionText: "Сұрақ мәтіні",
     type: "Түрі",
     options: "Нұсқалар",
@@ -154,17 +161,23 @@ const i18n = {
     option: "Нұсқа",
     option1: "Нұсқа 1",
     option2: "Нұсқа 2",
+    typeText: "Мәтін",
+    typeSingle: "Бір таңдау",
+    typeMulti: "Бірнеше таңдау",
+    typeRating: "Рейтинг 1-5",
     selectTemplate: "Үлгіні таңдаңыз",
+    useTemplate: "Қолдану",
     audiencePreview: "Аудитория",
     questionsPreview: "Сұрақтар",
     untitled: "Сауалнама атауы",
-    undescribed: "Сипаттама алдын ала көрінісі",
-    noQuestions: "Әзірге сұрақ жоқ",
-    restorePrompt: "Сақталған жобаны қалпына келтіру керек пе?",
-    titleTooShort: "Атауы кемінде 3 таңба болуы керек.",
+    undescribed: "Сипаттама",
+    noQuestions: "Сұрақтар әлі жоқ",
+    restorePrompt: "Сақталған черновикті қалпына келтіру керек пе?",
+    titleTooShort: "Атау кемінде 3 таңбадан тұруы тиіс.",
     needQuestion: "Кемінде бір сұрақ қосыңыз.",
-    draftCreated: "#{id} нөмірлі жоба жасалды. Кабинеттен жариялап, сілтеме таратыңыз.",
-    failedLoad: "Құру беті жүктелмеді"
+    draftCreated: "#{id} черновик сақталды. Кабинетте жариялаңыз.",
+    failedLoad: "Құру беті жүктелмеді",
+    noDescription: "Сипаттама жоқ"
   }
 };
 
@@ -181,18 +194,22 @@ function t(key) {
   return i18n[lang]?.[key] || i18n.en[key] || key;
 }
 
+function formatText(template, values = {}) {
+  return Object.keys(values).reduce((acc, key) => acc.replaceAll(`{${key}}`, String(values[key] ?? "")), template);
+}
+
 function applyI18n() {
   document.documentElement.lang = lang;
   document.querySelectorAll("[data-i18n]").forEach((node) => {
-    const key = node.getAttribute("data-i18n");
-    node.textContent = t(key);
+    node.textContent = t(node.getAttribute("data-i18n"));
   });
+  templateCounter.textContent = formatText(t("templatesCount"), { count: templates.length });
   renderPreview();
 }
 
 function setStatus(message, isError = false) {
   statusNode.textContent = message;
-  statusNode.style.color = isError ? "#b6201f" : "#c33f17";
+  statusNode.style.color = isError ? "#b6201f" : "#0f766e";
 }
 
 function cacheDraft() {
@@ -205,7 +222,7 @@ function cacheDraft() {
       })
     );
   } catch {
-    // ignore
+    // noop
   }
 }
 
@@ -228,7 +245,7 @@ function restoreDraft() {
     if (!(payload.questions || []).length) addQuestion();
     setStep(Number(saved?.step || 1));
   } catch {
-    // ignore
+    // noop
   }
 }
 
@@ -296,6 +313,15 @@ function addOptionInput(wrap, value = "") {
   });
 }
 
+function questionTypeOptions() {
+  return `
+    <option value="text">${t("typeText")}</option>
+    <option value="single">${t("typeSingle")}</option>
+    <option value="multi">${t("typeMulti")}</option>
+    <option value="rating">${t("typeRating")}</option>
+  `;
+}
+
 function addQuestion(question = null) {
   const node = document.createElement("div");
   node.className = "question";
@@ -308,12 +334,7 @@ function addQuestion(question = null) {
       </div>
       <div class="form-row">
         <label>${t("type")}</label>
-        <select name="q_type">
-          <option value="text">Text</option>
-          <option value="single">Single choice</option>
-          <option value="multi">Multiple choice</option>
-          <option value="rating">Rating 1-5</option>
-        </select>
+        <select name="q_type">${questionTypeOptions()}</select>
       </div>
       <div class="form-row options-box" style="display:none;">
         <label>${t("options")}</label>
@@ -338,18 +359,17 @@ function addQuestion(question = null) {
   const sync = () => {
     const isChoice = type.value === "single" || type.value === "multi";
     optionsBox.style.display = isChoice ? "block" : "none";
-    if (isChoice && options.children.length < 2) {
-      if (!options.children.length) {
-        addOptionInput(options, t("option1"));
-        addOptionInput(options, t("option2"));
-      } else {
-        addOptionInput(options, t("option2"));
-      }
+    if (!isChoice) return;
+    if (options.children.length === 0) {
+      addOptionInput(options, t("option1"));
+      addOptionInput(options, t("option2"));
+    } else if (options.children.length === 1) {
+      addOptionInput(options, t("option2"));
     }
   };
 
-  type.addEventListener("change", sync);
   type.addEventListener("change", () => {
+    sync();
     cacheDraft();
     renderPreview();
   });
@@ -358,7 +378,11 @@ function addQuestion(question = null) {
     renderPreview();
   });
   required.addEventListener("change", cacheDraft);
-  addOption.addEventListener("click", () => addOptionInput(options));
+  addOption.addEventListener("click", () => {
+    addOptionInput(options);
+    cacheDraft();
+    renderPreview();
+  });
   node.querySelector(".remove-question").addEventListener("click", () => {
     node.remove();
     cacheDraft();
@@ -374,6 +398,7 @@ function addQuestion(question = null) {
       question.options.forEach((value) => addOptionInput(options, value));
     }
   }
+
   sync();
   questionsWrap.appendChild(node);
   renderPreview();
@@ -404,56 +429,103 @@ function collectPayload() {
 }
 
 function fillTemplateSelect() {
-  templateSelect.innerHTML = `<option value=''>${t("selectTemplate")}</option>`;
+  const selected = templateSelect.value;
+  templateSelect.innerHTML = `<option value="">${t("selectTemplate")}</option>`;
   templates.forEach((tpl) => {
     const option = document.createElement("option");
     option.value = tpl.key;
     option.textContent = tpl.title;
     templateSelect.appendChild(option);
   });
+  if (templates.some((tpl) => tpl.key === selected)) {
+    templateSelect.value = selected;
+  }
+  templateCounter.textContent = formatText(t("templatesCount"), { count: templates.length });
+}
+
+function fillTemplateCards() {
   templateCards.innerHTML = "";
-  templates.slice(0, 6).forEach((tpl) => {
+  templates.forEach((tpl) => {
     const card = document.createElement("article");
     card.className = "survey-card";
-    card.innerHTML = `<h3>${tpl.title}</h3><p>${tpl.description || ""}</p><div class="survey-card__actions"><button type="button" class="btn btn--ghost">Use</button></div>`;
+    card.innerHTML = `
+      <h3>${tpl.title}</h3>
+      <p>${tpl.description || t("noDescription")}</p>
+      <div class="meta"><span>${t("audiencePreview")}: ${tpl.audience || "-"}</span></div>
+      <div class="survey-card__actions">
+        <button type="button" class="btn btn--ghost">${t("useTemplate")}</button>
+      </div>
+    `;
     card.querySelector("button").addEventListener("click", () => {
-      templateSelect.value = tpl.key;
-      templateSelect.dispatchEvent(new Event("change"));
+      applyTemplate(tpl.key);
       setStep(2);
     });
     templateCards.appendChild(card);
   });
 }
 
+function applyTemplate(templateKey) {
+  const selected = templates.find((tpl) => tpl.key === templateKey);
+  if (!selected) return;
+  templateSelect.value = selected.key;
+  surveyForm.title.value = selected.title || "";
+  surveyForm.description.value = selected.description || "";
+  surveyForm.audience.value = selected.audience || "";
+  questionsWrap.innerHTML = "";
+  (selected.questions || []).forEach((q) => addQuestion(q));
+  cacheDraft();
+  renderPreview();
+}
+
 function rerenderQuestionsWithLang() {
   const saved = collectPayload();
   questionsWrap.innerHTML = "";
   (saved.questions || []).forEach((q) => addQuestion(q));
-  if (!saved.questions?.length) addQuestion();
+  if (!saved.questions.length) addQuestion();
   renderPreview();
+}
+
+async function loadTemplates() {
+  const data = await api.request(`/api/templates?lang=${encodeURIComponent(lang)}`);
+  templates = Array.isArray(data.templates) ? data.templates : [];
+  fillTemplateSelect();
+  fillTemplateCards();
+}
+
+async function handleLanguageChange(nextLang) {
+  lang = nextLang;
+  localStorage.setItem(LANG_KEY, lang);
+  languageSelect.value = lang;
+  await loadTemplates();
+  applyI18n();
+  rerenderQuestionsWithLang();
 }
 
 async function bootstrap() {
   languageSelect.value = lang;
-  applyI18n();
-  languageSelect.addEventListener("change", () => {
-    lang = languageSelect.value;
-    localStorage.setItem(LANG_KEY, lang);
-    applyI18n();
-    fillTemplateSelect();
-    rerenderQuestionsWithLang();
-  });
 
   const me = await api.request("/api/auth/me");
   if (!me.user) {
     window.location.href = "/auth";
     return;
   }
+  if (["en", "ru", "kz"].includes(me.user.locale) && !localStorage.getItem(LANG_KEY)) {
+    lang = me.user.locale;
+    localStorage.setItem(LANG_KEY, lang);
+    languageSelect.value = lang;
+  }
+
+  await loadTemplates();
+  applyI18n();
 
   addQuestion();
   setStep(1);
   restoreDraft();
   renderPreview();
+
+  languageSelect.addEventListener("change", () => {
+    handleLanguageChange(languageSelect.value).catch((error) => setStatus(error.message, true));
+  });
 
   addQuestionBtn.addEventListener("click", () => addQuestion());
   prevStepBtn.addEventListener("click", () => setStep(step - 1));
@@ -472,6 +544,11 @@ async function bootstrap() {
     await api.request("/api/auth/logout", { method: "POST" });
     window.location.href = "/auth";
   });
+
+  templateSelect.addEventListener("change", () => {
+    applyTemplate(templateSelect.value);
+  });
+
   surveyForm.addEventListener("input", () => {
     cacheDraft();
     renderPreview();
@@ -481,39 +558,26 @@ async function bootstrap() {
     event.preventDefault();
     if (!validateStep()) return;
     try {
+      const payload = collectPayload();
       const created = await api.request("/api/surveys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(collectPayload())
+        body: JSON.stringify(payload)
       });
-      if (collectPayload().publishImmediately) {
+      if (payload.publishImmediately) {
         await api.request(`/api/surveys/${created.id}/publish`, { method: "POST" });
       }
       setStatus(t("draftCreated").replace("#{id}", created.id));
       surveyForm.reset();
       questionsWrap.innerHTML = "";
+      templateSelect.value = "";
       addQuestion();
       setStep(1);
       localStorage.removeItem(DRAFT_KEY);
+      renderPreview();
     } catch (error) {
       setStatus(error.message, true);
     }
-  });
-
-  const tplData = await api.request("/api/templates");
-  templates = tplData.templates || [];
-  fillTemplateSelect();
-
-  templateSelect.addEventListener("change", () => {
-    const selected = templates.find((t) => t.key === templateSelect.value);
-    if (!selected) return;
-    surveyForm.title.value = selected.title || "";
-    surveyForm.description.value = selected.description || "";
-    surveyForm.audience.value = selected.audience || "";
-    questionsWrap.innerHTML = "";
-    (selected.questions || []).forEach((q) => addQuestion(q));
-    cacheDraft();
-    renderPreview();
   });
 }
 
