@@ -602,6 +602,93 @@ thead th {
   display: none !important;
 }
 
+/* Landing-only visual direction */
+.landing-page {
+  background:
+    radial-gradient(1100px 540px at -8% -8%, rgba(16, 185, 129, 0.22), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(14, 116, 144, 0.22), transparent 58%),
+    linear-gradient(180deg, #f3f7f6 0%, #eef2f0 100%);
+}
+
+.landing-page .bg-shape--one {
+  background: #2dd4bf;
+  opacity: 0.2;
+}
+
+.landing-page .bg-shape--two {
+  background: #0ea5a4;
+  opacity: 0.16;
+}
+
+.landing-page .topbar {
+  background: rgba(248, 252, 251, 0.84);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.landing-page .btn {
+  background: #0f766e;
+}
+
+.landing-page .btn:hover {
+  background: #0d675f;
+}
+
+.landing-page .btn--outline {
+  color: #0f766e;
+  border-color: #0f766e;
+  background: transparent;
+}
+
+.landing-page .btn--ghost {
+  background: #e7f5f3;
+  color: #0f766e;
+}
+
+.hero--landing {
+  padding: 88px 0 70px;
+}
+
+.landing-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #ddf2ee;
+  color: #0b5f58;
+  letter-spacing: 0.08em;
+}
+
+.hero-card--landing {
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  background: linear-gradient(180deg, #ffffff 0%, #f2fbf9 100%);
+}
+
+.landing-kpis {
+  margin-top: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.landing-kpi {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+}
+
+.landing-kpi strong {
+  font-family: "Space Grotesk", sans-serif;
+  color: #0f766e;
+}
+
+.landing-kpi span {
+  color: #5c6764;
+  font-size: 13px;
+}
+
 @media (max-width: 960px) {
   .hero__grid,
   .split {

@@ -12,7 +12,7 @@
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body>
+  <body class="landing-page">
     <div class="bg-shape bg-shape--one"></div>
     <div class="bg-shape bg-shape--two"></div>
 
@@ -36,10 +36,10 @@
     </header>
 
     <main>
-      <section class="hero">
+      <section class="hero hero--landing">
         <div class="container hero__grid">
           <div>
-            <p class="eyebrow" data-i18n="eyebrow">SURVEYS, FORMS, VOTING</p>
+            <p class="eyebrow landing-pill" data-i18n="eyebrow">SURVEYS, FORMS, VOTING</p>
             <h1 data-i18n="heroTitle">Build surveys. Share one link. Get structured results.</h1>
             <p class="lead" data-i18n="heroLead">
               Create professional questionnaires and voting forms for events, education, teams, and research. Send the public
@@ -50,7 +50,7 @@
               <a class="btn btn--outline" href="/cabinet" data-i18n="openCabinet">Open Cabinet</a>
             </div>
           </div>
-          <div class="hero-card">
+          <div class="hero-card hero-card--landing">
             <h3 data-i18n="howWorks">How it works</h3>
             <ul>
               <li data-i18n="how1">Create survey with flexible question types</li>
@@ -58,6 +58,20 @@
               <li data-i18n="how3">Collect responses from participants</li>
               <li data-i18n="how4">Review response table and export CSV</li>
             </ul>
+            <div class="landing-kpis">
+              <div class="landing-kpi">
+                <strong>3 min</strong>
+                <span data-i18n="kpiBuild">average setup</span>
+              </div>
+              <div class="landing-kpi">
+                <strong>1 link</strong>
+                <span data-i18n="kpiShare">for distribution</span>
+              </div>
+              <div class="landing-kpi">
+                <strong>CSV/XLSX</strong>
+                <span data-i18n="kpiExport">export ready</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -75,6 +89,9 @@
           startCreating: "Start Creating",
           openCabinet: "Open Cabinet",
           howWorks: "How it works",
+          kpiBuild: "average setup",
+          kpiShare: "for distribution",
+          kpiExport: "export ready",
           signIn: "Sign In",
           how1: "Create survey with flexible question types",
           how2: "Publish and copy share link",
@@ -91,6 +108,9 @@
           startCreating: "Начать создание",
           openCabinet: "Открыть кабинет",
           howWorks: "Как это работает",
+          kpiBuild: "среднее время настройки",
+          kpiShare: "для рассылки",
+          kpiExport: "готово к выгрузке",
           signIn: "Войти",
           how1: "Создайте анкету с нужными типами вопросов",
           how2: "Опубликуйте и скопируйте ссылку",
@@ -107,6 +127,9 @@
           startCreating: "Құруды бастау",
           openCabinet: "Кабинетті ашу",
           howWorks: "Қалай жұмыс істейді",
+          kpiBuild: "орташа баптау уақыты",
+          kpiShare: "таратуға дайын",
+          kpiExport: "экспорт дайын",
           signIn: "Кіру",
           how1: "Қажетті сұрақ түрлерімен сауалнама құрыңыз",
           how2: "Жариялап, сілтемені көшіріңіз",
