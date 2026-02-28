@@ -2,8 +2,14 @@
 const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
 
-const DB_PATH =
-  process.env.DB_PATH || (process.env.RAILWAY_ENVIRONMENT ? "/data/app.db" : path.join(__dirname, "data", "app.db"));
+function resolveDbPath() {
+  if (process.env.DB_PATH) return process.env.DB_PATH;
+  const railwayVolumePath = process.env.RAILWAY_VOLUME_MOUNT_PATH || process.env.RAILWAY_VOLUME_PATH || "";
+  if (railwayVolumePath) return path.join(railwayVolumePath, "app.db");
+  return path.join(__dirname, "data", "app.db");
+}
+
+const DB_PATH = resolveDbPath();
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 const db = new sqlite3.Database(DB_PATH);
@@ -179,6 +185,7 @@ async function init() {
 
 module.exports = {
   db,
+  DB_PATH,
   init,
   run,
   all,

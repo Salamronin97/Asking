@@ -43,6 +43,10 @@ npm run dev
 
 ## Переменные окружения
 
+- `DB_PATH` - путь к SQLite файлу (опционально).  
+  Если не задан:
+  - на Railway при наличии volume используется `RAILWAY_VOLUME_MOUNT_PATH/app.db`
+  - локально используется `./data/app.db`
 - `GOOGLE_CLIENT_ID` - OAuth Client ID для входа через Google (опционально).
 - `APP_BASE_URL` - публичный URL приложения (для ссылок в email).
 - `SMTP_HOST` - SMTP host для отправки email.
@@ -57,6 +61,10 @@ npm run dev
 2. В Railway: `New Project` -> `Deploy from GitHub repo`
 3. Выбрать репозиторий и подтвердить
 4. Railway подхватит `railway.json` + `Dockerfile`
+5. Обязательно подключить Volume к сервису (например mount path `/data`)
+6. Убедиться, что `DB_PATH=/data/app.db` (или оставить авто-путь через `RAILWAY_VOLUME_MOUNT_PATH`)
+
+Без Volume данные SQLite (аккаунты, сессии, анкеты) могут пропадать после redeploy/restart.
 
 ## Важные эндпоинты
 

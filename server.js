@@ -4,7 +4,7 @@ const path = require("path");
 const nodemailer = require("nodemailer");
 const XLSX = require("xlsx");
 const { OAuth2Client } = require("google-auth-library");
-const { init, run, all, get } = require("./db");
+const { init, run, all, get, DB_PATH } = require("./db");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -430,7 +430,12 @@ async function seedDemoSurvey() {
 }
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, timestamp: nowIso() });
+  res.json({
+    ok: true,
+    timestamp: nowIso(),
+    dbPath: DB_PATH,
+    railwayVolumeMountPath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null
+  });
 });
 
 app.get("/auth", (_req, res) => {
@@ -2040,6 +2045,10 @@ init()
     await seedDemoSurvey();
     app.listen(PORT, () => {
       console.log(`Server listening on http://localhost:${PORT}`);
+      console.log(`DB path: ${DB_PATH}`);
+      if (process.env.RAILWAY_ENVIRONMENT && !process.env.RAILWAY_VOLUME_MOUNT_PATH && !process.env.DB_PATH) {
+        console.warn("No Railway volume mount detected. Database may be ephemeral between deploys.");
+      }
     });
   })
   .catch((error) => {
