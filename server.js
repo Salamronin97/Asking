@@ -1371,13 +1371,16 @@ app.get("/api/public/surveys/:id", async (req, res, next) => {
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
-      `SELECT id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at
+      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at
        FROM surveys
        WHERE id = ?`,
       [surveyId]
     );
     if (!survey) return res.status(404).json({ error: "Survey not found" });
-    if (survey.status !== "published") return res.status(403).json({ error: "Survey is not published" });
+    const isOwnerPreview = Boolean(req.user && survey.owner_user_id === req.user.id);
+    if (survey.status !== "published" && !isOwnerPreview) {
+      return res.status(403).json({ error: "Survey is not published" });
+    }
 
     const questions = await all(
       `SELECT id, question_text, type, options_json, required, question_order
@@ -1390,6 +1393,7 @@ app.get("/api/public/surveys/:id", async (req, res, next) => {
     res.json({
       survey,
       active: surveyIsActive(survey),
+      preview: isOwnerPreview && survey.status !== "published",
       questions: questions.map((q) => ({
         id: q.id,
         text: q.question_text,

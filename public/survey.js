@@ -17,7 +17,8 @@ const i18n = {
     inactiveTitle: "Survey is currently inactive",
     inactiveLead: "This form is not accepting responses now.",
     cannotOpen: "Cannot open survey",
-    progress: "Question {current} of {total}"
+    progress: "Question {current} of {total}",
+    previewMode: "Preview mode: this survey is not published yet."
   },
   ru: {
     invalidLink: "Некорректная ссылка на анкету",
@@ -30,7 +31,8 @@ const i18n = {
     inactiveTitle: "Анкета сейчас недоступна",
     inactiveLead: "Форма временно не принимает ответы.",
     cannotOpen: "Не удалось открыть анкету",
-    progress: "Вопрос {current} из {total}"
+    progress: "Вопрос {current} из {total}",
+    previewMode: "Режим предпросмотра: анкета пока не опубликована."
   },
   kz: {
     invalidLink: "Сауалнама сілтемесі қате",
@@ -43,7 +45,8 @@ const i18n = {
     inactiveTitle: "Сауалнама қазір белсенді емес",
     inactiveLead: "Форма қазір жауап қабылдамайды.",
     cannotOpen: "Сауалнаманы ашу мүмкін болмады",
-    progress: "{total} ішінен {current}-сұрақ"
+    progress: "{total} ішінен {current}-сұрақ",
+    previewMode: "Алдын ала көру режимі: сауалнама әлі жарияланбаған."
   }
 };
 
@@ -132,9 +135,17 @@ function collectAnswers(form, questions) {
   return answers;
 }
 
-function renderPagedForm(survey, questions) {
+function renderPagedForm(survey, questions, isPreview = false) {
   const wrap = document.createElement("div");
   wrap.innerHTML = `<h2>${escapeHtml(survey.title)}</h2><p>${escapeHtml(survey.description || "")}</p>`;
+
+  if (isPreview) {
+    const previewNote = document.createElement("p");
+    previewNote.className = "status";
+    previewNote.style.color = "#0f766e";
+    previewNote.textContent = t("previewMode");
+    wrap.appendChild(previewNote);
+  }
 
   const progress = document.createElement("p");
   progress.className = "meta-line";
@@ -236,12 +247,12 @@ async function bootstrap() {
 
   try {
     const data = await request(`/api/public/surveys/${surveyId}`);
-    if (!data.active) {
+    if (!data.active && !data.preview) {
       surveyCard.innerHTML = `<h2>${t("inactiveTitle")}</h2><p>${t("inactiveLead")}</p>`;
       return;
     }
     surveyCard.innerHTML = "";
-    surveyCard.appendChild(renderPagedForm(data.survey, data.questions || []));
+    surveyCard.appendChild(renderPagedForm(data.survey, data.questions || [], Boolean(data.preview)));
   } catch (error) {
     surveyCard.innerHTML = `<h2>${t("cannotOpen")}</h2><p>${escapeHtml(error.message)}</p>`;
   }
