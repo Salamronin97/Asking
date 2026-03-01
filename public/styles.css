@@ -393,9 +393,22 @@ h1 {
   gap: 14px;
 }
 
-.landing-hero-block {
-  padding-top: 28px;
-  padding-bottom: 28px;
+.landing-flat {
+  margin-top: 10px;
+}
+
+.landing-strip {
+  padding: 38px 0;
+  border-top: 1px solid rgba(20, 30, 40, 0.08);
+}
+
+.landing-strip--hero {
+  padding-top: 56px;
+  padding-bottom: 46px;
+}
+
+.landing-strip--alt {
+  background: rgba(240, 246, 244, 0.72);
 }
 
 .landing-hero-grid {
@@ -416,6 +429,13 @@ h1 {
   font-family: "Space Grotesk", sans-serif;
 }
 
+.landing-strip h2 {
+  margin: 0 0 16px;
+  font-size: clamp(36px, 4vw, 52px);
+  line-height: 1.04;
+  font-family: "Space Grotesk", sans-serif;
+}
+
 .mini-guide {
   margin: 0 0 14px;
   padding-left: 20px;
@@ -424,6 +444,17 @@ h1 {
 
 .lead--long {
   max-width: 1000px;
+}
+
+.landing-strip .lead {
+  font-size: clamp(20px, 2.1vw, 31px);
+  line-height: 1.38;
+  color: #26333d;
+}
+
+.landing-strip .recent-item {
+  min-height: 66px;
+  font-size: 22px;
 }
 
 .media-slots {
@@ -1022,9 +1053,17 @@ thead th {
     grid-template-columns: 1fr;
   }
 
-  .landing-hero-grid,
-  .media-slots {
+  .landing-hero-grid {
     grid-template-columns: 1fr;
+  }
+
+  .landing-strip .lead {
+    font-size: 18px;
+  }
+
+  .landing-strip .recent-item {
+    font-size: 18px;
+    min-height: 54px;
   }
 
   .demo-sidebar,
