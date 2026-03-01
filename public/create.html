@@ -1,128 +1,130 @@
-﻿<!doctype html>
-<html lang="en">
+<!doctype html>
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Create Survey | Asking</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
-      rel="stylesheet"
-    />
+    <title>Builder | Asking</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body class="workspace-page">
+  <body class="workspace-page builder-page">
     <header class="topbar">
       <div class="container topbar__inner">
         <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
         <div class="topbar__actions">
-          <a class="btn btn--ghost" href="/guide" data-i18n="guide">Guide</a>
-          <a class="btn btn--ghost" href="/author" data-i18n="author">Author</a>
-          <a class="btn btn--ghost" href="/cabinet" data-i18n="cabinet">Cabinet</a>
+          <a class="btn btn--ghost" href="/cabinet">Кабинет</a>
+          <a class="btn btn--ghost" href="/guide">Гайд</a>
+          <a class="btn btn--ghost" href="/author">Автор</a>
           <select id="languageSelect" class="lang-select" aria-label="Language">
-            <option value="en">EN</option>
             <option value="ru">RU</option>
+            <option value="en">EN</option>
             <option value="kz">KZ</option>
           </select>
-          <button id="logoutBtn" class="btn btn--outline" data-i18n="logout">Logout</button>
+          <button id="logoutBtn" class="btn btn--outline">Выйти</button>
         </div>
       </div>
     </header>
 
-    <main class="section">
-      <div class="container split">
-        <form id="surveyForm" class="card">
-          <h2 data-i18n="title">Create Survey Wizard</h2>
+    <main class="builder-shell">
+      <aside class="builder-pages">
+        <div class="builder-pages__head">
+          <h3>Страницы анкеты</h3>
+          <button id="addPageBtn" class="btn btn--ghost" type="button">+ Страница</button>
+        </div>
+        <div id="pagesList" class="builder-pages__list"></div>
+      </aside>
 
-          <div class="wizard-steps">
-            <button type="button" class="wizard-step is-active" data-step-btn="1" data-i18n="step1">1. Basics</button>
-            <button type="button" class="wizard-step" data-step-btn="2" data-i18n="step2">2. Questions</button>
-            <button type="button" class="wizard-step" data-step-btn="3" data-i18n="step3">3. Launch</button>
+      <section class="builder-canvas">
+        <div class="builder-canvas__head">
+          <input id="surveyTitle" class="builder-title" placeholder="Название анкеты" />
+          <div class="builder-canvas__head-actions">
+            <button id="openQuestionModalBtn" class="btn" type="button">+ Добавить вопрос</button>
+            <button id="createSurveyBtn" class="btn btn--outline" type="button">Создать анкету</button>
           </div>
+        </div>
 
-          <section data-step="1" class="wizard-pane">
-            <div class="form-row">
-              <label data-i18n="labelTitle">Title</label>
-              <input name="title" required minlength="3" />
-            </div>
-            <div class="form-row">
-              <label data-i18n="labelDescription">Description</label>
-              <textarea name="description"></textarea>
-            </div>
-            <div class="form-row">
-              <label data-i18n="labelAudience">Audience</label>
-              <input name="audience" />
-            </div>
-            <div class="form-row">
-              <label data-i18n="labelTemplate">Template</label>
-              <select id="templateSelect">
-                <option value="" data-i18n="selectTemplate">Select template</option>
-              </select>
-            </div>
-            <p id="templateCounter" class="meta-line"></p>
-            <button type="button" id="toggleTemplatesBtn" class="btn btn--outline" data-i18n="showTemplates">Show templates</button>
-            <div id="templatePanel" class="template-panel" hidden>
-              <div id="templateCards" class="survey-list" style="margin-top: 10px"></div>
-            </div>
-          </section>
+        <div class="builder-meta">
+          <input id="surveyDescription" placeholder="Описание анкеты" />
+          <input id="surveyAudience" placeholder="Аудитория (например: студенты, преподаватели)" />
+          <div class="builder-meta__row">
+            <label>Начало <input id="startsAt" type="datetime-local" /></label>
+            <label>Окончание <input id="endsAt" type="datetime-local" /></label>
+            <label class="inline-check"><input id="allowMultiple" type="checkbox" /> Повторные ответы</label>
+          </div>
+        </div>
 
-          <section data-step="2" class="wizard-pane" hidden>
-            <div id="questions" class="questions"></div>
-            <div class="action-row">
-              <button type="button" id="addQuestion" class="btn btn--ghost" data-i18n="addQuestion">+ Add question</button>
-            </div>
-          </section>
+        <div id="questionsCanvas" class="builder-questions"></div>
+        <p id="createStatus" class="status"></p>
+      </section>
 
-          <section data-step="3" class="wizard-pane" hidden>
-            <div class="form-row grid-2">
-              <div>
-                <label data-i18n="labelStartsAt">Starts at</label>
-                <input type="datetime-local" name="startsAt" />
-              </div>
-              <div>
-                <label data-i18n="labelEndsAt">Ends at</label>
-                <input type="datetime-local" name="endsAt" />
-              </div>
-            </div>
-            <div class="form-row">
-              <label class="inline-check">
-                <input type="checkbox" name="allowMultipleResponses" />
-                <span data-i18n="allowMultiple">Allow multiple responses</span>
-              </label>
-            </div>
-            <div class="card">
-              <strong data-i18n="afterDraft">After creation:</strong>
-              <p style="margin:8px 0 0;" data-i18n="afterDraftLead">Copy public link, send respondents, and open analytics in cabinet.</p>
-            </div>
-          </section>
-
+      <aside class="builder-settings">
+        <h3>Настройки вопроса</h3>
+        <div id="settingsEmpty" class="meta-line">Выберите вопрос в центре.</div>
+        <div id="settingsPanel" hidden>
+          <div class="form-row">
+            <label>Текст вопроса</label>
+            <input id="settingText" />
+          </div>
+          <div class="form-row">
+            <label>Подпись / описание</label>
+            <input id="settingHint" />
+          </div>
+          <div class="form-row">
+            <label>Тип вопроса</label>
+            <select id="settingType">
+              <option value="text">Текст</option>
+              <option value="single">Одиночный выбор</option>
+              <option value="multi">Множественный выбор</option>
+              <option value="rating">Рейтинг 1-5</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="inline-check"><input id="settingRequired" type="checkbox" /> Обязательный вопрос</label>
+          </div>
+          <div class="form-row">
+            <label>Варианты (каждый с новой строки)</label>
+            <textarea id="settingOptions" placeholder="Вариант 1&#10;Вариант 2"></textarea>
+          </div>
           <div class="action-row">
-            <button type="button" id="prevStepBtn" class="btn btn--outline" data-i18n="back">Back</button>
-            <button type="button" id="nextStepBtn" class="btn btn--ghost" data-i18n="next">Next</button>
-            <button type="submit" id="createPublishBtn" class="btn" hidden data-action="publish" data-i18n="createAndPublish">
-              Create and publish
-            </button>
+            <button id="deleteQuestionBtn" class="btn btn--danger" type="button">Удалить вопрос</button>
           </div>
-          <p id="status" class="status"></p>
-        </form>
+        </div>
+      </aside>
+    </main>
 
-        <div class="card">
-          <h3 data-i18n="livePreview">Live preview</h3>
-          <div class="meta">
-            <span id="previewAudience">Audience: -</span>
-            <span id="previewQuestions">Questions: 0</span>
-          </div>
-          <div class="card" style="margin-top:10px;">
-            <h4 id="previewTitle" style="margin:0 0 8px;">Survey title</h4>
-            <p id="previewDescription" style="margin:0;color:var(--muted);">Description preview</p>
-          </div>
-          <div id="previewQuestionList" class="recent-list" style="margin-top:10px;"></div>
-          <a class="btn btn--outline" href="/cabinet" data-i18n="openCabinet">Open cabinet</a>
+    <div id="questionModal" class="modal" hidden>
+      <div class="modal__content">
+        <button id="closeQuestionModalBtn" class="modal__close" type="button">x</button>
+        <h3>Добавить вопрос</h3>
+        <div class="form-row">
+          <label>Текст вопроса</label>
+          <input id="newQuestionText" />
+        </div>
+        <div class="form-row">
+          <label>Описание (необязательно)</label>
+          <input id="newQuestionHint" />
+        </div>
+        <div class="form-row">
+          <label>Тип</label>
+          <select id="newQuestionType">
+            <option value="text">Текст</option>
+            <option value="single">Одиночный выбор</option>
+            <option value="multi">Множественный выбор</option>
+            <option value="rating">Рейтинг 1-5</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Варианты (для выбора)</label>
+          <textarea id="newQuestionOptions" placeholder="Вариант 1&#10;Вариант 2"></textarea>
+        </div>
+        <div class="form-row">
+          <label class="inline-check"><input id="newQuestionRequired" type="checkbox" checked /> Обязательный вопрос</label>
+        </div>
+        <div class="action-row">
+          <button id="saveQuestionBtn" class="btn" type="button">Добавить</button>
         </div>
       </div>
-    </main>
+    </div>
+
     <script src="/create.js"></script>
   </body>
 </html>
-
