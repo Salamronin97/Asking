@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Asking Pro | Surveys, Forms, Voting</title>
+    <title>Asking | Surveys, Forms, Voting</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -18,7 +18,7 @@
 
     <header class="topbar">
       <div class="container topbar__inner">
-        <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking Pro</span></a>
+        <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
         <div class="topbar__actions">
           <a class="btn btn--ghost" href="/create" data-i18n="navCreate">Create</a>
           <a class="btn btn--ghost" href="/guide" data-i18n="navGuide">Guide</a>
@@ -35,41 +35,53 @@
     </header>
 
     <main class="section">
-      <div class="container demo-layout">
-        <aside class="demo-sidebar card">
-          <h3 data-i18n="heroCardTitle">Workflow</h3>
-          <a class="btn" href="/create" data-i18n="heroCreate">Create survey</a>
-          <a class="btn btn--ghost" href="/guide" data-i18n="heroGuide">Open guide</a>
-          <ul class="demo-list">
-            <li data-i18n="flow1">1. Build survey from scratch or template</li>
-            <li data-i18n="flow2">2. Publish and share public link</li>
-            <li data-i18n="flow3">3. Respondents complete multi-page form</li>
-            <li data-i18n="flow4">4. Open one-click analysis in cabinet</li>
-          </ul>
-        </aside>
+      <div class="container landing-stack">
+        <section class="card landing-block">
+          <p class="eyebrow landing-pill" data-i18n="heroEyebrow">SMART SURVEYS FOR EDUCATION AND BUSINESS</p>
+          <h1 data-i18n="heroTitle">Asking</h1>
+          <p class="lead" data-i18n="heroLead">Платформа для создания анкет, опросов и голосований по ссылке.</p>
+        </section>
 
-        <section class="demo-main">
-          <p class="eyebrow landing-pill" data-i18n="heroEyebrow">SURVEYS FOR EDUCATION AND BUSINESS</p>
-          <h1 data-i18n="heroTitle">Create a survey in minutes. Share one link. Track results live.</h1>
-          <p class="lead" data-i18n="heroLead">
-            Build questionnaires, polls, and voting pages. Send them by link and get clean analytics with CSV/XLSX export.
-          </p>
+        <section class="card landing-block">
+          <h2 data-i18n="functionsTitle">Функции сайта</h2>
           <div class="landing-kpis landing-kpis--grid">
-            <div class="landing-kpi"><strong>12+</strong><span data-i18n="kpi1">professional templates</span></div>
-            <div class="landing-kpi"><strong>1 click</strong><span data-i18n="kpi2">analysis and exports</span></div>
-            <div class="landing-kpi"><strong>3 langs</strong><span data-i18n="kpi3">RU / EN / KZ interface</span></div>
+            <div class="landing-kpi"><strong>1</strong><span data-i18n="feature1">Конструктор анкет и голосований</span></div>
+            <div class="landing-kpi"><strong>2</strong><span data-i18n="feature2">Отправка анкеты по публичной ссылке</span></div>
+            <div class="landing-kpi"><strong>3</strong><span data-i18n="feature3">Аналитика, CSV и XLSX экспорт</span></div>
           </div>
-          <div class="demo-cards">
-            <article class="card">
-              <h3 data-i18n="navCabinet">Cabinet</h3>
-              <p data-i18n="heroLead">Build questionnaires, polls, and voting pages. Send them by link and get clean analytics with CSV/XLSX export.</p>
-              <a class="btn btn--outline" href="/cabinet" data-i18n="navCabinet">Cabinet</a>
-            </article>
-            <article class="card">
-              <h3 data-i18n="navCreate">Create</h3>
-              <p data-i18n="flow3">3. Respondents complete multi-page form</p>
-              <a class="btn btn--outline" href="/create" data-i18n="heroCreate">Create survey</a>
-            </article>
+        </section>
+
+        <section class="card landing-block">
+          <h2 data-i18n="aboutTitle">О сайте</h2>
+          <p class="lead" data-i18n="aboutLead">
+            Asking помогает быстро собирать мнения и оценки: от обратной связи по мероприятиям до внутренних анкет в колледже, школе или компании.
+          </p>
+        </section>
+
+        <section class="card landing-block">
+          <h2 data-i18n="guideTitle">Мини-гайд</h2>
+          <ol class="mini-guide">
+            <li data-i18n="guide1">Зарегистрируйтесь и войдите в аккаунт.</li>
+            <li data-i18n="guide2">Создайте анкету в конструкторе.</li>
+            <li data-i18n="guide3">Скопируйте ссылку и отправьте участникам.</li>
+            <li data-i18n="guide4">Смотрите результаты и анализ в кабинете.</li>
+          </ol>
+          <a class="btn" href="/create" data-i18n="heroCreate">Создать анкету</a>
+        </section>
+
+        <section class="card landing-block">
+          <h2 data-i18n="contactsTitle">Связь</h2>
+          <div class="recent-list">
+            <div class="recent-item"><strong data-i18n="contactNameLabel">Имя</strong><span data-i18n="contactName">Автор Asking</span></div>
+            <div class="recent-item"><strong data-i18n="contactPhoneLabel">Номер</strong><span data-i18n="contactPhone">по запросу</span></div>
+            <div class="recent-item">
+              <strong data-i18n="contactTgLabel">Telegram</strong>
+              <a href="https://t.me/salamronin97" target="_blank" rel="noopener noreferrer">@salamronin97</a>
+            </div>
+            <div class="recent-item">
+              <strong data-i18n="contactMailLabel">Gmail</strong>
+              <a href="mailto:arabrgdauni@gmail.com">arabrgdauni@gmail.com</a>
+            </div>
           </div>
         </section>
       </div>
@@ -83,19 +95,29 @@
           navAuthor: "Author",
           navCabinet: "Cabinet",
           navSignIn: "Sign in",
-          heroEyebrow: "SURVEYS FOR EDUCATION AND BUSINESS",
-          heroTitle: "Create a survey in minutes. Share one link. Track results live.",
-          heroLead: "Build questionnaires, polls, and voting pages. Send them by link and get clean analytics with CSV/XLSX export.",
+          heroEyebrow: "SMART SURVEYS FOR EDUCATION AND BUSINESS",
+          heroTitle: "Asking",
+          heroLead: "Platform for creating surveys, forms and voting by link.",
           heroCreate: "Create survey",
           heroGuide: "Open guide",
-          heroCardTitle: "Workflow",
-          flow1: "1. Build survey from scratch or template",
-          flow2: "2. Publish and share public link",
-          flow3: "3. Respondents complete multi-page form",
-          flow4: "4. Open one-click analysis in cabinet",
-          kpi1: "professional templates",
-          kpi2: "analysis and exports",
-          kpi3: "RU / EN / KZ interface"
+          functionsTitle: "Platform features",
+          feature1: "Survey and voting builder",
+          feature2: "Shareable public survey links",
+          feature3: "Analytics and CSV/XLSX export",
+          aboutTitle: "About",
+          aboutLead: "Asking helps you collect feedback fast for education, events and teams.",
+          guideTitle: "Mini guide",
+          guide1: "Sign up and log in.",
+          guide2: "Create your survey in the builder.",
+          guide3: "Copy public link and send it to participants.",
+          guide4: "Open results and analytics in your cabinet.",
+          contactsTitle: "Contacts",
+          contactNameLabel: "Name",
+          contactName: "Asking author",
+          contactPhoneLabel: "Phone",
+          contactPhone: "on request",
+          contactTgLabel: "Telegram",
+          contactMailLabel: "Gmail"
         },
         ru: {
           navCreate: "Создать",
@@ -103,19 +125,29 @@
           navAuthor: "Автор",
           navCabinet: "Кабинет",
           navSignIn: "Войти",
-          heroEyebrow: "ОПРОСЫ ДЛЯ ОБРАЗОВАНИЯ И БИЗНЕСА",
-          heroTitle: "Создайте анкету за минуты. Отправьте одну ссылку. Получайте результаты в реальном времени.",
-          heroLead: "Делайте анкеты, опросы и голосования. Рассылайте ссылку и получайте аккуратную аналитику с экспортом CSV/XLSX.",
+          heroEyebrow: "УМНЫЕ ОПРОСЫ ДЛЯ ОБРАЗОВАНИЯ И БИЗНЕСА",
+          heroTitle: "Asking",
+          heroLead: "Платформа для создания анкет, опросов и голосований по ссылке.",
           heroCreate: "Создать анкету",
           heroGuide: "Открыть гайд",
-          heroCardTitle: "Сценарий работы",
-          flow1: "1. Сборка анкеты с нуля или по шаблону",
-          flow2: "2. Публикация и отправка публичной ссылки",
-          flow3: "3. Респонденты проходят опрос по страницам",
-          flow4: "4. Анализ результатов в кабинете в 1 клик",
-          kpi1: "профессиональных шаблонов",
-          kpi2: "до анализа и выгрузки",
-          kpi3: "RU / EN / KZ интерфейс"
+          functionsTitle: "Функции сайта",
+          feature1: "Конструктор анкет и голосований",
+          feature2: "Отправка анкеты по публичной ссылке",
+          feature3: "Аналитика, CSV и XLSX экспорт",
+          aboutTitle: "О сайте",
+          aboutLead: "Asking помогает быстро собирать мнения и оценки: от обратной связи по мероприятиям до внутренних анкет в колледже, школе или компании.",
+          guideTitle: "Мини-гайд",
+          guide1: "Зарегистрируйтесь и войдите в аккаунт.",
+          guide2: "Создайте анкету в конструкторе.",
+          guide3: "Скопируйте ссылку и отправьте участникам.",
+          guide4: "Смотрите результаты и анализ в кабинете.",
+          contactsTitle: "Связь",
+          contactNameLabel: "Имя",
+          contactName: "Автор Asking",
+          contactPhoneLabel: "Номер",
+          contactPhone: "по запросу",
+          contactTgLabel: "Telegram",
+          contactMailLabel: "Gmail"
         },
         kz: {
           navCreate: "Құру",
@@ -124,18 +156,28 @@
           navCabinet: "Кабинет",
           navSignIn: "Кіру",
           heroEyebrow: "БІЛІМ МЕН БИЗНЕСКЕ АРНАЛҒАН САУАЛНАМАЛАР",
-          heroTitle: "Сауалнаманы бірнеше минутта жасаңыз. Бір сілтеме бөлісіңіз. Нәтижені бірден көріңіз.",
-          heroLead: "Анкета, сауалнама және дауыс беру беттерін жасаңыз. Сілтеме таратып, таза аналитика мен CSV/XLSX экспорт алыңыз.",
+          heroTitle: "Asking",
+          heroLead: "Сілтеме арқылы анкета, сауалнама және дауыс беру жасау платформасы.",
           heroCreate: "Сауалнама құру",
           heroGuide: "Нұсқаулық ашу",
-          heroCardTitle: "Жұмыс ағымы",
-          flow1: "1. Үлгімен немесе нөлден жасау",
-          flow2: "2. Жариялау және сілтеме тарату",
-          flow3: "3. Респонденттер опросты бет-бетпен өтеді",
-          flow4: "4. Кабинетте 1 рет басып анализ алу",
-          kpi1: "кәсіби үлгі",
-          kpi2: "анализ және экспорт",
-          kpi3: "RU / EN / KZ интерфейс"
+          functionsTitle: "Сайт мүмкіндіктері",
+          feature1: "Сауалнама және дауыс беру конструкторы",
+          feature2: "Қоғамдық сілтемемен тарату",
+          feature3: "Аналитика және CSV/XLSX экспорт",
+          aboutTitle: "Сайт туралы",
+          aboutLead: "Asking білім мен бизнеске жылдам кері байланыс жинауға көмектеседі.",
+          guideTitle: "Қысқа нұсқаулық",
+          guide1: "Тіркеліп, аккаунтқа кіріңіз.",
+          guide2: "Конструкторда сауалнама жасаңыз.",
+          guide3: "Сілтемені көшіріп қатысушыларға жіберіңіз.",
+          guide4: "Кабинеттен нәтижелер мен анализді ашыңыз.",
+          contactsTitle: "Байланыс",
+          contactNameLabel: "Аты",
+          contactName: "Asking авторы",
+          contactPhoneLabel: "Нөмір",
+          contactPhone: "сұраныс бойынша",
+          contactTgLabel: "Telegram",
+          contactMailLabel: "Gmail"
         }
       };
 
@@ -175,3 +217,4 @@
     </script>
   </body>
 </html>
+

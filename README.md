@@ -1,4 +1,4 @@
-﻿# Asking Pro
+﻿# Asking
 
 Профессиональная full-stack платформа для создания интерактивных анкет и голосований пользователей.
 
@@ -86,3 +86,4 @@ npm run dev
 - `POST /api/surveys/:id/respond`
 - `GET /api/surveys/:id/results`
 - `GET /api/surveys/:id/export.csv`
+

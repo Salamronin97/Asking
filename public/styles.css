@@ -264,6 +264,22 @@ h1 {
   gap: 16px;
 }
 
+.landing-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.landing-block h2 {
+  margin: 0 0 10px;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.mini-guide {
+  margin: 0 0 14px;
+  padding-left: 20px;
+  color: var(--muted);
+}
+
 .demo-layout {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);

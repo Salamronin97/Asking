@@ -622,9 +622,9 @@ app.post("/api/auth/resend-verification", rateLimitAuth("resend"), antiBotPayloa
     const verifyLink = `${baseUrl(req)}/auth?verify=${token}`;
     await sendEmail({
       to: user.email,
-      subject: "Confirm your Asking Pro email",
+      subject: "Confirm your Asking email",
       text: `Confirm your email: ${verifyLink}`,
-      html: `<p>Confirm your email for Asking Pro:</p><p><a href="${verifyLink}">${verifyLink}</a></p>`
+      html: `<p>Confirm your email for Asking:</p><p><a href="${verifyLink}">${verifyLink}</a></p>`
     });
     res.json({ ok: true });
   } catch (error) {
@@ -645,9 +645,9 @@ app.post("/api/auth/forgot-password", rateLimitAuth("forgot"), antiBotPayload, a
     const resetLink = `${baseUrl(req)}/auth?reset=${token}`;
     await sendEmail({
       to: user.email,
-      subject: "Reset your Asking Pro password",
+      subject: "Reset your Asking password",
       text: `Reset your password: ${resetLink}`,
-      html: `<p>Reset your Asking Pro password:</p><p><a href="${resetLink}">${resetLink}</a></p>`
+      html: `<p>Reset your Asking password:</p><p><a href="${resetLink}">${resetLink}</a></p>`
     });
     res.json({ ok: true });
   } catch (error) {
@@ -2060,3 +2060,4 @@ init()
     console.error("Failed to initialize application", error);
     process.exit(1);
   });
+
