@@ -127,69 +127,75 @@
         <div class="constructor-head-sm">
           <h3>Настройки вопроса</h3>
         </div>
-
-        <div id="emptyEditor" class="constructor-empty-editor">
-          <p>Выберите вопрос в центре, чтобы изменить его параметры.</p>
+        <div class="constructor-settings-tabs" role="tablist" aria-label="Секции настроек">
+          <button id="settingsTabQuestion" class="constructor-settings-tab is-active" type="button" role="tab" aria-selected="true">Вопрос</button>
+          <button id="settingsTabDesign" class="constructor-settings-tab" type="button" role="tab" aria-selected="false">Дизайн</button>
         </div>
 
-        <div id="questionEditor" class="constructor-editor-form" hidden>
-          <label class="form-row">
-            <span>Текст вопроса</span>
-            <input id="questionTitleInput" type="text" />
-          </label>
+        <div id="settingsQuestionPane">
+          <div id="emptyEditor" class="constructor-empty-editor">
+            <p>Выберите вопрос в центре, чтобы изменить его параметры.</p>
+          </div>
 
-          <label class="form-row">
-            <span>Описание / подсказка</span>
-            <textarea id="questionDescriptionInput" placeholder="Дополнительный текст под вопросом"></textarea>
-          </label>
-
-          <label class="inline-check">
-            <input id="questionRequiredInput" type="checkbox" />
-            <span>Обязательный вопрос</span>
-          </label>
-
-          <label class="form-row">
-            <span>Тип вопроса</span>
-            <select id="questionTypeInput">
-              <option value="text">Текст</option>
-              <option value="single">Один выбор</option>
-              <option value="multiple">Множественный</option>
-              <option value="rating">Рейтинг</option>
-              <option value="select">Список</option>
-            </select>
-          </label>
-
-          <section id="ratingEditor" class="constructor-rating" hidden>
-            <h4>Шкала рейтинга</h4>
-            <div class="constructor-rating-row">
-              <label class="form-row">
-                <span>Подпись 1</span>
-                <input id="ratingLabelMin" type="text" placeholder="Например: Плохо" />
-              </label>
-              <label class="form-row">
-                <span>Подпись 5</span>
-                <input id="ratingLabelMax" type="text" placeholder="Например: Отлично" />
-              </label>
-            </div>
-          </section>
-
-          <section id="optionsEditor" class="constructor-options" hidden>
-            <h4>Варианты ответа</h4>
-            <label class="inline-check">
-              <input id="questionLogicEnabledInput" type="checkbox" />
-              <span>Логика переходов по ответам</span>
+          <div id="questionEditor" class="constructor-editor-form" hidden>
+            <label class="form-row">
+              <span>Текст вопроса</span>
+              <input id="questionTitleInput" type="text" />
             </label>
-            <p id="questionLogicHint" class="constructor-logic-hint" hidden>
-              Выберите, на какую страницу перейдёт участник после каждого варианта.
-            </p>
-            <div id="optionsList" class="constructor-options-list"></div>
-            <button id="addOptionBtn" class="btn btn--outline btn--xs" type="button">+ Добавить вариант</button>
-          </section>
 
-          <button id="removeQuestionBtn" class="btn btn--danger" type="button">Удалить вопрос</button>
+            <label class="form-row">
+              <span>Описание / подсказка</span>
+              <textarea id="questionDescriptionInput" placeholder="Дополнительный текст под вопросом"></textarea>
+            </label>
+
+            <label class="inline-check">
+              <input id="questionRequiredInput" type="checkbox" />
+              <span>Обязательный вопрос</span>
+            </label>
+
+            <label class="form-row">
+              <span>Тип вопроса</span>
+              <select id="questionTypeInput">
+                <option value="text">Текст</option>
+                <option value="single">Один выбор</option>
+                <option value="multiple">Множественный</option>
+                <option value="rating">Рейтинг</option>
+                <option value="select">Список</option>
+              </select>
+            </label>
+
+            <section id="ratingEditor" class="constructor-rating" hidden>
+              <h4>Шкала рейтинга</h4>
+              <div class="constructor-rating-row">
+                <label class="form-row">
+                  <span>Подпись 1</span>
+                  <input id="ratingLabelMin" type="text" placeholder="Например: Плохо" />
+                </label>
+                <label class="form-row">
+                  <span>Подпись 5</span>
+                  <input id="ratingLabelMax" type="text" placeholder="Например: Отлично" />
+                </label>
+              </div>
+            </section>
+
+            <section id="optionsEditor" class="constructor-options" hidden>
+              <h4>Варианты ответа</h4>
+              <label class="inline-check">
+                <input id="questionLogicEnabledInput" type="checkbox" />
+                <span>Логика переходов по ответам</span>
+              </label>
+              <p id="questionLogicHint" class="constructor-logic-hint" hidden>
+                Выберите, на какую страницу перейдёт участник после каждого варианта.
+              </p>
+              <div id="optionsList" class="constructor-options-list"></div>
+              <button id="addOptionBtn" class="btn btn--outline btn--xs" type="button">+ Добавить вариант</button>
+            </section>
+
+            <button id="removeQuestionBtn" class="btn btn--danger" type="button">Удалить вопрос</button>
+          </div>
         </div>
 
-        <section class="constructor-design card">
+        <section id="settingsDesignPane" class="constructor-design card" hidden>
           <div class="constructor-design__head">
             <h4>Дизайн страницы</h4>
             <button id="openThemePickerBtn" class="btn btn--ghost btn--xs" type="button">Выбрать тему</button>

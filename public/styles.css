@@ -3998,6 +3998,31 @@ body.modal-open {
   line-height: 1.2;
 }
 
+.constructor-settings-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+
+.constructor-settings-tab {
+  min-height: 32px;
+  border: 1px solid #dbe4f3;
+  border-radius: 10px;
+  background: #fff;
+  color: #475569;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.constructor-settings-tab.is-active {
+  border-color: #9fb4ff;
+  background: #eef3ff;
+  color: #1e40af;
+}
+
 .constructor-empty-editor p {
   color: #64748b;
 }

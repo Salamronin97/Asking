@@ -74,7 +74,8 @@
     templateSearch: "",
     previewTemplateKey: null,
     activeThemeId: "sea",
-    previewThemeId: "sea"
+    previewThemeId: "sea",
+    settingsPane: "question"
   };
 
   const refs = {};
@@ -82,6 +83,7 @@
   let saveTimer = null;
   let isSaving = false;
   const dragState = { questionId: null, fromPageId: null };
+  const historyState = { undoStack: [], redoStack: [], lastHash: "", isApplying: false, max: 60 };
   const isDev =
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1" ||
@@ -102,6 +104,7 @@
         await loadSurvey();
         renderAll();
         updateDraftBanner();
+        recordHistorySnapshot(true);
         setSaveState("saved", "Сохранено");
         return;
       }
@@ -217,7 +220,11 @@
       "applyTemplateBtn",
       "pagesPanel",
       "questionsPanel",
-      "settingsPanel"
+      "settingsPanel",
+      "settingsTabQuestion",
+      "settingsTabDesign",
+      "settingsQuestionPane",
+      "settingsDesignPane"
       ,
       "openThemePickerBtn",
       "activeThemeBadge",
@@ -272,7 +279,12 @@
 
     refs.addQuestionBtn?.addEventListener("click", openQuestionTypeModal);
     refs.openTemplateCatalogBtn?.addEventListener("click", openTemplateCatalogModal);
-    refs.openThemePickerBtn?.addEventListener("click", openThemePickerModal);
+    refs.openThemePickerBtn?.addEventListener("click", () => {
+      setSettingsPane("design");
+      openThemePickerModal();
+    });
+    refs.settingsTabQuestion?.addEventListener("click", () => setSettingsPane("question"));
+    refs.settingsTabDesign?.addEventListener("click", () => setSettingsPane("design"));
     refs.entryCustomBtn?.addEventListener("click", () => {
       startNewBlankSurvey().catch((error) => {
         console.error(error);
@@ -531,12 +543,50 @@
     bindModal(refs.themePickerOverlay, refs.closeThemePickerBtn, closeThemePickerModal);
 
     window.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          redoChange();
+        } else {
+          undoChange();
+        }
+        return;
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        redoChange();
+        return;
+      }
+
       if (event.key === "Escape") {
         closeAllModals();
       }
+
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
         saveRemote().then(() => toast("Сохранено")).catch((e) => setStatus(e.message || "Ошибка сохранения", true));
+        return;
+      }
+
+      if (isTextEditingTarget(event.target)) return;
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d") {
+        if (!state.selectedQuestionId) return;
+        event.preventDefault();
+        duplicateQuestion(state.selectedQuestionId);
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        event.preventDefault();
+        addQuestion("text");
+        return;
+      }
+
+      if ((event.key === "Delete" || event.key === "Backspace") && !event.ctrlKey && !event.metaKey) {
+        if (!state.selectedQuestionId) return;
+        event.preventDefault();
+        removeQuestion(state.selectedQuestionId);
       }
     });
 
@@ -622,6 +672,7 @@
     renderPages();
     renderQuestions();
     renderEditor();
+    setSettingsPane(state.settingsPane);
     updateDesignEditor();
     renderSurveyPreview();
 
@@ -875,6 +926,7 @@
         }
 
         state.selectedQuestionId = question.id;
+        setSettingsPane("question");
         renderEditor();
         highlightActiveQuestion();
         focusPanelOnMobile("settings");
@@ -1214,6 +1266,7 @@
     await loadSurvey();
     renderAll();
     updateDraftBanner();
+    recordHistorySnapshot(true);
     setSaveState("saved", "Сохранено");
   }
 
@@ -1494,6 +1547,7 @@
 
     page.questions.push(question);
     state.selectedQuestionId = question.id;
+    setSettingsPane("question");
 
     renderAll();
     markDirty("Вопрос добавлен");
@@ -1556,6 +1610,7 @@
     saveDraft();
     renderSurveyPreview();
     updateBuilderMeta();
+    if (!historyState.isApplying) recordHistorySnapshot();
 
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
@@ -1649,6 +1704,7 @@
       state.selectedQuestionId = parsed.selectedQuestionId || getSelectedPage()?.questions[0]?.id || null;
 
       renderAll();
+      recordHistorySnapshot(true);
       setStatus("Черновик восстановлен");
       toast("Черновик восстановлен");
       setSaveState("saving", "Сохранение...");
@@ -1676,6 +1732,7 @@
     state.selectedQuestionId = null;
 
     renderAll();
+    recordHistorySnapshot(true);
     updateDraftBanner();
     setStatus("Черновик сброшен");
     toast("Черновик сброшен");
@@ -1733,6 +1790,17 @@
     setMobilePanel(panel);
   }
 
+  function setSettingsPane(pane) {
+    state.settingsPane = pane === "design" ? "design" : "question";
+    const isQuestion = state.settingsPane === "question";
+    refs.settingsTabQuestion?.classList.toggle("is-active", isQuestion);
+    refs.settingsTabQuestion?.setAttribute("aria-selected", isQuestion ? "true" : "false");
+    refs.settingsTabDesign?.classList.toggle("is-active", !isQuestion);
+    refs.settingsTabDesign?.setAttribute("aria-selected", !isQuestion ? "true" : "false");
+    if (refs.settingsQuestionPane) refs.settingsQuestionPane.hidden = !isQuestion;
+    if (refs.settingsDesignPane) refs.settingsDesignPane.hidden = isQuestion;
+  }
+
   function normalizePages(pageRows, questionRows) {
     const pageMap = new Map();
 
@@ -1775,6 +1843,86 @@
     });
 
     return Array.from(pageMap.values());
+  }
+
+  function buildHistorySnapshot() {
+    return {
+      survey: deepClone(state.survey),
+      selectedPageId: state.selectedPageId,
+      selectedQuestionId: state.selectedQuestionId,
+      activeThemeId: state.activeThemeId,
+      previewThemeId: state.previewThemeId,
+      settingsPane: state.settingsPane
+    };
+  }
+
+  function recordHistorySnapshot(reset = false) {
+    const snapshot = buildHistorySnapshot();
+    const hash = JSON.stringify(snapshot);
+    if (!reset && hash === historyState.lastHash) return;
+
+    if (reset) {
+      historyState.undoStack = [snapshot];
+      historyState.redoStack = [];
+      historyState.lastHash = hash;
+      return;
+    }
+
+    historyState.undoStack.push(snapshot);
+    if (historyState.undoStack.length > historyState.max) historyState.undoStack.shift();
+    historyState.redoStack = [];
+    historyState.lastHash = hash;
+  }
+
+  function applyHistorySnapshot(snapshot, message) {
+    if (!snapshot) return;
+    historyState.isApplying = true;
+    try {
+      state.survey = deepClone(snapshot.survey);
+      state.selectedPageId = snapshot.selectedPageId || state.survey.pages[0]?.id || null;
+      state.selectedQuestionId = snapshot.selectedQuestionId || null;
+      state.activeThemeId = snapshot.activeThemeId || state.activeThemeId;
+      state.previewThemeId = snapshot.previewThemeId || state.previewThemeId;
+      state.settingsPane = snapshot.settingsPane || state.settingsPane;
+      renderAll();
+      saveDraft();
+      setSaveState("saving", "Сохранение...");
+      if (message) setStatus(message);
+    } finally {
+      historyState.isApplying = false;
+    }
+
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveRemote().catch((error) => {
+        console.error(error);
+        setSaveState("error", "Не сохранено");
+        setStatus(error.message || "Ошибка сохранения", true);
+      });
+    }, 120);
+  }
+
+  function undoChange() {
+    if (historyState.undoStack.length <= 1) {
+      setStatus("Больше нечего отменять");
+      return;
+    }
+    const current = historyState.undoStack.pop();
+    historyState.redoStack.push(current);
+    const previous = historyState.undoStack[historyState.undoStack.length - 1];
+    historyState.lastHash = JSON.stringify(previous);
+    applyHistorySnapshot(previous, "Действие отменено");
+  }
+
+  function redoChange() {
+    if (!historyState.redoStack.length) {
+      setStatus("Больше нечего повторять");
+      return;
+    }
+    const next = historyState.redoStack.pop();
+    historyState.undoStack.push(next);
+    historyState.lastHash = JSON.stringify(next);
+    applyHistorySnapshot(next, "Действие повторено");
   }
 
   function normalizeDraft(survey) {
@@ -2078,6 +2226,11 @@ function createOption(text = "") {
   function deepClone(value) {
     if (typeof structuredClone === "function") return structuredClone(value);
     return JSON.parse(JSON.stringify(value));
+  }
+
+  function isTextEditingTarget(target) {
+    if (!target || !(target instanceof Element)) return false;
+    return Boolean(target.closest("input, textarea, [contenteditable='true'], [contenteditable='']"));
   }
 
   function must(element, name) {
