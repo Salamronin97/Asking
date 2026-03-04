@@ -1,19 +1,40 @@
 ﻿const crypto = require("crypto");
+const fs = require("fs");
 const express = require("express");
 const path = require("path");
+const multer = require("multer");
 const nodemailer = require("nodemailer");
 const XLSX = require("xlsx");
 const { OAuth2Client } = require("google-auth-library");
 const { init, run, all, get, DB_PATH } = require("./db");
+const QUICK_TEMPLATES_RU = require("./public/templates");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: "2mb" }));
-app.use(express.static(path.join(__dirname, "public")));
+app.use(
+  express.static(path.join(__dirname, "public"), {
+    setHeaders(res, filePath) {
+      if (filePath.endsWith(".html")) {
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+      } else if (filePath.endsWith(".css")) {
+        res.setHeader("Content-Type", "text/css; charset=utf-8");
+      } else if (filePath.endsWith(".js")) {
+        res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+      }
+    }
+  })
+);
 app.use(attachAuthUser);
 
-const QUESTION_TYPES = new Set(["text", "single", "multi", "rating"]);
+function sendHtmlUtf8(res, filePath) {
+  res.type("html");
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.sendFile(filePath);
+}
+
+const QUESTION_TYPES = new Set(["text", "single", "multi", "rating", "dropdown"]);
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const SESSION_COOKIE = "asking_sid";
 const SESSION_TTL_DAYS = 30;
@@ -26,6 +47,31 @@ const SMTP_USER = process.env.SMTP_USER || "";
 const SMTP_PASS = process.env.SMTP_PASS || "";
 const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || "noreply@asking.local";
 const GOOGLE_CLIENT = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
+const UPLOAD_DIR = path.join(__dirname, "public", "uploads");
+const RESPONSE_HASH_SALT = process.env.RESPONSE_HASH_SALT || crypto.randomBytes(24).toString("hex");
+
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination(_req, _file, cb) {
+      cb(null, UPLOAD_DIR);
+    },
+    filename(_req, file, cb) {
+      const ext = path.extname(file.originalname || "").toLowerCase();
+      const safeExt = ext && ext.length <= 8 ? ext : "";
+      cb(null, `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${safeExt}`);
+    }
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter(_req, file, cb) {
+    if (!String(file.mimetype || "").startsWith("image/")) {
+      cb(new Error("Only image files are allowed"));
+      return;
+    }
+    cb(null, true);
+  }
+});
 const AUTH_RATE_BUCKETS = new Map();
 const AUTH_LIMITS = {
   login: { limit: 12, windowMs: 15 * 60 * 1000 },
@@ -50,7 +96,7 @@ function safeJsonParse(value, fallback) {
 }
 
 function normalizeStatus(status) {
-  return ["published", "archived"].includes(status) ? status : null;
+  return ["draft", "published", "archived"].includes(status) ? status : null;
 }
 
 function computeIsActive(survey) {
@@ -66,6 +112,12 @@ function parseBool(value, fallback = false) {
   if (value === "1" || value === "true") return true;
   if (value === "0" || value === "false") return false;
   return fallback;
+}
+
+function getClientIp(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "";
+  return String(raw).split(",")[0].trim();
 }
 
 function baseUrl(req) {
@@ -216,38 +268,201 @@ function verifyPassword(password, stored) {
   return crypto.timingSafeEqual(left, right);
 }
 
-async function createSession(userId) {
+async function createSession(userId, req = null) {
   const token = crypto.randomBytes(48).toString("hex");
   const createdAt = nowIso();
   const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const userAgent = req?.headers?.["user-agent"] ? String(req.headers["user-agent"]).slice(0, 400) : null;
+  const ipAddress = req ? getClientIp(req).slice(0, 120) : null;
   await run(
-    "INSERT INTO auth_sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
-    [token, userId, createdAt, expiresAt]
+    "INSERT INTO auth_sessions (token, user_id, user_agent, ip_address, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
+    [token, userId, userAgent, ipAddress, createdAt, expiresAt]
   );
   return { token, expiresAt };
 }
 
 function hashParticipant(req) {
-  const forwarded = req.headers["x-forwarded-for"];
-  const ip = (Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "").split(",")[0].trim();
-  const userAgent = req.headers["user-agent"] || "";
-  return crypto.createHash("sha256").update(`${ip}|${userAgent}`).digest("hex");
+  const ip = getClientIp(req);
+  const userAgent = String(req.headers["user-agent"] || "");
+  const day = new Date().toISOString().slice(0, 10);
+  return crypto
+    .createHash("sha256")
+    .update(`${userAgent}|${ip}|${day}|${RESPONSE_HASH_SALT}`)
+    .digest("hex");
 }
 
 function normalizeQuestion(question, index) {
-  const text = String(question?.text || "").trim();
+  const text = String(question?.text || question?.title || "").trim();
   const type = String(question?.type || "").trim();
+  const logicEnabled = Boolean(question?.logicEnabled || question?.logic_enabled);
   const rawOptions = Array.isArray(question?.options) ? question.options : [];
-  const options = rawOptions.map((item) => String(item).trim()).filter(Boolean);
+  const options = rawOptions
+    .map((item) => {
+      if (typeof item === "string") {
+        const cleaned = item.trim();
+        return cleaned ? { text: cleaned, imageUrl: "", jumpToPageId: "", jumpToPageIndex: null } : null;
+      }
+      if (item && typeof item === "object") {
+        const cleanedText = String(item.text || "").trim();
+        const imageUrl = String(item.imageUrl || "").trim();
+        const jumpToPageId = String(item.jumpToPageId || item.targetPageId || "").trim();
+        const jumpToPageIndexRaw = Number(item.jumpToPageIndex);
+        const jumpToPageIndex = Number.isInteger(jumpToPageIndexRaw) ? jumpToPageIndexRaw : null;
+        return cleanedText ? { text: cleanedText, imageUrl, jumpToPageId, jumpToPageIndex } : null;
+      }
+      return null;
+    })
+    .filter(Boolean);
   const required = question?.required === false ? 0 : 1;
+  const helpText = String(question?.helpText || question?.hint || question?.description || "").trim();
 
   return {
     text,
+    helpText,
     type,
+    logicEnabled,
     options,
     required,
     order: Number.isFinite(question?.order) ? question.order : index
   };
+}
+
+async function syncQuestionOptions(questionId, options) {
+  await run("DELETE FROM options WHERE question_id = ?", [questionId]);
+  for (let i = 0; i < options.length; i += 1) {
+    const entry = options[i];
+    const text = String(entry?.text || "").trim();
+    if (!text) continue;
+    await run("INSERT INTO options (question_id, text, order_index) VALUES (?, ?, ?)", [questionId, text, i]);
+  }
+  await run("UPDATE questions SET options_json = ? WHERE id = ?", [JSON.stringify(options), questionId]);
+}
+
+async function getSurveyPages(surveyId) {
+  return all(
+    `SELECT id, survey_id, title, order_index
+     FROM pages
+     WHERE survey_id = ?
+     ORDER BY order_index ASC, id ASC`,
+    [surveyId]
+  );
+}
+
+async function getSurveyQuestionsDetailed(surveyId) {
+  const questions = await all(
+    `SELECT q.id, q.survey_id, q.page_id, q.question_text, q.help_text, q.type, q.options_json, q.required, q.question_order
+     FROM questions q
+     WHERE q.survey_id = ?
+     ORDER BY q.question_order ASC, q.id ASC`,
+    [surveyId]
+  );
+  if (!questions.length) return [];
+  const questionIds = questions.map((item) => item.id);
+  const placeholders = questionIds.map(() => "?").join(",");
+  const [optionRows, mediaRows] = await Promise.all([
+    all(
+      `SELECT question_id, text, order_index
+       FROM options
+       WHERE question_id IN (${placeholders})
+       ORDER BY order_index ASC, id ASC`,
+      questionIds
+    ),
+    all(
+      `SELECT question_id, file_path, original_name, mime, size
+       FROM question_media
+       WHERE question_id IN (${placeholders})
+       ORDER BY id ASC`,
+      questionIds
+    )
+  ]);
+
+  const optionsByQuestion = new Map();
+  optionRows.forEach((row) => {
+    const list = optionsByQuestion.get(row.question_id) || [];
+    list.push({ text: row.text, imageUrl: "", jumpToPageId: "", jumpToPageIndex: null });
+    optionsByQuestion.set(row.question_id, list);
+  });
+
+  const mediaByQuestion = new Map();
+  mediaRows.forEach((row) => {
+    const list = mediaByQuestion.get(row.question_id) || [];
+    list.push({
+      path: row.file_path,
+      originalName: row.original_name || "",
+      mime: row.mime || "",
+      size: Number(row.size || 0)
+    });
+    mediaByQuestion.set(row.question_id, list);
+  });
+
+  return questions.map((q) => {
+    const parsedJsonOptions = safeJsonParse(q.options_json, []);
+    const normalizedJsonOptions = Array.isArray(parsedJsonOptions)
+      ? parsedJsonOptions
+          .map((item) => {
+            if (typeof item === "string") {
+              const cleaned = item.trim();
+              return cleaned ? { text: cleaned, imageUrl: "", jumpToPageId: "", jumpToPageIndex: null } : null;
+            }
+            if (item && typeof item === "object") {
+              const cleanedText = String(item.text || "").trim();
+              const jumpToPageIndexRaw = Number(item.jumpToPageIndex);
+              const jumpToPageIndex = Number.isInteger(jumpToPageIndexRaw) ? jumpToPageIndexRaw : null;
+              return cleanedText
+                ? {
+                    text: cleanedText,
+                    imageUrl: String(item.imageUrl || "").trim(),
+                    jumpToPageId: String(item.jumpToPageId || item.targetPageId || "").trim(),
+                    jumpToPageIndex
+                  }
+                : null;
+            }
+            return null;
+          })
+          .filter(Boolean)
+      : [];
+    const options = normalizedJsonOptions.length
+      ? normalizedJsonOptions
+      : optionsByQuestion.has(q.id)
+        ? optionsByQuestion.get(q.id)
+        : [];
+    return {
+      id: q.id,
+      surveyId: q.survey_id,
+      pageId: q.page_id,
+      text: q.question_text,
+      helpText: q.help_text || "",
+      type: q.type,
+      logicEnabled: Boolean(
+        safeJsonParse(q.options_json, [])?.some?.(
+          (item) => item && typeof item === "object" && (item.jumpToPageId || Number.isInteger(Number(item.jumpToPageIndex)))
+        )
+      ),
+      options: Array.isArray(options) ? options : [],
+      required: q.required === 1,
+      order: q.question_order,
+      media: mediaByQuestion.get(q.id) || []
+    };
+  });
+}
+
+async function ensureSurveyPage(surveyId, title = "Страница 1") {
+  const first = await get(
+    `SELECT id, title
+     FROM pages
+     WHERE survey_id = ?
+     ORDER BY order_index ASC, id ASC
+     LIMIT 1`,
+    [surveyId]
+  );
+  if (first) return first;
+  const stamp = nowIso();
+  const created = await run(
+    `INSERT INTO pages (survey_id, title, order_index, created_at, updated_at)
+     VALUES (?, ?, 0, ?, ?)`,
+    [surveyId, title, stamp, stamp]
+  );
+  return { id: created.lastID, title };
 }
 
 function validateSurveyPayload(payload) {
@@ -261,16 +476,35 @@ function validateSurveyPayload(payload) {
 
   if (title.length < 3) fields.push("title");
 
-  if (!Array.isArray(payload?.questions) || payload.questions.length === 0) {
-    fields.push("questions");
+  const incomingPages = Array.isArray(payload?.pages) ? payload.pages : [];
+  const fallbackQuestions = Array.isArray(payload?.questions) ? payload.questions : [];
+  const normalizedPages = [];
+  const questions = [];
+
+  if (incomingPages.length) {
+    incomingPages.forEach((page, pageIndex) => {
+      const pageTitle = String(page?.title || `Страница ${pageIndex + 1}`).trim() || `Страница ${pageIndex + 1}`;
+      const pageQuestionsRaw = Array.isArray(page?.questions) ? page.questions : [];
+      const pageQuestions = pageQuestionsRaw.map((question, idx) => normalizeQuestion(question, questions.length + idx));
+      normalizedPages.push({
+        title: pageTitle,
+        orderIndex: Number.isFinite(page?.orderIndex) ? Number(page.orderIndex) : pageIndex,
+        questions: pageQuestions
+      });
+      questions.push(...pageQuestions);
+    });
+  } else {
+    const normalizedQuestions = fallbackQuestions.map((question, idx) => normalizeQuestion(question, idx));
+    normalizedPages.push({ title: "Страница 1", orderIndex: 0, questions: normalizedQuestions });
+    questions.push(...normalizedQuestions);
   }
 
-  const questions = (payload?.questions || []).map((question, idx) => normalizeQuestion(question, idx));
+  if (!questions.length) fields.push("questions");
 
   questions.forEach((question, idx) => {
     if (question.text.length < 3) fields.push(`questions[${idx}].text`);
     if (!QUESTION_TYPES.has(question.type)) fields.push(`questions[${idx}].type`);
-    if ((question.type === "single" || question.type === "multi") && question.options.length < 2) {
+    if ((question.type === "single" || question.type === "multi" || question.type === "dropdown") && question.options.length < 2) {
       fields.push(`questions[${idx}].options`);
     }
   });
@@ -281,7 +515,7 @@ function validateSurveyPayload(payload) {
 
   return {
     fields,
-    payload: { title, description, audience, startsAt, endsAt, allowMultipleResponses, questions }
+    payload: { title, description, audience, startsAt, endsAt, allowMultipleResponses, questions, pages: normalizedPages }
   };
 }
 
@@ -304,7 +538,9 @@ function toPublicUser(row) {
     emailVerified: row.email_verified === 1,
     company: row.company || "",
     position: row.position || "",
-    locale: row.locale || "ru"
+    locale: row.locale || "ru",
+    theme: row.theme || "light",
+    dateFormat: row.date_format || "dd.mm.yyyy"
   };
 }
 
@@ -316,7 +552,7 @@ async function attachAuthUser(req, _res, next) {
     if (!token) return next();
 
     const session = await get(
-      `SELECT s.token, s.user_id, s.expires_at, u.id, u.name, u.email, u.email_verified, u.company, u.position, u.locale
+      `SELECT s.token, s.user_id, s.expires_at, u.id, u.name, u.email, u.email_verified, u.company, u.position, u.locale, u.theme, u.date_format
        FROM auth_sessions s
        JOIN users u ON u.id = s.user_id
        WHERE s.token = ?`,
@@ -439,27 +675,39 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.get("/auth", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "auth.html"));
+  sendHtmlUtf8(res, path.join(__dirname, "public", "auth.html"));
 });
 
 app.get("/create", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "create.html"));
+  sendHtmlUtf8(res, path.join(__dirname, "public", "create.html"));
 });
 
 app.get("/cabinet", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "cabinet.html"));
+  sendHtmlUtf8(res, path.join(__dirname, "public", "cabinet.html"));
 });
 
 app.get("/guide", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "guide.html"));
+  sendHtmlUtf8(res, path.join(__dirname, "public", "guide.html"));
 });
 
 app.get("/author", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "author.html"));
+  sendHtmlUtf8(res, path.join(__dirname, "public", "author.html"));
+});
+
+app.get("/account", (_req, res) => {
+  sendHtmlUtf8(res, path.join(__dirname, "public", "account.html"));
 });
 
 app.get("/survey/:id", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "survey.html"));
+  sendHtmlUtf8(res, path.join(__dirname, "public", "survey.html"));
+});
+
+app.get("/s/:surveyId", (_req, res) => {
+  sendHtmlUtf8(res, path.join(__dirname, "public", "survey.html"));
+});
+
+app.get("/survey/:id/settings", (_req, res) => {
+  sendHtmlUtf8(res, path.join(__dirname, "public", "survey-settings.html"));
 });
 
 app.get("/api/auth/google-config", (_req, res) => {
@@ -490,7 +738,7 @@ app.post("/api/auth/register", rateLimitAuth("register"), antiBotPayload, async 
       [name, email, hashPassword(password), createdAt, createdAt, "ru"]
     );
 
-    const session = await createSession(result.lastID);
+    const session = await createSession(result.lastID, req);
     setSessionCookie(req, res, session.token, session.expiresAt);
     res.status(201).json({
       user: {
@@ -522,7 +770,7 @@ app.post("/api/auth/login", rateLimitAuth("login"), antiBotPayload, async (req, 
     if (!user || !verifyPassword(password, user.password_hash)) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
-    const session = await createSession(user.id);
+    const session = await createSession(user.id, req);
     setSessionCookie(req, res, session.token, session.expiresAt);
     res.json({ user: toPublicUser(user) });
   } catch (error) {
@@ -568,7 +816,7 @@ app.post("/api/auth/google", async (req, res, next) => {
       }
     }
 
-    const session = await createSession(user.id);
+    const session = await createSession(user.id, req);
     setSessionCookie(req, res, session.token, session.expiresAt);
     res.json({ user: toPublicUser(user) });
   } catch (error) {
@@ -597,7 +845,7 @@ app.post("/api/auth/verify-email", rateLimitAuth("verify"), async (req, res, nex
     await run("UPDATE users SET email_verified = 1 WHERE id = ?", [row.user_id]);
     await run("DELETE FROM email_verification_tokens WHERE user_id = ?", [row.user_id]);
 
-    const session = await createSession(row.user_id);
+    const session = await createSession(row.user_id, req);
     setSessionCookie(req, res, session.token, session.expiresAt);
     res.json({
       ok: true,
@@ -679,7 +927,7 @@ app.post("/api/auth/reset-password", rateLimitAuth("reset"), antiBotPayload, asy
     const user = await get("SELECT id, name, email, email_verified, company, position, locale FROM users WHERE id = ?", [
       tokenRow.user_id
     ]);
-    const session = await createSession(tokenRow.user_id);
+    const session = await createSession(tokenRow.user_id, req);
     setSessionCookie(req, res, session.token, session.expiresAt);
     res.json({ ok: true, user: toPublicUser(user) });
   } catch (error) {
@@ -698,28 +946,34 @@ app.post("/api/auth/logout", async (req, res, next) => {
   }
 });
 
+function mapAccountProfile(profile) {
+  return {
+    id: profile.id,
+    displayName: profile.name || "",
+    name: profile.name || "",
+    email: profile.email,
+    emailVerified: profile.email_verified === 1,
+    company: profile.company || "",
+    position: profile.position || "",
+    locale: profile.locale || "ru",
+    theme: profile.theme || "light",
+    dateFormat: profile.date_format || "dd.mm.yyyy",
+    hasPassword: Boolean(profile.password_hash),
+    createdAt: profile.created_at || null,
+    updatedAt: profile.updated_at || null
+  };
+}
+
 app.get("/api/account/profile", requireAuth, async (req, res, next) => {
   try {
     const profile = await get(
-      `SELECT id, name, email, email_verified, company, position, locale, created_at, updated_at
+      `SELECT id, name, email, email_verified, company, position, locale, theme, date_format, password_hash, created_at, updated_at
        FROM users
        WHERE id = ?`,
       [req.user.id]
     );
     if (!profile) return res.status(404).json({ error: "User not found" });
-    res.json({
-      profile: {
-        id: profile.id,
-        name: profile.name || "",
-        email: profile.email,
-        emailVerified: profile.email_verified === 1,
-        company: profile.company || "",
-        position: profile.position || "",
-        locale: profile.locale || "ru",
-        createdAt: profile.created_at || null,
-        updatedAt: profile.updated_at || null
-      }
-    });
+    res.json({ profile: mapAccountProfile(profile) });
   } catch (error) {
     next(error);
   }
@@ -727,10 +981,16 @@ app.get("/api/account/profile", requireAuth, async (req, res, next) => {
 
 app.patch("/api/account/profile", requireAuth, antiBotPayload, async (req, res, next) => {
   try {
-    const name = String(req.body?.name || "").trim();
+    const name = String(req.body?.name || req.body?.displayName || "").trim();
     const company = String(req.body?.company || "").trim();
     const position = String(req.body?.position || "").trim();
     const locale = String(req.body?.locale || "ru")
+      .trim()
+      .toLowerCase();
+    const theme = String(req.body?.theme || "light")
+      .trim()
+      .toLowerCase();
+    const dateFormat = String(req.body?.dateFormat || req.body?.date_format || "dd.mm.yyyy")
       .trim()
       .toLowerCase();
 
@@ -740,36 +1000,83 @@ app.patch("/api/account/profile", requireAuth, antiBotPayload, async (req, res, 
     if (company.length > 120) return res.status(400).json({ error: "Company is too long" });
     if (position.length > 120) return res.status(400).json({ error: "Position is too long" });
     if (!["en", "ru", "kz"].includes(locale)) return res.status(400).json({ error: "Unsupported language" });
+    if (!["light", "dark", "system"].includes(theme)) return res.status(400).json({ error: "Unsupported theme" });
+    if (!["dd.mm.yyyy", "yyyy-mm-dd", "mm/dd/yyyy"].includes(dateFormat)) {
+      return res.status(400).json({ error: "Unsupported date format" });
+    }
 
     const updatedAt = nowIso();
-    await run("UPDATE users SET name = ?, company = ?, position = ?, locale = ?, updated_at = ? WHERE id = ?", [
-      name,
-      company || null,
-      position || null,
-      locale,
-      updatedAt,
-      req.user.id
-    ]);
+    await run(
+      "UPDATE users SET name = ?, company = ?, position = ?, locale = ?, theme = ?, date_format = ?, updated_at = ? WHERE id = ?",
+      [name, company || null, position || null, locale, theme, dateFormat, updatedAt, req.user.id]
+    );
 
     const profile = await get(
-      `SELECT id, name, email, email_verified, company, position, locale, created_at, updated_at
+      `SELECT id, name, email, email_verified, company, position, locale, theme, date_format, password_hash, created_at, updated_at
        FROM users
        WHERE id = ?`,
       [req.user.id]
     );
-    res.json({
-      profile: {
-        id: profile.id,
-        name: profile.name || "",
-        email: profile.email,
-        emailVerified: profile.email_verified === 1,
-        company: profile.company || "",
-        position: profile.position || "",
-        locale: profile.locale || "ru",
-        createdAt: profile.created_at || null,
-        updatedAt: profile.updated_at || null
-      }
-    });
+    res.json({ profile: mapAccountProfile(profile) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/account", requireAuth, async (req, res, next) => {
+  try {
+    const profile = await get(
+      `SELECT id, name, email, email_verified, company, position, locale, theme, date_format, password_hash, created_at, updated_at
+       FROM users
+       WHERE id = ?`,
+      [req.user.id]
+    );
+    if (!profile) return res.status(404).json({ error: "User not found" });
+    res.json(mapAccountProfile(profile));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put("/api/account", requireAuth, antiBotPayload, async (req, res, next) => {
+  try {
+    const name = String(req.body?.displayName || req.body?.name || "").trim();
+    const locale = String(req.body?.locale || "ru")
+      .trim()
+      .toLowerCase();
+    const theme = String(req.body?.theme || "light")
+      .trim()
+      .toLowerCase();
+    const dateFormat = String(req.body?.dateFormat || "dd.mm.yyyy")
+      .trim()
+      .toLowerCase();
+
+    if (!name || name.length < 2 || name.length > 80) {
+      return res.status(400).json({ error: "Name must be 2-80 characters" });
+    }
+    if (!["en", "ru", "kz"].includes(locale)) return res.status(400).json({ error: "Unsupported language" });
+    if (!["light", "dark", "system"].includes(theme)) return res.status(400).json({ error: "Unsupported theme" });
+    if (!["dd.mm.yyyy", "yyyy-mm-dd", "mm/dd/yyyy"].includes(dateFormat)) {
+      return res.status(400).json({ error: "Unsupported date format" });
+    }
+
+    await run("UPDATE users SET name = ?, locale = ?, theme = ?, date_format = ?, updated_at = ? WHERE id = ?", [
+      name,
+      locale,
+      theme,
+      dateFormat,
+      nowIso(),
+      req.user.id
+    ]);
+
+    const profile = await get(
+      `SELECT id, name, email, email_verified, company, position, locale, theme, date_format, password_hash, created_at, updated_at
+       FROM users
+       WHERE id = ?`,
+      [req.user.id]
+    );
+    if (!profile) return res.status(404).json({ error: "User not found" });
+    res.json(mapAccountProfile(profile));
   } catch (error) {
     next(error);
   }
@@ -778,7 +1085,7 @@ app.patch("/api/account/profile", requireAuth, antiBotPayload, async (req, res, 
 app.get("/api/account/sessions", requireAuth, async (req, res, next) => {
   try {
     const rows = await all(
-      `SELECT rowid as id, token, created_at, expires_at
+      `SELECT rowid as id, token, user_agent, ip_address, created_at, expires_at
        FROM auth_sessions
        WHERE user_id = ?
        ORDER BY datetime(created_at) DESC`,
@@ -789,7 +1096,9 @@ app.get("/api/account/sessions", requireAuth, async (req, res, next) => {
         id: item.id,
         createdAt: item.created_at,
         expiresAt: item.expires_at,
-        isCurrent: item.token === req.sessionToken
+        isCurrent: item.token === req.sessionToken,
+        userAgent: item.user_agent || "",
+        ip: item.ip_address || ""
       }))
     });
   } catch (error) {
@@ -832,7 +1141,36 @@ app.post("/api/account/password", requireAuth, antiBotPayload, async (req, res, 
   }
 });
 
+app.post("/api/account/change-password", requireAuth, antiBotPayload, async (req, res, next) => {
+  try {
+    const currentPassword = String(req.body?.currentPassword || req.body?.current_password || "");
+    const newPassword = String(req.body?.newPassword || req.body?.new_password || "");
+    if (!currentPassword || !newPassword) return res.status(400).json({ error: "Both passwords are required" });
+    if (newPassword.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+
+    const user = await get("SELECT id, password_hash FROM users WHERE id = ?", [req.user.id]);
+    if (!user || !verifyPassword(currentPassword, user.password_hash)) {
+      return res.status(401).json({ error: "Current password is invalid" });
+    }
+
+    await run("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?", [hashPassword(newPassword), nowIso(), req.user.id]);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post("/api/account/logout-all", requireAuth, async (req, res, next) => {
+  try {
+    await run("DELETE FROM auth_sessions WHERE user_id = ?", [req.user.id]);
+    clearSessionCookie(req, res);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/auth/logout_all", requireAuth, async (req, res, next) => {
   try {
     await run("DELETE FROM auth_sessions WHERE user_id = ?", [req.user.id]);
     clearSessionCookie(req, res);
@@ -895,427 +1233,83 @@ app.get("/api/dashboard", async (_req, res, next) => {
   }
 });
 
-app.get("/api/templates", (req, res) => {
-  const lang = ["en", "ru", "kz"].includes(String(req.query.lang || "").toLowerCase())
-    ? String(req.query.lang).toLowerCase()
-    : "ru";
+app.get("/api/templates", (_req, res) => {
+  const templates = Object.entries(QUICK_TEMPLATES_RU).map(([key, template]) => ({
+    key,
+    id: template.id || key,
+    title: template.title,
+    description: template.description || "",
+    audience: template.audience || "",
+    pages: Array.isArray(template.pages) ? template.pages : [],
+    questions: (Array.isArray(template.pages) ? template.pages : [])
+      .flatMap((page) => (Array.isArray(page.questions) ? page.questions : []))
+      .map((q) => ({
+        type: q.type,
+        text: q.text || q.title || "",
+        help: q.help || "",
+        required: q.required !== false,
+        options: Array.isArray(q.options) ? q.options : []
+      }))
+  }));
 
-  const templatesByLang = {
-    en: [
-      {
-        key: "product-feedback",
-        title: "Product Feedback",
-        description: "Measure satisfaction and product priorities.",
-        audience: "Product users",
-        questions: [
-          { text: "How do you rate the product overall?", type: "rating", options: [], required: true },
-          {
-            text: "What should be improved first?",
-            type: "single",
-            options: ["Speed", "Design", "Stability", "Integrations"],
-            required: true
-          },
-          { text: "What do you like most?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "event-voting",
-        title: "Event Voting",
-        description: "Vote for event topics and formats.",
-        audience: "Event participants",
-        questions: [
-          { text: "Which topic do you vote for?", type: "single", options: ["AI", "Frontend", "Backend", "Product"], required: true },
-          {
-            text: "Which formats are most useful?",
-            type: "multi",
-            options: ["Talks", "Workshops", "Panel discussion", "Networking"],
-            required: true
-          },
-          { text: "Additional comments", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "education-quality",
-        title: "Education Quality",
-        description: "Collect student feedback about program quality.",
-        audience: "Students",
-        questions: [
-          { text: "How do you rate the quality of classes?", type: "rating", options: [], required: true },
-          { text: "Which area needs improvement first?", type: "single", options: ["Schedule", "Teaching style", "Materials", "Support"], required: true },
-          { text: "What should we keep unchanged?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "teacher-evaluation",
-        title: "Teacher Evaluation",
-        description: "Anonymous feedback on teaching practice.",
-        audience: "Students and parents",
-        questions: [
-          { text: "How clear are explanations?", type: "rating", options: [], required: true },
-          { text: "How approachable is the teacher?", type: "rating", options: [], required: true },
-          { text: "What should be improved?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "employee-engagement",
-        title: "Employee Engagement",
-        description: "Assess motivation and team climate.",
-        audience: "Company employees",
-        questions: [
-          { text: "How motivated are you at work?", type: "rating", options: [], required: true },
-          { text: "What influences your motivation most?", type: "multi", options: ["Compensation", "Leadership", "Growth", "Team culture"], required: true },
-          { text: "One action that would improve engagement", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "pulse-check",
-        title: "Weekly Pulse Check",
-        description: "Quick operational check for teams.",
-        audience: "Project team",
-        questions: [
-          { text: "How was your week overall?", type: "rating", options: [], required: true },
-          { text: "What blocked your work?", type: "multi", options: ["Dependencies", "Unclear tasks", "Lack of time", "Technical issues"], required: false },
-          { text: "What help do you need next week?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "customer-satisfaction",
-        title: "Customer Satisfaction",
-        description: "Post-service quality survey for clients.",
-        audience: "Customers",
-        questions: [
-          { text: "How satisfied are you with our service?", type: "rating", options: [], required: true },
-          { text: "Would you recommend us?", type: "single", options: ["Yes", "No"], required: true },
-          { text: "How can we improve?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "nps",
-        title: "NPS Survey",
-        description: "Classic recommendation score with context.",
-        audience: "Users or customers",
-        questions: [
-          { text: "How likely are you to recommend us (1-5)?", type: "rating", options: [], required: true },
-          { text: "Main reason for your score", type: "text", options: [], required: true },
-          { text: "What one improvement would raise your score?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "service-quality",
-        title: "Service Quality Audit",
-        description: "Evaluate support quality across key criteria.",
-        audience: "Clients and partners",
-        questions: [
-          { text: "How do you rate response speed?", type: "rating", options: [], required: true },
-          { text: "How do you rate communication quality?", type: "rating", options: [], required: true },
-          { text: "Where did the process fail?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "meeting-retro",
-        title: "Meeting Retrospective",
-        description: "Improve meetings and decision quality.",
-        audience: "Meeting attendees",
-        questions: [
-          { text: "Was the meeting productive?", type: "rating", options: [], required: true },
-          { text: "What worked well?", type: "text", options: [], required: false },
-          { text: "What should be changed next time?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "campus-event-review",
-        title: "Campus Event Review",
-        description: "Collect school/college event feedback.",
-        audience: "Students, teachers, administrators",
-        questions: [
-          { text: "How do you rate the event overall?", type: "rating", options: [], required: true },
-          { text: "Which part was best?", type: "single", options: ["Program", "Speakers", "Organization", "Venue"], required: true },
-          { text: "What should be improved for the next event?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "public-opinion",
-        title: "Public Opinion Poll",
-        description: "Run a public vote with transparent options.",
-        audience: "Open audience",
-        questions: [
-          { text: "Choose your preferred option", type: "single", options: ["Option A", "Option B", "Option C", "Option D"], required: true },
-          { text: "How confident are you in your choice?", type: "rating", options: [], required: false },
-          { text: "Optional comment", type: "text", options: [], required: false }
-        ]
-      }
-    ],
-    ru: [
-      {
-        key: "product-feedback",
-        title: "Обратная связь по продукту",
-        description: "Оценка удовлетворенности и приоритетов продукта.",
-        audience: "Пользователи продукта",
-        questions: [
-          { text: "Как вы оцениваете продукт в целом?", type: "rating", options: [], required: true },
-          { text: "Что улучшить в первую очередь?", type: "single", options: ["Скорость", "Дизайн", "Стабильность", "Интеграции"], required: true },
-          { text: "Что вам нравится больше всего?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "event-voting",
-        title: "Голосование по мероприятию",
-        description: "Выбор тем и формата мероприятия.",
-        audience: "Участники мероприятия",
-        questions: [
-          { text: "За какую тему вы голосуете?", type: "single", options: ["AI", "Frontend", "Backend", "Product"], required: true },
-          { text: "Какие форматы вам интересны?", type: "multi", options: ["Доклады", "Воркшопы", "Панельная дискуссия", "Нетворкинг"], required: true },
-          { text: "Дополнительный комментарий", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "education-quality",
-        title: "Качество обучения",
-        description: "Сбор мнений о качестве учебной программы.",
-        audience: "Студенты",
-        questions: [
-          { text: "Как вы оцениваете качество занятий?", type: "rating", options: [], required: true },
-          { text: "Что нужно улучшить в первую очередь?", type: "single", options: ["Расписание", "Подача материала", "Материалы", "Поддержка"], required: true },
-          { text: "Что стоит оставить без изменений?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "teacher-evaluation",
-        title: "Оценка преподавателя",
-        description: "Анонимная оценка преподавательской практики.",
-        audience: "Студенты и родители",
-        questions: [
-          { text: "Насколько понятны объяснения?", type: "rating", options: [], required: true },
-          { text: "Насколько комфортна коммуникация?", type: "rating", options: [], required: true },
-          { text: "Что можно улучшить?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "employee-engagement",
-        title: "Вовлеченность сотрудников",
-        description: "Оценка мотивации и климата в команде.",
-        audience: "Сотрудники компании",
-        questions: [
-          { text: "Насколько вы мотивированы в работе?", type: "rating", options: [], required: true },
-          { text: "Что сильнее всего влияет на мотивацию?", type: "multi", options: ["Оплата", "Руководство", "Рост", "Культура команды"], required: true },
-          { text: "Какой один шаг повысит вовлеченность?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "pulse-check",
-        title: "Еженедельный пульс-опрос",
-        description: "Короткая проверка состояния команды.",
-        audience: "Проектная команда",
-        questions: [
-          { text: "Как прошла неделя в целом?", type: "rating", options: [], required: true },
-          { text: "Что блокировало вашу работу?", type: "multi", options: ["Зависимости", "Нечеткие задачи", "Нехватка времени", "Технические проблемы"], required: false },
-          { text: "Какая помощь нужна на следующей неделе?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "customer-satisfaction",
-        title: "Удовлетворенность клиентов",
-        description: "Опрос качества после оказания услуги.",
-        audience: "Клиенты",
-        questions: [
-          { text: "Насколько вы довольны нашим сервисом?", type: "rating", options: [], required: true },
-          { text: "Порекомендуете ли вы нас?", type: "single", options: ["Да", "Нет"], required: true },
-          { text: "Что можно улучшить?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "nps",
-        title: "NPS-опрос",
-        description: "Классический индекс готовности рекомендовать.",
-        audience: "Пользователи или клиенты",
-        questions: [
-          { text: "Насколько вероятно, что вы порекомендуете нас (1-5)?", type: "rating", options: [], required: true },
-          { text: "Главная причина вашей оценки", type: "text", options: [], required: true },
-          { text: "Какое одно улучшение повысит оценку?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "service-quality",
-        title: "Аудит качества сервиса",
-        description: "Оценка поддержки по ключевым критериям.",
-        audience: "Клиенты и партнеры",
-        questions: [
-          { text: "Как вы оцениваете скорость ответа?", type: "rating", options: [], required: true },
-          { text: "Как вы оцениваете качество коммуникации?", type: "rating", options: [], required: true },
-          { text: "Где в процессе возникли проблемы?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "meeting-retro",
-        title: "Ретроспектива встречи",
-        description: "Улучшение рабочих встреч и решений.",
-        audience: "Участники встречи",
-        questions: [
-          { text: "Насколько продуктивной была встреча?", type: "rating", options: [], required: true },
-          { text: "Что сработало хорошо?", type: "text", options: [], required: false },
-          { text: "Что изменить в следующий раз?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "campus-event-review",
-        title: "Оценка мероприятия колледжа",
-        description: "Сбор мнений о школьном/колледжном мероприятии.",
-        audience: "Студенты, преподаватели, администрация",
-        questions: [
-          { text: "Как вы оцениваете мероприятие в целом?", type: "rating", options: [], required: true },
-          { text: "Что понравилось больше всего?", type: "single", options: ["Программа", "Спикеры", "Организация", "Локация"], required: true },
-          { text: "Что улучшить в следующий раз?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "public-opinion",
-        title: "Публичное голосование",
-        description: "Открытый опрос с прозрачным выбором вариантов.",
-        audience: "Широкая аудитория",
-        questions: [
-          { text: "Выберите предпочтительный вариант", type: "single", options: ["Вариант A", "Вариант B", "Вариант C", "Вариант D"], required: true },
-          { text: "Насколько вы уверены в выборе?", type: "rating", options: [], required: false },
-          { text: "Комментарий (необязательно)", type: "text", options: [], required: false }
-        ]
-      }
-    ],
-    kz: [
-      {
-        key: "product-feedback",
-        title: "Өнім бойынша кері байланыс",
-        description: "Өнім сапасы мен басымдықтарын бағалау.",
-        audience: "Өнім пайдаланушылары",
-        questions: [
-          { text: "Өнімді жалпы қалай бағалайсыз?", type: "rating", options: [], required: true },
-          { text: "Алдымен нені жақсарту керек?", type: "single", options: ["Жылдамдық", "Дизайн", "Тұрақтылық", "Интеграциялар"], required: true },
-          { text: "Сізге ең ұнайтын нәрсе не?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "event-voting",
-        title: "Іс-шара бойынша дауыс беру",
-        description: "Іс-шара тақырыптары мен форматын таңдау.",
-        audience: "Қатысушылар",
-        questions: [
-          { text: "Қай тақырыпқа дауыс бересіз?", type: "single", options: ["AI", "Frontend", "Backend", "Product"], required: true },
-          { text: "Қай форматтар пайдалы?", type: "multi", options: ["Баяндамалар", "Воркшоптар", "Панельдік талқылау", "Нетворкинг"], required: true },
-          { text: "Қосымша пікір", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "education-quality",
-        title: "Білім сапасы",
-        description: "Оқу бағдарламасының сапасы бойынша пікір жинау.",
-        audience: "Студенттер",
-        questions: [
-          { text: "Сабақ сапасын қалай бағалайсыз?", type: "rating", options: [], required: true },
-          { text: "Алдымен нені жақсарту қажет?", type: "single", options: ["Кесте", "Оқыту әдісі", "Материалдар", "Қолдау"], required: true },
-          { text: "Нені өзгеріссіз қалдырған дұрыс?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "teacher-evaluation",
-        title: "Оқытушыны бағалау",
-        description: "Оқыту тәжірибесіне анонимді кері байланыс.",
-        audience: "Студенттер және ата-аналар",
-        questions: [
-          { text: "Түсіндіру қаншалықты түсінікті?", type: "rating", options: [], required: true },
-          { text: "Қарым-қатынас қаншалықты ыңғайлы?", type: "rating", options: [], required: true },
-          { text: "Нені жақсартуға болады?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "employee-engagement",
-        title: "Қызметкерлердің тартылуы",
-        description: "Мотивация мен команда ахуалын бағалау.",
-        audience: "Компания қызметкерлері",
-        questions: [
-          { text: "Жұмыстағы мотивацияңызды қалай бағалайсыз?", type: "rating", options: [], required: true },
-          { text: "Мотивацияға ең көп не әсер етеді?", type: "multi", options: ["Жалақы", "Басшылық", "Өсу", "Команда мәдениеті"], required: true },
-          { text: "Тартылуды арттыратын бір қадам", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "pulse-check",
-        title: "Апталық pulse-сауалнама",
-        description: "Команда күйін жылдам тексеру.",
-        audience: "Жоба командасы",
-        questions: [
-          { text: "Аптаңыз жалпы қалай өтті?", type: "rating", options: [], required: true },
-          { text: "Жұмысыңызға не кедергі болды?", type: "multi", options: ["Тәуелділіктер", "Тапсырма түсініксіз", "Уақыт аз", "Техникалық ақау"], required: false },
-          { text: "Келесі аптада қандай көмек керек?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "customer-satisfaction",
-        title: "Клиент қанағаттануы",
-        description: "Қызметтен кейінгі сапа сауалнамасы.",
-        audience: "Клиенттер",
-        questions: [
-          { text: "Біздің сервиске қаншалықты қанағаттанасыз?", type: "rating", options: [], required: true },
-          { text: "Бізді ұсынасыз ба?", type: "single", options: ["Иә", "Жоқ"], required: true },
-          { text: "Нені жақсарту керек?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "nps",
-        title: "NPS сауалнамасы",
-        description: "Ұсыну ықтималдығын өлшейтін классикалық формат.",
-        audience: "Пайдаланушылар немесе клиенттер",
-        questions: [
-          { text: "Бізді ұсыну ықтималдығы қандай (1-5)?", type: "rating", options: [], required: true },
-          { text: "Бағаңыздың негізгі себебі", type: "text", options: [], required: true },
-          { text: "Қай өзгеріс бағаңызды арттырады?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "service-quality",
-        title: "Сервис сапасын аудиттеу",
-        description: "Қолдау сапасын негізгі критерийлер бойынша бағалау.",
-        audience: "Клиенттер мен серіктестер",
-        questions: [
-          { text: "Жауап беру жылдамдығын бағалаңыз", type: "rating", options: [], required: true },
-          { text: "Коммуникация сапасын бағалаңыз", type: "rating", options: [], required: true },
-          { text: "Процесте қай жерде мәселе болды?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "meeting-retro",
-        title: "Кездесу ретроспективасы",
-        description: "Жұмыс кездесулері мен шешім сапасын жақсарту.",
-        audience: "Кездесу қатысушылары",
-        questions: [
-          { text: "Кездесу қаншалықты өнімді болды?", type: "rating", options: [], required: true },
-          { text: "Не жақсы өтті?", type: "text", options: [], required: false },
-          { text: "Келесіде нені өзгерту керек?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "campus-event-review",
-        title: "Колледж іс-шарасын бағалау",
-        description: "Мектеп/колледж іс-шарасы бойынша пікір жинау.",
-        audience: "Студенттер, оқытушылар, әкімшілік",
-        questions: [
-          { text: "Іс-шараны жалпы қалай бағалайсыз?", type: "rating", options: [], required: true },
-          { text: "Ең ұнаған бөлік қайсы?", type: "single", options: ["Бағдарлама", "Спикерлер", "Ұйымдастыру", "Локация"], required: true },
-          { text: "Келесі жолы нені жақсарту керек?", type: "text", options: [], required: false }
-        ]
-      },
-      {
-        key: "public-opinion",
-        title: "Қоғамдық пікір сауалнамасы",
-        description: "Ашық аудиторияға арналған дауыс беру.",
-        audience: "Кең аудитория",
-        questions: [
-          { text: "Өзіңізге ұнайтын нұсқаны таңдаңыз", type: "single", options: ["Нұсқа A", "Нұсқа B", "Нұсқа C", "Нұсқа D"], required: true },
-          { text: "Таңдауыңызға қаншалықты сенімдісіз?", type: "rating", options: [], required: false },
-          { text: "Пікір (міндетті емес)", type: "text", options: [], required: false }
-        ]
-      }
-    ]
-  };
+  res.json({ templates });
+});
+app.post("/api/surveys/from-template", requireAuth, async (req, res, next) => {
+  try {
+    const key = String(req.body?.templateId || req.body?.templateKey || req.body?.template || "").trim().toLowerCase();
+    const template = QUICK_TEMPLATES_RU[key];
+    if (!template) return res.status(404).json({ error: "Template not found" });
 
-  res.json({ templates: templatesByLang[lang] || templatesByLang.ru });
+    const createdAt = nowIso();
+    const created = await run(
+      `INSERT INTO surveys
+        (owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'draft', 0, NULL, NULL, ?, ?)`,
+      [req.user.id, template.title, template.description, template.audience, createdAt, createdAt]
+    );
+    const surveyId = created.lastID;
+    let order = 0;
+    const pages = Array.isArray(template.pages) && template.pages.length ? template.pages : [{ title: "Страница 1", questions: [] }];
+
+    for (let pageIndex = 0; pageIndex < pages.length; pageIndex += 1) {
+      const pagePayload = pages[pageIndex] || {};
+      const pageTitle = String(pagePayload.title || `Страница ${pageIndex + 1}`).trim() || `Страница ${pageIndex + 1}`;
+      const pageStamp = nowIso();
+      const pageCreated = await run(
+        `INSERT INTO pages (survey_id, title, order_index, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [surveyId, pageTitle, pageIndex, pageStamp, pageStamp]
+      );
+
+      const pageQuestions = Array.isArray(pagePayload.questions) ? pagePayload.questions : [];
+      for (let i = 0; i < pageQuestions.length; i += 1) {
+        const q = normalizeQuestion(pageQuestions[i], order);
+        if (!q.text || !QUESTION_TYPES.has(q.type)) continue;
+        const inserted = await run(
+          `INSERT INTO questions (survey_id, page_id, question_text, help_text, type, options_json, required, question_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [surveyId, pageCreated.lastID, q.text, q.helpText, q.type, JSON.stringify(q.options), q.required, order]
+        );
+        await syncQuestionOptions(inserted.lastID, q.options);
+        order += 1;
+      }
+    }
+
+    if (order === 0) {
+      const fallbackPage = await ensureSurveyPage(surveyId, "Страница 1");
+      const question = normalizeQuestion({ text: "Новый вопрос", type: "text", required: true, options: [] }, 0);
+      const inserted = await run(
+        `INSERT INTO questions (survey_id, page_id, question_text, help_text, type, options_json, required, question_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [surveyId, fallbackPage.id, question.text, question.helpText, question.type, JSON.stringify(question.options), question.required, 0]
+      );
+      await syncQuestionOptions(inserted.lastID, question.options);
+    }
+
+    res.status(201).json({ id: surveyId, surveyId, status: "draft" });
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get("/api/surveys", async (req, res, next) => {
@@ -1378,32 +1372,27 @@ app.get("/api/public/surveys/:id", async (req, res, next) => {
     );
     if (!survey) return res.status(404).json({ error: "Survey not found" });
     const isOwnerPreview = Boolean(req.user && survey.owner_user_id === req.user.id);
+    const now = Date.now();
+    const startsTs = survey.starts_at ? Date.parse(survey.starts_at) : null;
+    const endsTs = survey.ends_at ? Date.parse(survey.ends_at) : null;
+    const beforeStart = startsTs && startsTs > now;
+    const afterEnd = endsTs && endsTs < now;
+
     if (survey.status !== "published" && !isOwnerPreview) {
       return res.status(403).json({ error: "Survey is not published" });
     }
 
-    const questions = await all(
-      `SELECT id, question_text, type, options_json, required, question_order
-       FROM questions
-       WHERE survey_id = ?
-       ORDER BY question_order ASC`,
-      [surveyId]
-    );
-
-    const publicOpen = survey.status === "published";
+    const [pages, questions] = await Promise.all([getSurveyPages(surveyId), getSurveyQuestionsDetailed(surveyId)]);
+    const publicOpen = survey.status === "published" && !beforeStart && !afterEnd;
 
     res.json({
       survey,
       active: publicOpen || (isOwnerPreview && survey.status !== "published"),
       preview: isOwnerPreview && survey.status !== "published",
-      questions: questions.map((q) => ({
-        id: q.id,
-        text: q.question_text,
-        type: q.type,
-        options: safeJsonParse(q.options_json, []),
-        required: q.required === 1,
-        order: q.question_order
-      }))
+      blockedByWindow: beforeStart || afterEnd,
+      windowState: beforeStart ? "not_started" : afterEnd ? "ended" : "open",
+      pages,
+      questions
     });
   } catch (error) {
     next(error);
@@ -1423,17 +1412,13 @@ app.post("/api/surveys/:id/duplicate", requireAuth, async (req, res, next) => {
     );
     if (!survey) return res.status(404).json({ error: "Survey not found" });
 
-    const questions = await all(
-      `SELECT question_text, type, options_json, required, question_order
-       FROM questions WHERE survey_id = ? ORDER BY question_order ASC`,
-      [surveyId]
-    );
+    const questions = await getSurveyQuestionsDetailed(surveyId);
 
     const createdAt = nowIso();
     const clone = await run(
       `INSERT INTO surveys
         (owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'published', ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?)`,
       [
         req.user.id,
         `${survey.title} (Copy)`,
@@ -1446,20 +1431,24 @@ app.post("/api/surveys/:id/duplicate", requireAuth, async (req, res, next) => {
         createdAt
       ]
     );
+    const page = await ensureSurveyPage(clone.lastID);
 
     for (const question of questions) {
-      await run(
-        `INSERT INTO questions (survey_id, question_text, type, options_json, required, question_order)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+      const inserted = await run(
+        `INSERT INTO questions (survey_id, page_id, question_text, help_text, type, options_json, required, question_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           clone.lastID,
-          question.question_text,
+          page.id,
+          question.text,
+          question.helpText || "",
           question.type,
-          question.options_json,
-          question.required,
-          question.question_order
+          JSON.stringify(question.options || []),
+          question.required ? 1 : 0,
+          question.order
         ]
       );
+      await syncQuestionOptions(inserted.lastID, question.options || []);
     }
 
     res.status(201).json({ id: clone.lastID });
@@ -1474,32 +1463,23 @@ app.get("/api/surveys/:id", async (req, res, next) => {
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
-      `SELECT id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at
+      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at
        FROM surveys
        WHERE id = ?`,
       [surveyId]
     );
 
     if (!survey) return res.status(404).json({ error: "Survey not found" });
+    if (survey.status === "draft" && (!req.user || survey.owner_user_id !== req.user.id)) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
 
-    const questions = await all(
-      `SELECT id, question_text, type, options_json, required, question_order
-       FROM questions
-       WHERE survey_id = ?
-       ORDER BY question_order ASC`,
-      [surveyId]
-    );
+    const [pages, questions] = await Promise.all([getSurveyPages(surveyId), getSurveyQuestionsDetailed(surveyId)]);
 
     res.json({
       survey,
-      questions: questions.map((q) => ({
-        id: q.id,
-        text: q.question_text,
-        type: q.type,
-        options: safeJsonParse(q.options_json, []),
-        required: q.required === 1,
-        order: q.question_order
-      }))
+      pages,
+      questions
     });
   } catch (error) {
     next(error);
@@ -1515,7 +1495,7 @@ app.post("/api/surveys", requireAuth, async (req, res, next) => {
     const created = await run(
       `INSERT INTO surveys
         (owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'published', ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?)`,
       [
         req.user.id,
         payload.title,
@@ -1528,20 +1508,34 @@ app.post("/api/surveys", requireAuth, async (req, res, next) => {
         createdAt
       ]
     );
-
-    for (const question of payload.questions) {
-      await run(
-        `INSERT INTO questions (survey_id, question_text, type, options_json, required, question_order)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          created.lastID,
-          question.text,
-          question.type,
-          JSON.stringify(question.options),
-          question.required,
-          question.order
-        ]
+    let questionOrder = 0;
+    for (let pageIndex = 0; pageIndex < payload.pages.length; pageIndex += 1) {
+      const pagePayload = payload.pages[pageIndex];
+      const pageStamp = nowIso();
+      const page = await run(
+        `INSERT INTO pages (survey_id, title, order_index, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [created.lastID, pagePayload.title, pageIndex, pageStamp, pageStamp]
       );
+
+      for (const question of pagePayload.questions) {
+        const inserted = await run(
+          `INSERT INTO questions (survey_id, page_id, question_text, help_text, type, options_json, required, question_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            created.lastID,
+            page.lastID,
+            question.text,
+            question.helpText || "",
+            question.type,
+            JSON.stringify(question.options),
+            question.required,
+            questionOrder
+          ]
+        );
+        await syncQuestionOptions(inserted.lastID, question.options || []);
+        questionOrder += 1;
+      }
     }
 
     res.status(201).json({ id: created.lastID });
@@ -1579,20 +1573,103 @@ app.put("/api/surveys/:id", requireAuth, async (req, res, next) => {
     );
 
     await run("DELETE FROM questions WHERE survey_id = ?", [surveyId]);
+    await run("DELETE FROM pages WHERE survey_id = ?", [surveyId]);
 
-    for (const question of payload.questions) {
-      await run(
-        `INSERT INTO questions (survey_id, question_text, type, options_json, required, question_order)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          surveyId,
-          question.text,
-          question.type,
-          JSON.stringify(question.options),
-          question.required,
-          question.order
-        ]
+    let questionOrder = 0;
+    for (let pageIndex = 0; pageIndex < payload.pages.length; pageIndex += 1) {
+      const pagePayload = payload.pages[pageIndex];
+      const pageStamp = nowIso();
+      const page = await run(
+        `INSERT INTO pages (survey_id, title, order_index, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [surveyId, pagePayload.title, pageIndex, pageStamp, pageStamp]
       );
+
+      for (const question of pagePayload.questions) {
+        const inserted = await run(
+          `INSERT INTO questions (survey_id, page_id, question_text, help_text, type, options_json, required, question_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            surveyId,
+            page.lastID,
+            question.text,
+            question.helpText || "",
+            question.type,
+            JSON.stringify(question.options),
+            question.required,
+            questionOrder
+          ]
+        );
+        await syncQuestionOptions(inserted.lastID, question.options || []);
+        questionOrder += 1;
+      }
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/surveys/:id", requireAuth, async (req, res, next) => {
+  try {
+    const surveyId = Number(req.params.id);
+    if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
+
+    const survey = await get("SELECT id, status FROM surveys WHERE id = ? AND owner_user_id = ?", [surveyId, req.user.id]);
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+    if (survey.status === "archived") return res.status(400).json({ error: "Archived survey cannot be edited" });
+
+    const { fields, payload } = validateSurveyPayload(req.body);
+    if (fields.length) return res.status(400).json({ error: "Invalid survey payload", fields });
+
+    await run(
+      `UPDATE surveys
+       SET title = ?, description = ?, audience = ?, allow_multiple_responses = ?, starts_at = ?, ends_at = ?, updated_at = ?
+       WHERE id = ?`,
+      [
+        payload.title,
+        payload.description,
+        payload.audience,
+        payload.allowMultipleResponses,
+        payload.startsAt,
+        payload.endsAt,
+        nowIso(),
+        surveyId
+      ]
+    );
+
+    await run("DELETE FROM questions WHERE survey_id = ?", [surveyId]);
+    await run("DELETE FROM pages WHERE survey_id = ?", [surveyId]);
+
+    let questionOrder = 0;
+    for (let pageIndex = 0; pageIndex < payload.pages.length; pageIndex += 1) {
+      const pagePayload = payload.pages[pageIndex];
+      const pageStamp = nowIso();
+      const page = await run(
+        `INSERT INTO pages (survey_id, title, order_index, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [surveyId, pagePayload.title, pageIndex, pageStamp, pageStamp]
+      );
+
+      for (const question of pagePayload.questions) {
+        const inserted = await run(
+          `INSERT INTO questions (survey_id, page_id, question_text, help_text, type, options_json, required, question_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            surveyId,
+            page.lastID,
+            question.text,
+            question.helpText || "",
+            question.type,
+            JSON.stringify(question.options),
+            question.required,
+            questionOrder
+          ]
+        );
+        await syncQuestionOptions(inserted.lastID, question.options || []);
+        questionOrder += 1;
+      }
     }
 
     res.json({ ok: true });
@@ -1607,6 +1684,10 @@ app.post("/api/surveys/:id/publish", requireAuth, async (req, res, next) => {
     const survey = await get("SELECT id, status FROM surveys WHERE id = ? AND owner_user_id = ?", [surveyId, req.user.id]);
     if (!survey) return res.status(404).json({ error: "Survey not found" });
     if (survey.status === "archived") return res.status(400).json({ error: "Archived survey cannot be published" });
+    const questionCount = await get("SELECT COUNT(*) as count FROM questions WHERE survey_id = ?", [surveyId]);
+    if (!Number(questionCount?.count || 0)) {
+      return res.status(400).json({ error: "Add at least one question before publishing" });
+    }
 
     await run("UPDATE surveys SET status = 'published', updated_at = ? WHERE id = ?", [nowIso(), surveyId]);
     res.json({ ok: true });
@@ -1618,11 +1699,24 @@ app.post("/api/surveys/:id/publish", requireAuth, async (req, res, next) => {
 app.post("/api/surveys/:id/archive", requireAuth, async (req, res, next) => {
   try {
     const surveyId = Number(req.params.id);
-    const survey = await get("SELECT id FROM surveys WHERE id = ? AND owner_user_id = ?", [surveyId, req.user.id]);
+    const survey = await get("SELECT id, status FROM surveys WHERE id = ? AND owner_user_id = ?", [surveyId, req.user.id]);
     if (!survey) return res.status(404).json({ error: "Survey not found" });
 
-    await run("UPDATE surveys SET status = 'archived', updated_at = ? WHERE id = ?", [nowIso(), surveyId]);
-    res.json({ ok: true });
+    const nextStatus = survey.status === "archived" ? "published" : "archived";
+    await run("UPDATE surveys SET status = ?, updated_at = ? WHERE id = ?", [nextStatus, nowIso(), surveyId]);
+    res.json({ ok: true, status: nextStatus });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/surveys/:id/unarchive", requireAuth, async (req, res, next) => {
+  try {
+    const surveyId = Number(req.params.id);
+    const survey = await get("SELECT id FROM surveys WHERE id = ? AND owner_user_id = ?", [surveyId, req.user.id]);
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+    await run("UPDATE surveys SET status = 'published', updated_at = ? WHERE id = ?", [nowIso(), surveyId]);
+    res.json({ ok: true, status: "published" });
   } catch (error) {
     next(error);
   }
@@ -1641,9 +1735,9 @@ app.delete("/api/surveys/:id", requireAuth, async (req, res, next) => {
   }
 });
 
-app.post("/api/surveys/:id/respond", async (req, res, next) => {
+async function handleSurveySubmit(req, res, next, surveyIdRaw) {
   try {
-    const surveyId = Number(req.params.id);
+    const surveyId = Number(surveyIdRaw);
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
@@ -1654,12 +1748,14 @@ app.post("/api/surveys/:id/respond", async (req, res, next) => {
 
     if (!survey) return res.status(404).json({ error: "Survey not found" });
     if (survey.status !== "published") return res.status(400).json({ error: "Survey is not published" });
+    if (survey.starts_at && Date.parse(survey.starts_at) > Date.now()) {
+      return res.status(403).json({ error: "Survey has not started yet" });
+    }
+    if (survey.ends_at && Date.parse(survey.ends_at) < Date.now()) {
+      return res.status(403).json({ error: "Survey is already closed" });
+    }
 
-    const questions = await all(
-      `SELECT id, type, options_json, required
-       FROM questions WHERE survey_id = ?`,
-      [surveyId]
-    );
+    const questions = await getSurveyQuestionsDetailed(surveyId);
 
     const answersInput = Array.isArray(req.body?.answers) ? req.body.answers : [];
     const answersByQuestion = new Map();
@@ -1672,7 +1768,7 @@ app.post("/api/surveys/:id/respond", async (req, res, next) => {
 
     for (const q of questions) {
       const value = answersByQuestion.get(q.id);
-      const required = q.required === 1;
+      const required = q.required === 1 || q.required === true;
 
       if (required && (value === undefined || value === null || value === "")) {
         invalidQuestions.push(q.id);
@@ -1681,15 +1777,20 @@ app.post("/api/surveys/:id/respond", async (req, res, next) => {
 
       if (value === undefined || value === null || value === "") continue;
 
-      const options = safeJsonParse(q.options_json, []);
+      const options = Array.isArray(q.options) ? q.options : [];
+      const optionTexts = options.map((item) => String(item?.text || "").trim()).filter(Boolean);
 
       if (q.type === "single") {
-        if (!options.includes(String(value))) invalidQuestions.push(q.id);
+        if (!optionTexts.includes(String(value))) invalidQuestions.push(q.id);
       }
 
       if (q.type === "multi") {
         const values = Array.isArray(value) ? value.map((item) => String(item)) : [];
-        if (values.length === 0 || values.some((item) => !options.includes(item))) invalidQuestions.push(q.id);
+        if (values.length === 0 || values.some((item) => !optionTexts.includes(item))) invalidQuestions.push(q.id);
+      }
+
+      if (q.type === "dropdown") {
+        if (!optionTexts.includes(String(value))) invalidQuestions.push(q.id);
       }
 
       if (q.type === "rating") {
@@ -1707,6 +1808,7 @@ app.post("/api/surveys/:id/respond", async (req, res, next) => {
     }
 
     const participantHash = hashParticipant(req);
+    const respondentHash = participantHash;
 
     if (!survey.allow_multiple_responses) {
       const previous = await get(
@@ -1717,8 +1819,8 @@ app.post("/api/surveys/:id/respond", async (req, res, next) => {
     }
 
     const response = await run(
-      "INSERT INTO responses (survey_id, participant_hash, created_at) VALUES (?, ?, ?)",
-      [surveyId, participantHash, nowIso()]
+      "INSERT INTO responses (survey_id, participant_hash, respondent_hash, created_at) VALUES (?, ?, ?, ?)",
+      [surveyId, participantHash, respondentHash, nowIso()]
     );
 
     for (const q of questions) {
@@ -1730,6 +1832,239 @@ app.post("/api/surveys/:id/respond", async (req, res, next) => {
     }
 
     res.status(201).json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+}
+
+app.post("/api/surveys/:id/respond", async (req, res, next) => {
+  return handleSurveySubmit(req, res, next, req.params.id);
+});
+
+app.post("/api/public/surveys/:surveyId/submit", async (req, res, next) => {
+  return handleSurveySubmit(req, res, next, req.params.surveyId);
+});
+
+app.post("/api/surveys/:id/pages", requireAuth, async (req, res, next) => {
+  try {
+    const surveyId = Number(req.params.id);
+    if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
+    const survey = await get("SELECT id FROM surveys WHERE id = ? AND owner_user_id = ?", [surveyId, req.user.id]);
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+
+    const title = String(req.body?.title || "Страница").trim() || "Страница";
+    const order = Number(req.body?.orderIndex);
+    const maxRow = await get("SELECT COALESCE(MAX(order_index), -1) as max_order FROM pages WHERE survey_id = ?", [surveyId]);
+    const orderIndex = Number.isFinite(order) ? order : Number(maxRow?.max_order || -1) + 1;
+    const stamp = nowIso();
+    const created = await run(
+      `INSERT INTO pages (survey_id, title, order_index, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [surveyId, title, orderIndex, stamp, stamp]
+    );
+    res.status(201).json({ id: created.lastID, title, orderIndex });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put("/api/pages/:pageId", requireAuth, async (req, res, next) => {
+  try {
+    const pageId = Number(req.params.pageId);
+    if (!Number.isInteger(pageId)) return res.status(400).json({ error: "Invalid page id" });
+    const page = await get(
+      `SELECT p.id, p.survey_id
+       FROM pages p
+       JOIN surveys s ON s.id = p.survey_id
+       WHERE p.id = ? AND s.owner_user_id = ?`,
+      [pageId, req.user.id]
+    );
+    if (!page) return res.status(404).json({ error: "Page not found" });
+    const title = String(req.body?.title || "").trim();
+    const orderIndex = Number(req.body?.orderIndex);
+    await run(
+      `UPDATE pages
+       SET title = COALESCE(?, title),
+           order_index = CASE WHEN ? IS NULL THEN order_index ELSE ? END,
+           updated_at = ?
+       WHERE id = ?`,
+      [title || null, Number.isFinite(orderIndex) ? orderIndex : null, Number.isFinite(orderIndex) ? orderIndex : null, nowIso(), pageId]
+    );
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/pages/:pageId", requireAuth, async (req, res, next) => {
+  try {
+    const pageId = Number(req.params.pageId);
+    if (!Number.isInteger(pageId)) return res.status(400).json({ error: "Invalid page id" });
+    const page = await get(
+      `SELECT p.id, p.survey_id
+       FROM pages p
+       JOIN surveys s ON s.id = p.survey_id
+       WHERE p.id = ? AND s.owner_user_id = ?`,
+      [pageId, req.user.id]
+    );
+    if (!page) return res.status(404).json({ error: "Page not found" });
+
+    const pages = await getSurveyPages(page.survey_id);
+    if (pages.length <= 1) return res.status(400).json({ error: "Survey must have at least one page" });
+    const fallbackPage = pages.find((item) => item.id !== pageId);
+    await run("UPDATE questions SET page_id = ? WHERE page_id = ?", [fallbackPage.id, pageId]);
+    await run("DELETE FROM pages WHERE id = ?", [pageId]);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/pages/:pageId/questions", requireAuth, async (req, res, next) => {
+  try {
+    const pageId = Number(req.params.pageId);
+    if (!Number.isInteger(pageId)) return res.status(400).json({ error: "Invalid page id" });
+    const page = await get(
+      `SELECT p.id, p.survey_id
+       FROM pages p
+       JOIN surveys s ON s.id = p.survey_id
+       WHERE p.id = ? AND s.owner_user_id = ?`,
+      [pageId, req.user.id]
+    );
+    if (!page) return res.status(404).json({ error: "Page not found" });
+
+    const parsed = normalizeQuestion(req.body, 0);
+    if (!QUESTION_TYPES.has(parsed.type)) return res.status(400).json({ error: "Unsupported question type" });
+    if (!parsed.text) return res.status(400).json({ error: "Question text is required" });
+    const maxOrder = await get("SELECT COALESCE(MAX(question_order), -1) as max_order FROM questions WHERE survey_id = ?", [page.survey_id]);
+    const order = Number.isFinite(Number(req.body?.order)) ? Number(req.body.order) : Number(maxOrder?.max_order || -1) + 1;
+    const inserted = await run(
+      `INSERT INTO questions (survey_id, page_id, question_text, help_text, type, options_json, required, question_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [page.survey_id, pageId, parsed.text, parsed.helpText, parsed.type, JSON.stringify(parsed.options), parsed.required, order]
+    );
+    await syncQuestionOptions(inserted.lastID, parsed.options || []);
+    res.status(201).json({ id: inserted.lastID });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put("/api/questions/:questionId", requireAuth, async (req, res, next) => {
+  try {
+    const questionId = Number(req.params.questionId);
+    if (!Number.isInteger(questionId)) return res.status(400).json({ error: "Invalid question id" });
+    const question = await get(
+      `SELECT q.id, q.survey_id
+       FROM questions q
+       JOIN surveys s ON s.id = q.survey_id
+       WHERE q.id = ? AND s.owner_user_id = ?`,
+      [questionId, req.user.id]
+    );
+    if (!question) return res.status(404).json({ error: "Question not found" });
+
+    const payload = normalizeQuestion(req.body, Number(req.body?.order || 0));
+    if (!QUESTION_TYPES.has(payload.type)) return res.status(400).json({ error: "Unsupported question type" });
+    const pageId = Number(req.body?.pageId);
+    const resolvedPageId = Number.isInteger(pageId) ? pageId : null;
+    await run(
+      `UPDATE questions
+       SET page_id = COALESCE(?, page_id),
+           question_text = ?,
+           help_text = ?,
+           type = ?,
+           required = ?,
+           question_order = ?
+       WHERE id = ?`,
+      [resolvedPageId, payload.text, payload.helpText, payload.type, payload.required, payload.order, questionId]
+    );
+    await syncQuestionOptions(questionId, payload.options || []);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/questions/:questionId", requireAuth, async (req, res, next) => {
+  try {
+    const questionId = Number(req.params.questionId);
+    if (!Number.isInteger(questionId)) return res.status(400).json({ error: "Invalid question id" });
+    const question = await get(
+      `SELECT q.id
+       FROM questions q
+       JOIN surveys s ON s.id = q.survey_id
+       WHERE q.id = ? AND s.owner_user_id = ?`,
+      [questionId, req.user.id]
+    );
+    if (!question) return res.status(404).json({ error: "Question not found" });
+    await run("DELETE FROM questions WHERE id = ?", [questionId]);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/questions/:questionId/options", requireAuth, async (req, res, next) => {
+  try {
+    const questionId = Number(req.params.questionId);
+    if (!Number.isInteger(questionId)) return res.status(400).json({ error: "Invalid question id" });
+    const question = await get(
+      `SELECT q.id
+       FROM questions q
+       JOIN surveys s ON s.id = q.survey_id
+       WHERE q.id = ? AND s.owner_user_id = ?`,
+      [questionId, req.user.id]
+    );
+    if (!question) return res.status(404).json({ error: "Question not found" });
+    const options = Array.isArray(req.body?.options)
+      ? req.body.options
+          .map((item) => {
+            if (typeof item === "string") {
+              const text = item.trim();
+              return text ? { text, imageUrl: "" } : null;
+            }
+            if (item && typeof item === "object") {
+              const text = String(item.text || "").trim();
+              const imageUrl = String(item.imageUrl || "").trim();
+              return text ? { text, imageUrl } : null;
+            }
+            return null;
+          })
+          .filter(Boolean)
+      : [];
+    await syncQuestionOptions(questionId, options);
+    res.json({ ok: true, options });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/questions/:questionId/media", requireAuth, upload.single("file"), async (req, res, next) => {
+  try {
+    const questionId = Number(req.params.questionId);
+    if (!Number.isInteger(questionId)) return res.status(400).json({ error: "Invalid question id" });
+    const question = await get(
+      `SELECT q.id
+       FROM questions q
+       JOIN surveys s ON s.id = q.survey_id
+       WHERE q.id = ? AND s.owner_user_id = ?`,
+      [questionId, req.user.id]
+    );
+    if (!question) return res.status(404).json({ error: "Question not found" });
+    if (!req.file) return res.status(400).json({ error: "File is required" });
+
+    const publicPath = `/uploads/${req.file.filename}`;
+    await run(
+      `INSERT INTO question_media (question_id, file_path, original_name, mime, size, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [questionId, publicPath, req.file.originalname || "", req.file.mimetype || "", Number(req.file.size || 0), nowIso()]
+    );
+    res.status(201).json({
+      path: publicPath,
+      originalName: req.file.originalname || "",
+      mime: req.file.mimetype || "",
+      size: Number(req.file.size || 0)
+    });
   } catch (error) {
     next(error);
   }
@@ -1796,7 +2131,7 @@ app.get("/api/surveys/:id/results", requireAuth, async (req, res, next) => {
       const value = safeJsonParse(answer.answer_json, null);
       entry.total += 1;
 
-      if (entry.type === "single") {
+      if (entry.type === "single" || entry.type === "dropdown") {
         const key = String(value);
         entry.counts[key] = (entry.counts[key] || 0) + 1;
       } else if (entry.type === "multi") {
@@ -1958,6 +2293,47 @@ app.get("/api/surveys/:id/export.xlsx", requireAuth, async (req, res, next) => {
     const worksheet = XLSX.utils.aoa_to_sheet([columns, ...rows]);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Responses");
+
+    const resultsData = await all(
+      `SELECT q.question_text, q.type, a.answer_json
+       FROM answers a
+       JOIN questions q ON q.id = a.question_id
+       JOIN responses r ON r.id = a.response_id
+       WHERE r.survey_id = ?
+       ORDER BY q.question_order ASC`,
+      [surveyId]
+    );
+    const summaryMap = new Map();
+    resultsData.forEach((row) => {
+      const questionKey = `${row.question_text}||${row.type}`;
+      const bucket = summaryMap.get(questionKey) || { question: row.question_text, type: row.type, total: 0, values: {} };
+      bucket.total += 1;
+      const parsed = safeJsonParse(row.answer_json, "");
+      if (Array.isArray(parsed)) {
+        parsed.forEach((item) => {
+          const key = String(item);
+          bucket.values[key] = (bucket.values[key] || 0) + 1;
+        });
+      } else {
+        const key = String(parsed);
+        bucket.values[key] = (bucket.values[key] || 0) + 1;
+      }
+      summaryMap.set(questionKey, bucket);
+    });
+
+    const summaryRows = [["question", "type", "total_answers", "value", "count"]];
+    summaryMap.forEach((bucket) => {
+      const entries = Object.entries(bucket.values);
+      if (!entries.length) {
+        summaryRows.push([bucket.question, bucket.type, bucket.total, "", 0]);
+      } else {
+        entries.forEach(([value, count], idx) => {
+          summaryRows.push([idx === 0 ? bucket.question : "", idx === 0 ? bucket.type : "", idx === 0 ? bucket.total : "", value, count]);
+        });
+      }
+    });
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+    XLSX.utils.book_append_sheet(workbook, summarySheet, "Summary");
     const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
 
     const safeTitle = String(survey.title || `survey-${surveyId}`)
@@ -1977,57 +2353,28 @@ app.get("/api/surveys/:id/export.xlsx", requireAuth, async (req, res, next) => {
   }
 });
 
-app.get("/api/surveys/:id/export.csv", async (req, res, next) => {
+app.get("/api/surveys/:id/export.csv", requireAuth, async (req, res, next) => {
   try {
     const surveyId = Number(req.params.id);
-    const survey = await get("SELECT id, title FROM surveys WHERE id = ?", [surveyId]);
+    const survey = await get("SELECT id, owner_user_id, title FROM surveys WHERE id = ?", [surveyId]);
     if (!survey) return res.status(404).json({ error: "Survey not found" });
+    if (survey.owner_user_id !== req.user.id) return res.status(403).json({ error: "Forbidden" });
 
-    const questions = await all(
-      `SELECT id, question_text, question_order
-       FROM questions
-       WHERE survey_id = ?
-       ORDER BY question_order ASC`,
+    const rowsRaw = await all(
+      `SELECT r.id as response_id, r.created_at, q.question_text, a.answer_json
+       FROM responses r
+       JOIN answers a ON a.response_id = r.id
+       JOIN questions q ON q.id = a.question_id
+       WHERE r.survey_id = ?
+       ORDER BY r.created_at ASC, q.question_order ASC`,
       [surveyId]
     );
 
-    const responses = await all(
-      `SELECT id, created_at
-       FROM responses
-       WHERE survey_id = ?
-       ORDER BY created_at ASC`,
-      [surveyId]
-    );
-
-    const answers = await all(
-      `SELECT response_id, question_id, answer_json
-       FROM answers
-       WHERE response_id IN (SELECT id FROM responses WHERE survey_id = ?)`,
-      [surveyId]
-    );
-
-    const answerMap = new Map();
-    answers.forEach((item) => {
-      const key = `${item.response_id}:${item.question_id}`;
-      answerMap.set(key, safeJsonParse(item.answer_json, ""));
-    });
-
-    const columns = ["response_id", "created_at", ...questions.map((question) => question.question_text)];
-    const rows = [columns.map(csvEscape).join(",")];
-
-    responses.forEach((response) => {
-      const row = [response.id, response.created_at];
-      questions.forEach((question) => {
-        const value = answerMap.get(`${response.id}:${question.id}`);
-        if (Array.isArray(value)) {
-          row.push(value.join(" | "));
-        } else if (value == null) {
-          row.push("");
-        } else {
-          row.push(value);
-        }
-      });
-      rows.push(row.map(csvEscape).join(","));
+    const rows = [["response_id", "created_at", "question_text", "answer_value"].map(csvEscape).join(",")];
+    rowsRaw.forEach((item) => {
+      const parsed = safeJsonParse(item.answer_json, "");
+      const normalized = Array.isArray(parsed) ? parsed.join(" | ") : parsed == null ? "" : String(parsed);
+      rows.push([item.response_id, item.created_at, item.question_text, normalized].map(csvEscape).join(","));
     });
 
     const fileName = `survey-${surveyId}-export.csv`;
@@ -2040,13 +2387,20 @@ app.get("/api/surveys/:id/export.csv", async (req, res, next) => {
 });
 
 app.use((error, _req, res, _next) => {
+  if (error instanceof multer.MulterError) {
+    res.status(400).json({ error: error.message || "Upload error" });
+    return;
+  }
+  if (error?.message === "Only image files are allowed") {
+    res.status(400).json({ error: error.message });
+    return;
+  }
   console.error(error);
   res.status(500).json({ error: "Internal server error" });
 });
 
 init()
   .then(async () => {
-    await run("UPDATE surveys SET status = 'published', updated_at = ? WHERE status = 'draft'", [nowIso()]);
     await seedDemoSurvey();
     app.listen(PORT, () => {
       console.log(`Server listening on http://localhost:${PORT}`);
@@ -2060,4 +2414,6 @@ init()
     console.error("Failed to initialize application", error);
     process.exit(1);
   });
+
+
 

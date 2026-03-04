@@ -2,59 +2,76 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Guide | Asking</title>
+    <title>Инструкция | Asking</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="/styles.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css?v=20260304-guide-fix-2" />
   </head>
-  <body class="workspace-page">
+  <body class="workspace-page guide-page">
     <header class="topbar">
       <div class="container topbar__inner">
         <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
         <div class="topbar__actions">
-          <a class="btn btn--ghost" href="/create">Create</a>
-          <a class="btn btn--ghost" href="/author">Author</a>
-          <a class="btn btn--ghost" href="/cabinet">Cabinet</a>
+          <a class="btn btn--ghost" href="/guide">Инструкция</a>
+          <a class="btn btn--ghost" href="/create">Создать</a>
+          <a class="btn btn--ghost" href="/cabinet">Кабинет</a>
+          <a class="btn btn--ghost" href="/account">Аккаунт</a>
         </div>
       </div>
     </header>
+
     <main class="section">
-      <div class="container">
-        <div class="section__head">
-          <h2>Пошаговый гайд</h2>
-          <p>Как быстро запустить анкету, голосование или опрос.</p>
-        </div>
-        <div class="survey-list">
-          <article class="survey-card">
-            <h3>1. Зарегистрируйтесь и зайдите в аккаунт</h3>
-            <p>Без авторизации создание анкет недоступно.</p>
-          </article>
-          <article class="survey-card">
-            <h3>2. Откройте страницу создания</h3>
-            <p>Заполните название, описание и аудиторию. Шаблоны можно открыть кнопкой и выбрать готовую структуру.</p>
-          </article>
-          <article class="survey-card">
-            <h3>3. Добавьте вопросы по страницам</h3>
-            <p>Используйте типы: текст, один выбор, несколько вариантов, рейтинг.</p>
-          </article>
-          <article class="survey-card">
-            <h3>4. Создайте и опубликуйте</h3>
-            <p>Можно сохранить как черновик или сразу создать и опубликовать.</p>
-          </article>
-          <article class="survey-card">
-            <h3>5. Отправьте ссылку респондентам</h3>
-            <p>Анкета открывается как последовательность страниц с прогрессом.</p>
-          </article>
-          <article class="survey-card">
-            <h3>6. Откройте анализ в 1 клик</h3>
-            <p>В кабинете нажмите кнопку анализа, получите сводку, тренд и выгрузки CSV/XLSX.</p>
-          </article>
-        </div>
+      <div class="container guide-container">
+        <section class="card guide-hero">
+          <h1>Инструкция</h1>
+          <p>Короткий путь от идеи до готовой анкеты: создание, публикация, сбор ответов и экспорт результатов.</p>
+        </section>
+
+        <section class="card guide-steps">
+          <h2>Быстрый старт</h2>
+          <ol>
+            <li>Откройте кабинет и создайте новую анкету.</li>
+            <li>Добавьте вопросы вручную или вставьте шаблон.</li>
+            <li>Проверьте параметры доступа и даты активности.</li>
+            <li>Опубликуйте анкету и отправьте ссылку участникам.</li>
+            <li>Смотрите результаты и выгружайте отчеты CSV/XLSX.</li>
+          </ol>
+        </section>
+
+        <section class="guide-faq">
+          <details class="card guide-faq-item" open>
+            <summary>Как создать анкету</summary>
+            <p>Перейдите в раздел «Создать», задайте название и добавьте вопросы нужного типа на страницу анкеты.</p>
+          </details>
+
+          <details class="card guide-faq-item">
+            <summary>Типы вопросов</summary>
+            <p>Доступны текст, одиночный выбор, множественный выбор, рейтинг и выпадающий список.</p>
+          </details>
+
+          <details class="card guide-faq-item">
+            <summary>Публикация</summary>
+            <p>Перед публикацией убедитесь, что анкета имеет название и минимум один корректно заполненный вопрос.</p>
+          </details>
+
+          <details class="card guide-faq-item">
+            <summary>Ссылка и сбор ответов</summary>
+            <p>Скопируйте публичную ссылку из кабинета или карточки анкеты. Ответы появляются в статистике сразу после отправки формы.</p>
+          </details>
+
+          <details class="card guide-faq-item">
+            <summary>Результаты и экспорт</summary>
+            <p>В разделе результатов доступны сводка по вопросам и выгрузка данных в CSV/XLSX.</p>
+          </details>
+
+          <details class="card guide-faq-item">
+            <summary>Шаблоны</summary>
+            <p>Используйте готовые шаблоны для образования, HR, маркетинга, сервиса, событий и голосований.</p>
+          </details>
+        </section>
       </div>
     </main>
   </body>

@@ -1,0 +1,136 @@
+﻿<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Аккаунт | Asking</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css?v=20260304-account-utf8" />
+  </head>
+  <body class="workspace-page account-page">
+    <header class="topbar">
+      <div class="container topbar__inner">
+        <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
+        <div class="topbar__actions">
+          <a class="btn btn--ghost" href="/guide">Инструкция</a>
+          <a class="btn btn--ghost" href="/create">Создать</a>
+          <a class="btn btn--ghost" href="/cabinet">Кабинет</a>
+          <a class="btn btn--ghost" href="/account">Аккаунт</a>
+          <button id="logoutBtn" class="btn btn--outline" type="button">Выйти</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="section account-shell">
+      <div class="container account-container">
+        <section class="card account-layout">
+          <aside class="account-sidebar">
+            <h1>Аккаунт</h1>
+            <nav class="account-nav" aria-label="Разделы аккаунта">
+              <button class="account-tab is-active" data-tab="profile" type="button">Профиль</button>
+              <button class="account-tab" data-tab="security" type="button">Безопасность</button>
+              <button class="account-tab" data-tab="prefs" type="button">Предпочтения</button>
+            </nav>
+          </aside>
+
+          <section class="account-content">
+            <article class="account-pane is-active" data-pane="profile">
+              <h2>Профиль</h2>
+              <div class="settings-grid">
+                <label class="form-row">
+                  <span>Имя</span>
+                  <input id="displayNameInput" type="text" />
+                </label>
+                <label class="form-row">
+                  <span>Email</span>
+                  <input id="emailInput" type="email" readonly />
+                </label>
+              </div>
+              <div class="settings-actions">
+                <button id="saveProfileBtn" class="btn btn--primary" type="button">Сохранить</button>
+              </div>
+            </article>
+
+            <article class="account-pane" data-pane="security">
+              <h2>Безопасность</h2>
+              <div id="passwordUnavailable" class="card" hidden>
+                <p class="lead">Смена пароля недоступна в текущем режиме авторизации.</p>
+              </div>
+              <div id="passwordForm" class="settings-grid">
+                <label class="form-row">
+                  <span>Текущий пароль</span>
+                  <input id="currentPasswordInput" type="password" autocomplete="current-password" />
+                </label>
+                <label class="form-row">
+                  <span>Новый пароль</span>
+                  <input id="newPasswordInput" type="password" autocomplete="new-password" />
+                </label>
+                <label class="form-row">
+                  <span>Повторите новый пароль</span>
+                  <input id="repeatPasswordInput" type="password" autocomplete="new-password" />
+                </label>
+              </div>
+              <div class="settings-actions">
+                <button id="changePasswordBtn" class="btn btn--outline" type="button">Сменить пароль</button>
+                <button id="logoutAllBtn" class="btn btn--danger" type="button">Выйти со всех устройств</button>
+              </div>
+            </article>
+
+            <article class="account-pane" data-pane="prefs">
+              <h2>Предпочтения</h2>
+              <div class="settings-grid">
+                <label class="form-row">
+                  <span>Язык</span>
+                  <select id="localeSelect">
+                    <option value="ru">RU</option>
+                    <option value="en">EN</option>
+                    <option value="kz">KZ</option>
+                  </select>
+                </label>
+                <label class="form-row">
+                  <span>Тема</span>
+                  <select id="themeSelect">
+                    <option value="light">Светлая</option>
+                    <option value="dark">Тёмная</option>
+                    <option value="system">Системная</option>
+                  </select>
+                </label>
+                <label class="form-row">
+                  <span>Формат даты</span>
+                  <select id="dateFormatSelect">
+                    <option value="dd.mm.yyyy">dd.mm.yyyy</option>
+                    <option value="yyyy-mm-dd">yyyy-mm-dd</option>
+                    <option value="mm/dd/yyyy">mm/dd/yyyy</option>
+                  </select>
+                </label>
+              </div>
+              <div class="settings-actions">
+                <button id="savePrefsBtn" class="btn btn--primary" type="button">Сохранить предпочтения</button>
+              </div>
+            </article>
+
+            <p id="accountStatus" class="status"></p>
+          </section>
+        </section>
+      </div>
+    </main>
+
+    <div id="confirmModal" class="modal" hidden>
+      <div class="modal__content modal__content--compact">
+        <h3 id="confirmTitle">Подтвердите действие</h3>
+        <p id="confirmText" class="lead"></p>
+        <div class="modal-actions">
+          <button id="confirmCancel" class="btn btn--outline" type="button">Отмена</button>
+          <button id="confirmSubmit" class="btn btn--danger" type="button">Подтвердить</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+
+    <script src="/account.js?v=20260304-account-utf8"></script>
+  </body>
+</html>

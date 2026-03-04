@@ -2,52 +2,48 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Author | Asking</title>
+    <title>Контакты | Asking</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="/styles.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css?v=20260304-author-utf8" />
   </head>
   <body class="workspace-page">
     <header class="topbar">
       <div class="container topbar__inner">
         <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
         <div class="topbar__actions">
-          <a class="btn btn--ghost" href="/guide">Guide</a>
-          <a class="btn btn--ghost" href="/create">Create</a>
-          <a class="btn btn--ghost" href="/cabinet">Cabinet</a>
+          <a class="btn btn--ghost" href="/guide">Инструкция</a>
+          <a class="btn btn--ghost" href="/create">Создать</a>
+          <a class="btn btn--ghost" href="/cabinet">Кабинет</a>
+          <a class="btn btn--ghost" href="/account">Аккаунт</a>
         </div>
       </div>
     </header>
 
     <main class="section">
-      <div class="container split">
-        <div class="card">
-          <h2>Контакты автора</h2>
-          <p class="lead">По вопросам доработок, внедрения и сотрудничества.</p>
-          <div class="recent-list">
-            <div class="recent-item">
-              <strong>Email</strong>
-              <a href="mailto:arabrgdauni@gmail.com">arabrgdauni@gmail.com</a>
-            </div>
-            <div class="recent-item">
-              <strong>GitHub</strong>
-              <a href="https://github.com/salamronin97" target="_blank" rel="noopener noreferrer">github.com/salamronin97</a>
-            </div>
-          </div>
-        </div>
+      <div class="container">
+        <div class="card contact-card">
+          <h1>Контакты</h1>
+          <p>По вопросам доработок и сотрудничества.</p>
 
-        <div class="card">
-          <h3>Связаться</h3>
-          <p class="lead">Нажмите кнопку ниже, чтобы открыть письмо в почтовом клиенте.</p>
-          <a class="btn" href="mailto:arabrgdauni@gmail.com?subject=Asking%20Contact">Связаться по email</a>
+          <div class="contact-item"><strong>Email:</strong> arabragduani@gmail.com</div>
+          <div class="contact-item"><strong>GitHub:</strong> github.com/salamronin97</div>
+
+          <button class="btn-primary" id="contactWriteBtn" type="button">Написать</button>
         </div>
       </div>
     </main>
+
+    <script>
+      const contactWriteBtn = document.getElementById("contactWriteBtn");
+      if (contactWriteBtn) {
+        contactWriteBtn.addEventListener("click", () => {
+          window.location.href = "mailto:arabragduani@gmail.com?subject=Asking%20Contact";
+        });
+      }
+    </script>
   </body>
 </html>
-

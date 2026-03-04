@@ -1,36 +1,135 @@
 ﻿<!doctype html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Survey | Asking</title>
+    <title>Анкета | Asking</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="/styles.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css?v=20260304-survey-utf8" />
   </head>
-  <body>
+  <body class="survey-page">
     <header class="topbar">
       <div class="container topbar__inner">
         <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
         <div class="topbar__actions">
-          <select id="languageSelect" class="lang-select" aria-label="Language">
-            <option value="en">EN</option>
-            <option value="ru">RU</option>
-            <option value="kz">KZ</option>
-          </select>
+          <a class="btn btn--ghost" href="/guide">Инструкция</a>
+          <a class="btn btn--ghost" href="/create">Создать</a>
+          <a class="btn btn--ghost" href="/cabinet">Кабинет</a>
+          <a class="btn btn--ghost" href="/account">Аккаунт</a>
+          <button id="authBtn" class="btn btn--outline" type="button">Войти</button>
         </div>
       </div>
     </header>
-    <main class="section">
-      <div class="container">
+
+    <main class="section survey-section">
+      <div class="container survey-dashboard" id="ownerApp" hidden>
+        <a class="btn btn--ghost" href="/cabinet">← Назад в кабинет</a>
+
+        <section class="card survey-head-card">
+          <div>
+            <div class="survey-head-meta">
+              <h1 id="ownerSurveyTitle">Анкета</h1>
+              <span id="ownerSurveyStatus" class="cabinet-status-pill">Статус</span>
+            </div>
+            <p id="ownerSurveyDescription" class="lead"></p>
+          </div>
+          <div class="survey-head-actions">
+            <button id="publishToggleBtn" class="btn btn--primary" type="button">Опубликовать</button>
+            <button id="shareBtn" class="btn btn--outline" type="button">Поделиться</button>
+          </div>
+        </section>
+
+        <section class="card survey-tabs-card">
+          <nav class="survey-tabs" aria-label="Разделы">
+            <button class="survey-tab is-active" type="button" data-tab="constructor">Конструктор</button>
+            <button class="survey-tab" type="button" data-tab="settings">Настройки</button>
+            <button class="survey-tab" type="button" data-tab="access">Доступ</button>
+            <button class="survey-tab" type="button" data-tab="results">Результаты</button>
+            <button class="survey-tab" type="button" data-tab="export">Экспорт</button>
+          </nav>
+
+          <div id="surveyTabStatus" class="status"></div>
+
+          <article class="survey-pane is-active" data-pane="constructor">
+            <div class="survey-pane-head">
+              <h2>Конструктор</h2>
+              <a id="openBuilderLink" class="btn btn--outline" href="/create">Открыть конструктор</a>
+            </div>
+            <div id="questionsList" class="question-list-preview"></div>
+          </article>
+
+          <article class="survey-pane" data-pane="settings">
+            <div class="survey-pane-head"><h2>Настройки анкеты</h2></div>
+            <div class="settings-grid">
+              <label class="form-row"><span>Название анкеты</span><input id="settingsTitle" type="text" /></label>
+              <label class="form-row"><span>Описание</span><textarea id="settingsDescription"></textarea></label>
+              <label class="form-row"><span>Аудитория</span><input id="settingsAudience" type="text" /></label>
+              <div class="settings-grid settings-grid--2">
+                <label class="form-row"><span>Начало</span><input id="settingsStartsAt" type="datetime-local" /></label>
+                <label class="form-row"><span>Окончание</span><input id="settingsEndsAt" type="datetime-local" /></label>
+              </div>
+              <label class="toggle-row"><input id="settingsAllowMulti" type="checkbox" /><span>Разрешить повторные ответы</span></label>
+            </div>
+            <div class="settings-actions"><button id="saveSettingsBtn" class="btn btn--primary" type="button">Сохранить изменения</button></div>
+          </article>
+
+          <article class="survey-pane" data-pane="access">
+            <div class="survey-pane-head"><h2>Доступ</h2></div>
+            <div class="settings-grid">
+              <label class="toggle-row"><input id="accessPublicLink" type="checkbox" checked /><span>Публичная ссылка</span></label>
+              <label class="toggle-row"><input id="accessPasswordEnabled" type="checkbox" /><span>Пароль на доступ</span></label>
+              <label class="form-row" id="accessPasswordWrap" hidden><span>Пароль</span><input id="accessPassword" type="text" placeholder="Введите пароль" /></label>
+              <label class="form-row"><span>Ограничение по количеству ответов</span><input id="accessLimit" type="number" min="0" placeholder="0 = без ограничения" /></label>
+              <label class="toggle-row"><input id="accessAnonymous" type="checkbox" /><span>Анонимность</span></label>
+            </div>
+            <div class="settings-actions"><button id="saveAccessBtn" class="btn btn--outline" type="button">Сохранить доступ (локально)</button></div>
+          </article>
+
+          <article class="survey-pane" data-pane="results">
+            <div class="survey-pane-head"><h2>Результаты</h2><button id="refreshResultsBtn" class="btn btn--outline" type="button">Обновить</button></div>
+            <div id="resultsSummary" class="cabinet-stats"></div>
+            <div id="resultsStats" class="results-cards"></div>
+            <div class="cabinet-table-wrap">
+              <table class="table cabinet-table">
+                <thead id="responsesHead"></thead>
+                <tbody id="responsesBody"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="survey-pane" data-pane="export">
+            <div class="survey-pane-head"><h2>Экспорт</h2></div>
+            <p class="lead">Скачайте результаты в нужном формате для дальнейшего анализа.</p>
+            <div class="settings-actions">
+              <a id="exportCsvBtn" class="btn btn--outline" href="#" target="_blank" rel="noopener">Скачать CSV</a>
+              <a id="exportXlsxBtn" class="btn btn--outline" href="#" target="_blank" rel="noopener">Скачать XLSX</a>
+            </div>
+          </article>
+        </section>
+      </div>
+
+      <div class="survey-container" id="publicApp" hidden>
         <div id="surveyCard" class="card"></div>
       </div>
     </main>
-    <script src="/survey.js"></script>
+
+    <div id="shareModal" class="modal" hidden>
+      <div class="modal__content modal__content--compact">
+        <button id="shareModalClose" class="modal__close" type="button" aria-label="Закрыть">×</button>
+        <h3>Поделиться анкетой</h3>
+        <p class="lead" id="shareLinkText"></p>
+        <div class="modal-actions">
+          <button id="shareCopyBtn" class="btn btn--primary" type="button">Копировать ссылку</button>
+          <a id="shareOpenBtn" class="btn btn--outline" target="_blank" rel="noopener">Открыть</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="surveyToast" class="toast" hidden></div>
+
+    <script src="/survey.js?v=20260304-survey-utf8"></script>
   </body>
 </html>
-

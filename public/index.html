@@ -1,205 +1,176 @@
 ﻿<!doctype html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Asking | Surveys, Forms, Voting</title>
+    <title>Asking | Сервис анкет и голосований</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="/styles.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css?v=20260303-2" />
   </head>
   <body class="landing-page">
-    <div class="bg-shape bg-shape--one"></div>
-    <div class="bg-shape bg-shape--two"></div>
-
     <header class="topbar">
       <div class="container topbar__inner">
         <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
         <div class="topbar__actions">
-          <a class="btn btn--ghost" href="/create" data-i18n="navCreate">Create</a>
-          <a class="btn btn--ghost" href="/guide" data-i18n="navGuide">Guide</a>
-          <a class="btn btn--ghost" href="/author" data-i18n="navAuthor">Author</a>
-          <a class="btn btn--ghost" href="/cabinet" data-i18n="navCabinet">Cabinet</a>
+          <nav class="landing-nav" aria-label="Навигация">
+            <a href="#features">Возможности</a>
+            <a href="#templates">Шаблоны</a>
+            <a href="#faq">FAQ</a>
+          </nav>
           <select id="languageSelect" class="lang-select" aria-label="Language">
-            <option value="en">EN</option>
             <option value="ru">RU</option>
+            <option value="en">EN</option>
             <option value="kz">KZ</option>
           </select>
-          <a id="authBtn" class="btn btn--outline" href="/auth" data-i18n="navSignIn">Sign in</a>
+          <a id="authBtn" class="btn btn--outline" href="/auth">Войти</a>
+          <a class="btn btn--primary" href="/create">Создать анкету</a>
         </div>
       </div>
     </header>
 
-    <main class="landing-flat">
-      <section class="landing-strip landing-strip--hero">
-        <div class="container container--full">
-        <div class="landing-hero-grid">
-          <div>
-            <p class="eyebrow landing-pill" data-i18n="heroEyebrow">SMART SURVEYS FOR EDUCATION AND BUSINESS</p>
-            <h1 data-i18n="heroTitle">Asking</h1>
-            <p class="lead" data-i18n="heroLead">Платформа для создания анкет, опросов и голосований по ссылке.</p>
+    <main>
+      <section class="section" id="hero">
+        <div class="container hero-grid">
+          <div class="hero-main">
+            <span class="hero-tag">Профессиональные анкеты и опросы</span>
+            <h1>Создавайте опросы за минуты и принимайте решения на данных</h1>
+            <p class="lead">Запускайте формы по ссылке, собирайте ответы в реальном времени и выгружайте результаты в CSV/XLSX.</p>
+            <div class="hero-actions">
+              <a class="btn btn--primary" href="/create">Создать анкету</a>
+              <a class="btn btn--outline" href="/cabinet">Открыть кабинет</a>
+            </div>
           </div>
-          <div class="landing-hero-actions">
-            <a class="btn" href="/create" data-i18n="heroCreate">Создать анкету</a>
-            <a class="btn btn--outline" href="/cabinet" data-i18n="navCabinet">Кабинет</a>
-            <a class="btn btn--ghost" href="/guide" data-i18n="heroGuide">Открыть гайд</a>
+
+          <div class="hero-side">
+            <aside class="card quickstart-card" aria-label="Быстрый старт">
+              <div class="quickstart-head">
+                <h3>Быстрый старт</h3>
+                <span class="quickstart-time">~2 минуты</span>
+              </div>
+              <ol class="quickstart-list">
+                <li><strong>Шаг 1</strong><span>Выберите тему и цель анкеты.</span></li>
+                <li><strong>Шаг 2</strong><span>Добавьте вопросы и типы ответов.</span></li>
+                <li><strong>Шаг 3</strong><span>Опубликуйте ссылку и отслеживайте аналитику.</span></li>
+              </ol>
+            </aside>
+
+            <article class="card preview-card" aria-label="Превью опроса">
+              <span class="preview-card__tag">Превью</span>
+              <h4>Как вы оцениваете организацию мероприятия?</h4>
+              <div class="preview-options">
+                <label class="preview-option"><input type="radio" name="preview" /> Отлично</label>
+                <label class="preview-option"><input type="radio" name="preview" /> Нормально</label>
+                <label class="preview-option"><input type="radio" name="preview" /> Нужно улучшить</label>
+              </div>
+            </article>
           </div>
-        </div>
         </div>
       </section>
 
-      <section class="landing-strip">
-        <div class="container container--full">
-        <h2 data-i18n="aboutTitle">О сайте</h2>
-        <p class="lead lead--long" data-i18n="aboutLeadLong">
-          Asking помогает быстро собирать мнения и оценки: от обратной связи по мероприятиям до внутренних анкет в колледже, школе или компании.
-          Вы создаете анкету, отправляете ссылку участникам, получаете ответы в личном кабинете и выгружаете результат в удобном формате.
-        </p>
+      <section class="section" id="features">
+        <div class="container">
+          <div class="section-head">
+            <h2>Возможности</h2>
+            <p>Функции для образовательных, корпоративных и клиентских опросов.</p>
+          </div>
+          <div class="feature-grid">
+            <article class="feature-card">
+              <h3>Анонимные ответы</h3>
+              <p>Собирайте честную обратную связь без персональных данных.</p>
+            </article>
+            <article class="feature-card">
+              <h3>Фото в вопросах</h3>
+              <p>Добавляйте URL изображений к вариантам ответа и визуальным задачам.</p>
+            </article>
+            <article class="feature-card">
+              <h3>Ограничение по времени</h3>
+              <p>Управляйте периодом доступности анкеты через дату начала и завершения.</p>
+            </article>
+            <article class="feature-card">
+              <h3>Экспорт отчетов</h3>
+              <p>Выгружайте данные в CSV и XLSX для отчетности и анализа.</p>
+            </article>
+          </div>
         </div>
       </section>
 
-      <section class="landing-strip landing-strip--alt">
-        <div class="container container--full">
-        <h2 data-i18n="guideTitle">Мини-гайд</h2>
-        <ol class="mini-guide">
-          <li data-i18n="guide1">Зарегистрируйтесь и войдите в аккаунт.</li>
-          <li data-i18n="guide2">Создайте анкету в конструкторе.</li>
-          <li data-i18n="guide3">Скопируйте ссылку и отправьте участникам.</li>
-          <li data-i18n="guide4">Смотрите результаты и анализ в кабинете.</li>
-        </ol>
-        <a class="btn" href="/create" data-i18n="heroCreate">Создать анкету</a>
+      <section class="section" id="templates">
+        <div class="container">
+          <div class="section-head">
+            <h2>Шаблоны</h2>
+            <p>Запускайте опросы быстрее с готовыми сценариями под ваши задачи.</p>
+          </div>
+          <div class="template-grid">
+            <button class="template-card template-card--action" type="button" data-template-key="education"><h3>Образование</h3><p>Оценка программ и качества обучения.</p></button>
+            <button class="template-card template-card--action" type="button" data-template-key="hr"><h3>HR</h3><p>Вовлеченность сотрудников и внутренний климат.</p></button>
+            <button class="template-card template-card--action" type="button" data-template-key="marketing"><h3>Маркетинг</h3><p>Исследование аудитории и каналов.</p></button>
+            <button class="template-card template-card--action" type="button" data-template-key="service"><h3>Сервис</h3><p>Оценка качества обслуживания клиентов.</p></button>
+            <button class="template-card template-card--action" type="button" data-template-key="events"><h3>События</h3><p>Пост-опросы и обратная связь по мероприятиям.</p></button>
+            <button class="template-card template-card--action" type="button" data-template-key="voting"><h3>Голосования</h3><p>Быстрый выбор приоритетов и решений.</p></button>
+          </div>
         </div>
       </section>
 
-      <section class="landing-strip">
-        <div class="container container--full">
-        <h2 data-i18n="contactsTitle">Связь</h2>
-        <div class="recent-list">
-          <div class="recent-item"><strong data-i18n="contactNameLabel">Имя</strong><span data-i18n="contactName">Автор Asking</span></div>
-          <div class="recent-item"><strong data-i18n="contactPhoneLabel">Номер</strong><span data-i18n="contactPhone">по запросу</span></div>
-          <div class="recent-item">
-            <strong data-i18n="contactTgLabel">Telegram</strong>
-            <a href="https://t.me/salamronin97" target="_blank" rel="noopener noreferrer">@salamronin97</a>
+      <section class="section" id="faq">
+        <div class="container">
+          <div class="section-head">
+            <h2>FAQ</h2>
+            <p>Короткие ответы на частые вопросы перед запуском анкеты.</p>
           </div>
-          <div class="recent-item">
-            <strong data-i18n="contactMailLabel">Gmail</strong>
-            <a href="mailto:arabrgdauni@gmail.com">arabrgdauni@gmail.com</a>
+          <div class="faq-grid">
+            <article class="faq-card">
+              <h3>Можно ли запускать анонимные анкеты?</h3>
+              <p>Да, режим анонимности включается в настройках анкеты.</p>
+            </article>
+            <article class="faq-card">
+              <h3>Работает ли сервис на телефоне?</h3>
+              <p>Да, кабинет, конструктор и форма прохождения адаптированы под мобильные экраны.</p>
+            </article>
+            <article class="faq-card">
+              <h3>Какие типы вопросов доступны?</h3>
+              <p>Текст, одиночный выбор, множественный выбор, рейтинг и выпадающий список.</p>
+            </article>
+            <article class="faq-card">
+              <h3>Можно ли экспортировать результаты?</h3>
+              <p>Да, экспорт доступен в форматах CSV и XLSX.</p>
+            </article>
+            <article class="faq-card">
+              <h3>Нужна регистрация для создания анкет?</h3>
+              <p>Да, создание и управление анкетами доступно только авторизованным пользователям.</p>
+            </article>
           </div>
-        </div>
         </div>
       </section>
     </main>
 
-    <script>
-      const i18n = {
-        en: {
-          navCreate: "Create",
-          navGuide: "Guide",
-          navAuthor: "Author",
-          navCabinet: "Cabinet",
-          navSignIn: "Sign in",
-          heroEyebrow: "SMART SURVEYS FOR EDUCATION AND BUSINESS",
-          heroTitle: "Asking",
-          heroLead: "Platform for creating surveys, forms and voting by link.",
-          heroCreate: "Create survey",
-          heroGuide: "Open guide",
-          aboutTitle: "About",
-          aboutLeadLong:
-            "Asking helps you collect feedback fast for education, events and teams. You create a survey, share one link, collect responses in your cabinet and export clean results.",
-          guideTitle: "Mini guide",
-          guide1: "Sign up and log in.",
-          guide2: "Create your survey in the builder.",
-          guide3: "Copy public link and send it to participants.",
-          guide4: "Open results and analytics in your cabinet.",
-          contactsTitle: "Contacts",
-          contactNameLabel: "Name",
-          contactName: "Asking author",
-          contactPhoneLabel: "Phone",
-          contactPhone: "on request",
-          contactTgLabel: "Telegram",
-          contactMailLabel: "Gmail"
-        },
-        ru: {
-          navCreate: "Создать",
-          navGuide: "Гайд",
-          navAuthor: "Автор",
-          navCabinet: "Кабинет",
-          navSignIn: "Войти",
-          heroEyebrow: "УМНЫЕ ОПРОСЫ ДЛЯ ОБРАЗОВАНИЯ И БИЗНЕСА",
-          heroTitle: "Asking",
-          heroLead: "Платформа для создания анкет, опросов и голосований по ссылке.",
-          heroCreate: "Создать анкету",
-          heroGuide: "Открыть гайд",
-          aboutTitle: "О сайте",
-          aboutLeadLong:
-            "Asking помогает быстро собирать мнения и оценки: от обратной связи по мероприятиям до внутренних анкет в колледже, школе или компании. Вы создаете анкету, отправляете ссылку участникам, получаете ответы в личном кабинете и выгружаете результат в удобном формате.",
-          guideTitle: "Мини-гайд",
-          guide1: "Зарегистрируйтесь и войдите в аккаунт.",
-          guide2: "Создайте анкету в конструкторе.",
-          guide3: "Скопируйте ссылку и отправьте участникам.",
-          guide4: "Смотрите результаты и анализ в кабинете.",
-          contactsTitle: "Связь",
-          contactNameLabel: "Имя",
-          contactName: "Автор Asking",
-          contactPhoneLabel: "Номер",
-          contactPhone: "по запросу",
-          contactTgLabel: "Telegram",
-          contactMailLabel: "Gmail"
-        },
-        kz: {
-          navCreate: "Құру",
-          navGuide: "Нұсқаулық",
-          navAuthor: "Автор",
-          navCabinet: "Кабинет",
-          navSignIn: "Кіру",
-          heroEyebrow: "БІЛІМ МЕН БИЗНЕСКЕ АРНАЛҒАН САУАЛНАМАЛАР",
-          heroTitle: "Asking",
-          heroLead: "Сілтеме арқылы анкета, сауалнама және дауыс беру жасау платформасы.",
-          heroCreate: "Сауалнама құру",
-          heroGuide: "Нұсқаулық ашу",
-          aboutTitle: "Сайт туралы",
-          aboutLeadLong:
-            "Asking білім мен бизнеске жылдам кері байланыс жинауға көмектеседі. Сауалнама жасап, бір сілтемемен таратып, нәтижені кабинеттен қарап, файлға жүктей аласыз.",
-          guideTitle: "Қысқа нұсқаулық",
-          guide1: "Тіркеліп, аккаунтқа кіріңіз.",
-          guide2: "Конструкторда сауалнама жасаңыз.",
-          guide3: "Сілтемені көшіріп қатысушыларға жіберіңіз.",
-          guide4: "Кабинеттен нәтижелер мен анализді ашыңыз.",
-          contactsTitle: "Байланыс",
-          contactNameLabel: "Аты",
-          contactName: "Asking авторы",
-          contactPhoneLabel: "Нөмір",
-          contactPhone: "сұраныс бойынша",
-          contactTgLabel: "Telegram",
-          contactMailLabel: "Gmail"
-        }
-      };
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <span>© 2026 Asking</span>
+        <div class="site-footer__links">
+          <a href="/guide">Инструкция</a>
+          <a href="/author">Контакты</a>
+          <a href="/cabinet">Кабинет</a>
+        </div>
+      </div>
+    </footer>
 
+    <script>
       const LANG_KEY = "asking-pro-lang";
       const languageSelect = document.getElementById("languageSelect");
       const authBtn = document.getElementById("authBtn");
 
-      function t(lang, key) {
-        return i18n[lang]?.[key] || i18n.en[key] || key;
+      const savedLang = localStorage.getItem(LANG_KEY);
+      if (["ru", "en", "kz"].includes(savedLang)) {
+        languageSelect.value = savedLang;
+        document.documentElement.lang = savedLang;
       }
 
-      function applyLang(lang) {
-        document.documentElement.lang = lang;
-        document.querySelectorAll("[data-i18n]").forEach((node) => {
-          node.textContent = t(lang, node.getAttribute("data-i18n"));
-        });
-      }
-
-      const lang = ["en", "ru", "kz"].includes(localStorage.getItem(LANG_KEY)) ? localStorage.getItem(LANG_KEY) : "ru";
-      languageSelect.value = lang;
-      applyLang(lang);
       languageSelect.addEventListener("change", () => {
         localStorage.setItem(LANG_KEY, languageSelect.value);
-        applyLang(languageSelect.value);
+        document.documentElement.lang = languageSelect.value;
       });
 
       (async () => {
@@ -207,12 +178,21 @@
           const response = await fetch("/api/auth/me");
           const data = await response.json();
           if (data.user) {
-            authBtn.textContent = data.user.email || "Cabinet";
+            authBtn.textContent = data.user.email || "Кабинет";
             authBtn.href = "/cabinet";
           }
         } catch {}
       })();
+
+      document.querySelectorAll("[data-template-key]").forEach((node) => {
+        node.addEventListener("click", async () => {
+          const key = node.getAttribute("data-template-key");
+          if (!key) return;
+          window.location.href = `/create?template=${encodeURIComponent(key)}`;
+        });
+      });
     </script>
   </body>
 </html>
+
 

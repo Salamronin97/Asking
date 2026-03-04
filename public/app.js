@@ -1,4 +1,4 @@
-﻿const state = {
+const state = {
   editingSurveyId: null,
   filters: {
     status: "",
