@@ -180,6 +180,8 @@
       "publishBtn",
       "addQuestionBtn",
       "openTemplateCatalogBtn",
+      "undoBtn",
+      "redoBtn",
       "restoreDraftInlineBtn",
       "clearDraftInlineBtn",
       "questionList",
@@ -279,6 +281,8 @@
 
     refs.addQuestionBtn?.addEventListener("click", openQuestionTypeModal);
     refs.openTemplateCatalogBtn?.addEventListener("click", openTemplateCatalogModal);
+    refs.undoBtn?.addEventListener("click", undoChange);
+    refs.redoBtn?.addEventListener("click", redoChange);
     refs.openThemePickerBtn?.addEventListener("click", () => {
       setSettingsPane("design");
       openThemePickerModal();
@@ -673,6 +677,7 @@
     renderQuestions();
     renderEditor();
     setSettingsPane(state.settingsPane);
+    updateHistoryControls();
     updateDesignEditor();
     renderSurveyPreview();
 
@@ -1865,6 +1870,7 @@
       historyState.undoStack = [snapshot];
       historyState.redoStack = [];
       historyState.lastHash = hash;
+      updateHistoryControls();
       return;
     }
 
@@ -1872,6 +1878,7 @@
     if (historyState.undoStack.length > historyState.max) historyState.undoStack.shift();
     historyState.redoStack = [];
     historyState.lastHash = hash;
+    updateHistoryControls();
   }
 
   function applyHistorySnapshot(snapshot, message) {
@@ -1911,6 +1918,7 @@
     historyState.redoStack.push(current);
     const previous = historyState.undoStack[historyState.undoStack.length - 1];
     historyState.lastHash = JSON.stringify(previous);
+    updateHistoryControls();
     applyHistorySnapshot(previous, "Действие отменено");
   }
 
@@ -1922,7 +1930,13 @@
     const next = historyState.redoStack.pop();
     historyState.undoStack.push(next);
     historyState.lastHash = JSON.stringify(next);
+    updateHistoryControls();
     applyHistorySnapshot(next, "Действие повторено");
+  }
+
+  function updateHistoryControls() {
+    if (refs.undoBtn) refs.undoBtn.disabled = historyState.undoStack.length <= 1;
+    if (refs.redoBtn) refs.redoBtn.disabled = historyState.redoStack.length === 0;
   }
 
   function normalizeDraft(survey) {

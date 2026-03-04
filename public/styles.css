@@ -3956,6 +3956,11 @@ body.modal-open {
   margin-left: auto;
 }
 
+.constructor-toolbar__history {
+  display: inline-flex;
+  gap: 6px;
+}
+
 .constructor-question-list {
   display: grid;
   gap: 12px;
