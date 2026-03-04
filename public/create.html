@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260304-builder-final" />
+    <link rel="stylesheet" href="/styles.css?v=20260304-builder-max" />
   </head>
   <body class="workspace-page create-new">
     <header class="topbar">
@@ -37,8 +37,8 @@
       <button class="constructor-mobile-tab" type="button" data-panel-tab="settings">Настройки</button>
     </div>
 
-    <main class="constructor-wrap" aria-label="Конструктор анкеты">
-      <aside id="pagesPanel" class="constructor-pages card constructor-panel is-active" data-panel="pages" aria-label="Страницы анкеты">
+    <main class="constructor-wrap workspace-shell" aria-label="Конструктор анкеты">
+      <aside id="pagesPanel" class="constructor-pages workspace-side card constructor-panel is-active" data-panel="pages" aria-label="Страницы анкеты">
         <div class="constructor-head-sm">
           <h3>Страницы</h3>
         </div>
@@ -49,41 +49,76 @@
           <button id="removePageBtn" class="btn btn--ghost btn--xs" type="button">Удалить</button>
         </div>
         <button id="addPageBtn" class="btn btn--outline" type="button">+ Добавить страницу</button>
+
+        <section class="constructor-bank">
+          <div class="constructor-bank__head">
+            <h4>Банк вопросов</h4>
+          </div>
+          <div class="constructor-bank__list">
+            <button class="constructor-bank__item" type="button" data-quick-question-type="single">
+              <strong>Один выбор</strong>
+              <span>Радио-кнопки</span>
+            </button>
+            <button class="constructor-bank__item" type="button" data-quick-question-type="multiple">
+              <strong>Множественный</strong>
+              <span>Чекбоксы</span>
+            </button>
+            <button class="constructor-bank__item" type="button" data-quick-question-type="select">
+              <strong>Список</strong>
+              <span>Выпадающий select</span>
+            </button>
+            <button class="constructor-bank__item" type="button" data-quick-question-type="rating">
+              <strong>Рейтинг</strong>
+              <span>Шкала 1-5</span>
+            </button>
+            <button class="constructor-bank__item" type="button" data-quick-question-type="text">
+              <strong>Текст</strong>
+              <span>Свободный ответ</span>
+            </button>
+          </div>
+        </section>
       </aside>
 
-      <section id="questionsPanel" class="constructor-canvas card constructor-panel is-active" data-panel="questions" aria-label="Вопросы">
-        <header class="constructor-header">
-          <div class="constructor-title-block">
-            <input id="surveyTitle" class="constructor-title-input" type="text" placeholder="Название анкеты" />
-            <textarea id="surveyDescription" class="constructor-description-input" placeholder="Краткое описание анкеты"></textarea>
+      <section id="questionsPanel" class="constructor-canvas workspace-main card constructor-panel is-active" data-panel="questions" aria-label="Вопросы">
+        <div class="constructor-worktop">
+          <div class="constructor-worktop__crumbs">
+            <strong id="worktopSurveyTitle">Конструктор анкеты</strong>
           </div>
-          <div class="constructor-header-actions">
-            <div id="saveState" class="save-indicator is-saved" aria-live="polite">
-              <span class="save-indicator__dot"></span>
-              <span id="saveStateText">Сохранено</span>
-            </div>
-            <button id="publishBtn" class="btn btn--primary" type="button">Опубликовать</button>
+          <div class="constructor-worktop__meta">
+            <span id="builderMetaPages" class="constructor-worktop__pill">0 стр.</span>
+            <span id="builderMetaQuestions" class="constructor-worktop__pill">0 вопросов</span>
+            <span id="builderMetaLogic" class="constructor-worktop__pill">0 переходов</span>
           </div>
-        </header>
-
-        <div class="constructor-toolbar">
-          <button id="addQuestionBtn" class="btn btn--outline" type="button">+ Добавить вопрос</button>
-          <button id="restoreDraftInlineBtn" class="btn btn--ghost" type="button">Восстановить</button>
-          <button id="clearDraftInlineBtn" class="btn btn--ghost" type="button">Сбросить</button>
+          <div class="constructor-worktop__actions">
+            <button id="publishBtn" class="btn btn--primary btn--xs" type="button">Publish</button>
+          </div>
         </div>
 
-        <div id="questionList" class="constructor-question-list"></div>
-        <section class="constructor-preview card" aria-label="Превью анкеты">
-          <div class="constructor-preview__head">
-            <h3>Как будет выглядеть опрос</h3>
-            <p>Живой предпросмотр текущей страницы</p>
+        <div class="constructor-sheet">
+          <header class="constructor-header">
+            <div class="constructor-title-block">
+              <input id="surveyTitle" class="constructor-title-input" type="text" placeholder="Название анкеты" />
+              <textarea id="surveyDescription" class="constructor-description-input" placeholder="Краткое описание анкеты"></textarea>
+            </div>
+            <div class="constructor-header-actions">
+              <div id="saveState" class="save-indicator is-saved" aria-live="polite">
+                <span class="save-indicator__dot"></span>
+                <span id="saveStateText">Сохранено</span>
+              </div>
+            </div>
+          </header>
+
+          <div class="constructor-toolbar">
+            <button id="addQuestionBtn" class="btn btn--outline" type="button">+ Добавить вопрос</button>
+            <button id="openTemplateCatalogBtn" class="btn btn--ghost" type="button">Шаблоны</button>
           </div>
-          <div id="surveyPreviewList" class="constructor-preview__list"></div>
-        </section>
-        <p id="statusText" class="status"></p>
+
+          <div id="questionList" class="constructor-question-list"></div>
+          <p id="statusText" class="status"></p>
+        </div>
       </section>
 
-      <aside id="settingsPanel" class="constructor-editor card constructor-panel is-active" data-panel="settings" aria-label="Редактор вопроса">
+      <aside id="settingsPanel" class="constructor-editor workspace-side card constructor-panel is-active" data-panel="settings" aria-label="Редактор вопроса">
         <div class="constructor-head-sm">
           <h3>Настройки вопроса</h3>
         </div>
@@ -174,6 +209,8 @@
               <option value="full">Цельный фон</option>
               <option value="split-right-image">Фото справа</option>
               <option value="split-left-image">Фото слева</option>
+              <option value="cover-top-image">Обложка сверху</option>
+              <option value="center-card">Карточка по центру</option>
             </select>
           </label>
 
@@ -256,10 +293,6 @@
             <strong>Опрос из шаблона</strong>
             <span>Выберите готовую структуру и адаптируйте под себя.</span>
           </button>
-          <button id="entryAiBtn" class="constructor-entry-item" type="button">
-            <strong>С помощью ИИ</strong>
-            <span>Функция в разработке. Пока доступен ручной режим.</span>
-          </button>
         </div>
       </div>
     </div>
@@ -327,7 +360,7 @@
       </div>
     </div>
 
-    <script src="/templates.js?v=20260304-clean"></script>
-    <script src="/create.js?v=20260304-builder-final"></script>
+    <script src="/templates.js?v=20260304-templates-max"></script>
+    <script src="/create.js?v=20260304-builder-max"></script>
   </body>
 </html>

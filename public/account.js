@@ -19,6 +19,10 @@ const changePasswordBtn = document.getElementById("changePasswordBtn");
 const logoutAllBtn = document.getElementById("logoutAllBtn");
 const passwordForm = document.getElementById("passwordForm");
 const passwordUnavailable = document.getElementById("passwordUnavailable");
+const refreshSessionsBtn = document.getElementById("refreshSessionsBtn");
+const sessionsList = document.getElementById("sessionsList");
+const deleteAccountPasswordInput = document.getElementById("deleteAccountPasswordInput");
+const deleteAccountBtn = document.getElementById("deleteAccountBtn");
 
 const confirmModal = document.getElementById("confirmModal");
 const confirmTitle = document.getElementById("confirmTitle");
@@ -26,7 +30,7 @@ const confirmText = document.getElementById("confirmText");
 const confirmCancel = document.getElementById("confirmCancel");
 const confirmSubmit = document.getElementById("confirmSubmit");
 
-const state = { profile: null, confirmAction: null };
+const state = { profile: null, confirmAction: null, sessions: [] };
 
 const api = {
   async request(url, options) {
@@ -85,6 +89,69 @@ async function loadAccount() {
   const profile = await api.request("/api/account");
   state.profile = profile;
   fillProfile(profile);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function formatDate(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("ru-RU", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function shortUserAgent(value) {
+  const source = String(value || "").trim();
+  if (!source) return "Неизвестное устройство";
+  const cleaned = source.replace(/\s+/g, " ");
+  return cleaned.length > 120 ? `${cleaned.slice(0, 117)}...` : cleaned;
+}
+
+async function loadSessions() {
+  const payload = await api.request("/api/account/sessions");
+  state.sessions = Array.isArray(payload.sessions) ? payload.sessions : [];
+  renderSessions();
+}
+
+function renderSessions() {
+  if (!sessionsList) return;
+  if (!state.sessions.length) {
+    sessionsList.innerHTML = "<div class='svacc-empty-row'>Сессии не найдены.</div>";
+    return;
+  }
+
+  sessionsList.innerHTML = state.sessions
+    .map((session) => {
+      const badge = session.isCurrent
+        ? "<span class='svacc-session__badge is-current'>Текущая</span>"
+        : "<span class='svacc-session__badge'>Активна</span>";
+      return `
+        <article class="svacc-session" data-session-id="${Number(session.id)}">
+          <div class="svacc-session__top">
+            <strong>${escapeHtml(shortUserAgent(session.userAgent))}</strong>
+            ${badge}
+          </div>
+          <div class="svacc-session__meta">
+            <span>IP: ${escapeHtml(session.ip || "—")}</span>
+            <span>Вход: ${escapeHtml(formatDate(session.createdAt))}</span>
+            <span>Истекает: ${escapeHtml(formatDate(session.expiresAt))}</span>
+          </div>
+          ${
+            session.isCurrent
+              ? ""
+              : `<div class="svacc-session__actions"><button class="btn btn--ghost btn--xs" type="button" data-kill-session="${Number(session.id)}">Завершить</button></div>`
+          }
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function openConfirm(title, text, action) {
@@ -186,8 +253,51 @@ function bindEvents() {
       "Выйти со всех устройств",
       "Текущая сессия тоже будет завершена. Продолжить?",
       async () => {
-        await api.request("/api/auth/logout_all", { method: "POST" });
+        await api.request("/api/account/logout-all", { method: "POST" });
         showToast("Все устройства отключены");
+        window.location.href = "/auth";
+      }
+    );
+  });
+
+  refreshSessionsBtn?.addEventListener("click", () => {
+    loadSessions()
+      .then(() => showToast("Сессии обновлены"))
+      .catch((error) => showToast(error.message || "Не удалось обновить сессии", true));
+  });
+
+  sessionsList?.addEventListener("click", (event) => {
+    const killBtn = event.target.closest("[data-kill-session]");
+    if (!killBtn) return;
+    const sessionId = Number(killBtn.dataset.killSession);
+    if (!Number.isInteger(sessionId) || sessionId <= 0) return;
+    openConfirm(
+      "Завершить сессию",
+      "Это устройство будет разлогинено.",
+      async () => {
+        await api.request(`/api/account/sessions/${sessionId}`, { method: "DELETE" });
+        await loadSessions();
+        showToast("Сессия завершена");
+      }
+    );
+  });
+
+  deleteAccountBtn?.addEventListener("click", () => {
+    const password = String(deleteAccountPasswordInput?.value || "");
+    if (!password) {
+      setStatus("Введите пароль для удаления аккаунта.", true);
+      return;
+    }
+    openConfirm(
+      "Удалить аккаунт",
+      "Действие необратимо: будут удалены профиль и связанные данные.",
+      async () => {
+        await api.request("/api/account", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password })
+        });
+        showToast("Аккаунт удалён");
         window.location.href = "/auth";
       }
     );
@@ -219,6 +329,7 @@ function bindEvents() {
 
     bindEvents();
     await loadAccount();
+    await loadSessions();
     setStatus("Профиль загружен.");
   } catch (error) {
     setStatus(error.message || "Не удалось загрузить аккаунт", true);

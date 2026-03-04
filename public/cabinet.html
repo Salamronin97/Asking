@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
@@ -8,9 +8,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260304-utf8-fix-1" />
+    <link rel="stylesheet" href="/styles.css?v=20260304-cabinet-max" />
   </head>
-  <body class="workspace-page cabinet-page">
+  <body class="workspace-page svdash-page">
     <header class="topbar">
       <div class="container topbar__inner">
         <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
@@ -24,76 +24,78 @@
       </div>
     </header>
 
-    <main class="cabinet-shell">
-      <div class="container cabinet-container">
-        <section class="card cabinet-main">
-          <div class="card-header cabinet-main__top">
-            <div>
-              <h1>Мои анкеты</h1>
-              <p class="lead">Управляйте анкетами, доступом и результатами в одном окне.</p>
-            </div>
-            <a class="btn btn--primary" href="/create">+ Создать анкету</a>
+    <main class="svdash-shell workspace-shell">
+      <aside class="svdash-side workspace-side card">
+        <div class="svdash-side__brand">
+          <span class="svdash-side__logo">A</span>
+          <div>
+            <strong>Asking Workspace</strong>
+            <p>Панель опросов</p>
           </div>
+        </div>
+        <nav class="svdash-side__nav" aria-label="Навигация кабинета">
+          <a class="is-active" href="/cabinet">Мои опросы</a>
+          <a href="/create">Создать опрос</a>
+          <a href="/account">Профиль</a>
+          <a href="/guide">Справка</a>
+        </nav>
+      </aside>
 
-          <div class="cabinet-stats" id="statsGrid">
-            <article class="stat-card"><span>Всего анкет</span><strong id="statTotal">0</strong></article>
-            <article class="stat-card"><span>Активные</span><strong id="statActive">0</strong></article>
-            <article class="stat-card"><span>Архив</span><strong id="statArchived">0</strong></article>
-            <article class="stat-card"><span>Ответов</span><strong id="statResponses">0</strong></article>
+      <section class="svdash-main workspace-main card">
+        <header class="svdash-head">
+          <div>
+            <h1>Мои опросы</h1>
+            <p>Управляйте анкетами, публикацией и ответами из единой панели.</p>
           </div>
+          <a class="btn btn--primary" href="/create">+ Новый опрос</a>
+        </header>
 
-          <div class="cabinet-controls">
-            <label class="control-field control-field--grow" for="searchInput">
-              <span>Поиск</span>
-              <input id="searchInput" type="search" placeholder="Название или описание" />
-            </label>
-            <label class="control-field" for="statusFilter">
-              <span>Статус</span>
-              <select id="statusFilter">
-                <option value="all">Все</option>
-                <option value="published">Активные</option>
-                <option value="archived">Архив</option>
-              </select>
-            </label>
-            <label class="control-field" for="sortSelect">
-              <span>Сортировка</span>
-              <select id="sortSelect">
-                <option value="date">По дате</option>
-                <option value="responses">По ответам</option>
-                <option value="title">По названию</option>
-              </select>
-            </label>
-          </div>
-
-          <div id="tableSkeleton" class="cabinet-skeleton" hidden>
-            <div class="skeleton-row"></div>
-            <div class="skeleton-row"></div>
-            <div class="skeleton-row"></div>
-          </div>
-
-          <div class="cabinet-table-wrap" id="tableWrap">
-            <table class="table cabinet-table">
-              <thead>
-                <tr>
-                  <th>Название</th>
-                  <th>Статус</th>
-                  <th>Ответы</th>
-                  <th>Начало</th>
-                  <th>Окончание</th>
-                  <th>Действия</th>
-                </tr>
-              </thead>
-              <tbody id="surveyRows"></tbody>
-            </table>
-          </div>
-
-          <div id="emptyState" class="cabinet-empty-state" hidden>
-            <h3>Анкет пока нет</h3>
-            <p>Создайте первую анкету, чтобы начать сбор ответов.</p>
-            <a class="btn btn--primary" href="/create">Создать первую анкету</a>
-          </div>
+        <section class="svdash-stats" id="statsGrid">
+          <article class="svdash-stat"><span>Всего</span><strong id="statTotal">0</strong></article>
+          <article class="svdash-stat"><span>Опубликовано</span><strong id="statActive">0</strong></article>
+          <article class="svdash-stat"><span>Черновики</span><strong id="statDraft">0</strong></article>
+          <article class="svdash-stat"><span>В архиве</span><strong id="statArchived">0</strong></article>
+          <article class="svdash-stat"><span>Всего ответов</span><strong id="statResponses">0</strong></article>
         </section>
-      </div>
+
+        <section class="svdash-filters">
+          <label class="control-field control-field--grow" for="searchInput">
+            <span>Поиск</span>
+            <input id="searchInput" type="search" placeholder="Название или описание" />
+          </label>
+          <label class="control-field" for="statusFilter">
+            <span>Статус</span>
+            <select id="statusFilter">
+              <option value="all">Все</option>
+              <option value="published">Опубликованные</option>
+              <option value="draft">Черновики</option>
+              <option value="archived">Архив</option>
+            </select>
+          </label>
+          <label class="control-field" for="sortSelect">
+            <span>Сортировка</span>
+            <select id="sortSelect">
+              <option value="date">По дате</option>
+              <option value="responses">По ответам</option>
+              <option value="title">По названию</option>
+            </select>
+          </label>
+        </section>
+
+        <div id="cardsSkeleton" class="svdash-skeleton" hidden>
+          <div class="svdash-skeleton__card"></div>
+          <div class="svdash-skeleton__card"></div>
+          <div class="svdash-skeleton__card"></div>
+        </div>
+
+        <section id="surveysGrid" class="svdash-grid"></section>
+
+        <section id="emptyState" class="svdash-empty" hidden>
+          <h3>Пока нет опросов</h3>
+          <p>Создай первый опрос и запускай сбор ответов.</p>
+          <a class="btn btn--primary" href="/create">Создать опрос</a>
+        </section>
+      </section>
     </main>
 
     <div id="qrModal" class="modal" hidden>
@@ -122,7 +124,6 @@
 
     <div id="toast" class="toast" hidden></div>
 
-    <script src="/cabinet.js?v=20260304-utf8-fix-1"></script>
+    <script src="/cabinet.js?v=20260304-cabinet-max"></script>
   </body>
 </html>
-

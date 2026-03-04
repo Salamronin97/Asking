@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
@@ -8,9 +8,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260304-account-utf8" />
+    <link rel="stylesheet" href="/styles.css?v=20260304-account-max" />
   </head>
-  <body class="workspace-page account-page">
+  <body class="workspace-page svacc-page">
     <header class="topbar">
       <div class="container topbar__inner">
         <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
@@ -24,98 +24,129 @@
       </div>
     </header>
 
-    <main class="section account-shell">
-      <div class="container account-container">
-        <section class="card account-layout">
-          <aside class="account-sidebar">
-            <h1>Аккаунт</h1>
-            <nav class="account-nav" aria-label="Разделы аккаунта">
-              <button class="account-tab is-active" data-tab="profile" type="button">Профиль</button>
-              <button class="account-tab" data-tab="security" type="button">Безопасность</button>
-              <button class="account-tab" data-tab="prefs" type="button">Предпочтения</button>
-            </nav>
-          </aside>
+    <main class="svacc-shell workspace-shell">
+      <aside class="svacc-side workspace-side card">
+        <h1>Аккаунт</h1>
+        <p>Настройки профиля и безопасности</p>
+        <nav class="svacc-nav" aria-label="Разделы аккаунта">
+          <button class="account-tab is-active" data-tab="profile" type="button">Профиль</button>
+          <button class="account-tab" data-tab="security" type="button">Безопасность</button>
+          <button class="account-tab" data-tab="prefs" type="button">Предпочтения</button>
+        </nav>
+      </aside>
 
-          <section class="account-content">
-            <article class="account-pane is-active" data-pane="profile">
-              <h2>Профиль</h2>
-              <div class="settings-grid">
-                <label class="form-row">
-                  <span>Имя</span>
-                  <input id="displayNameInput" type="text" />
-                </label>
-                <label class="form-row">
-                  <span>Email</span>
-                  <input id="emailInput" type="email" readonly />
-                </label>
-              </div>
-              <div class="settings-actions">
-                <button id="saveProfileBtn" class="btn btn--primary" type="button">Сохранить</button>
-              </div>
-            </article>
+      <section class="svacc-main workspace-main card">
+        <article class="account-pane is-active" data-pane="profile">
+          <header class="svacc-pane__head">
+            <h2>Профиль</h2>
+            <p>Базовая информация вашей учетной записи.</p>
+          </header>
+          <div class="settings-grid">
+            <label class="form-row">
+              <span>Имя</span>
+              <input id="displayNameInput" type="text" />
+            </label>
+            <label class="form-row">
+              <span>Email</span>
+              <input id="emailInput" type="email" readonly />
+            </label>
+          </div>
+          <div class="settings-actions">
+            <button id="saveProfileBtn" class="btn btn--primary" type="button">Сохранить профиль</button>
+          </div>
+        </article>
 
-            <article class="account-pane" data-pane="security">
-              <h2>Безопасность</h2>
-              <div id="passwordUnavailable" class="card" hidden>
-                <p class="lead">Смена пароля недоступна в текущем режиме авторизации.</p>
-              </div>
-              <div id="passwordForm" class="settings-grid">
-                <label class="form-row">
-                  <span>Текущий пароль</span>
-                  <input id="currentPasswordInput" type="password" autocomplete="current-password" />
-                </label>
-                <label class="form-row">
-                  <span>Новый пароль</span>
-                  <input id="newPasswordInput" type="password" autocomplete="new-password" />
-                </label>
-                <label class="form-row">
-                  <span>Повторите новый пароль</span>
-                  <input id="repeatPasswordInput" type="password" autocomplete="new-password" />
-                </label>
-              </div>
-              <div class="settings-actions">
-                <button id="changePasswordBtn" class="btn btn--outline" type="button">Сменить пароль</button>
-                <button id="logoutAllBtn" class="btn btn--danger" type="button">Выйти со всех устройств</button>
-              </div>
-            </article>
+        <article class="account-pane" data-pane="security">
+          <header class="svacc-pane__head">
+            <h2>Безопасность</h2>
+            <p>Смена пароля и завершение других сессий.</p>
+          </header>
 
-            <article class="account-pane" data-pane="prefs">
-              <h2>Предпочтения</h2>
-              <div class="settings-grid">
-                <label class="form-row">
-                  <span>Язык</span>
-                  <select id="localeSelect">
-                    <option value="ru">RU</option>
-                    <option value="en">EN</option>
-                    <option value="kz">KZ</option>
-                  </select>
-                </label>
-                <label class="form-row">
-                  <span>Тема</span>
-                  <select id="themeSelect">
-                    <option value="light">Светлая</option>
-                    <option value="dark">Тёмная</option>
-                    <option value="system">Системная</option>
-                  </select>
-                </label>
-                <label class="form-row">
-                  <span>Формат даты</span>
-                  <select id="dateFormatSelect">
-                    <option value="dd.mm.yyyy">dd.mm.yyyy</option>
-                    <option value="yyyy-mm-dd">yyyy-mm-dd</option>
-                    <option value="mm/dd/yyyy">mm/dd/yyyy</option>
-                  </select>
-                </label>
-              </div>
-              <div class="settings-actions">
-                <button id="savePrefsBtn" class="btn btn--primary" type="button">Сохранить предпочтения</button>
-              </div>
-            </article>
+          <div id="passwordUnavailable" class="svacc-note" hidden>
+            <p>Смена пароля недоступна в текущем режиме авторизации.</p>
+          </div>
 
-            <p id="accountStatus" class="status"></p>
+          <div id="passwordForm" class="settings-grid">
+            <label class="form-row">
+              <span>Текущий пароль</span>
+              <input id="currentPasswordInput" type="password" autocomplete="current-password" />
+            </label>
+            <label class="form-row">
+              <span>Новый пароль</span>
+              <input id="newPasswordInput" type="password" autocomplete="new-password" />
+            </label>
+            <label class="form-row">
+              <span>Повторите новый пароль</span>
+              <input id="repeatPasswordInput" type="password" autocomplete="new-password" />
+            </label>
+          </div>
+
+          <div class="settings-actions">
+            <button id="changePasswordBtn" class="btn btn--outline" type="button">Сменить пароль</button>
+            <button id="logoutAllBtn" class="btn btn--danger" type="button">Выйти со всех устройств</button>
+          </div>
+
+          <section class="svacc-section">
+            <div class="svacc-section__head">
+              <h3>Активные сессии</h3>
+              <button id="refreshSessionsBtn" class="btn btn--ghost btn--xs" type="button">Обновить</button>
+            </div>
+            <div id="sessionsList" class="svacc-sessions"></div>
           </section>
-        </section>
-      </div>
+
+          <section class="svacc-danger">
+            <div class="svacc-danger__head">
+              <h3>Опасная зона</h3>
+              <p>Удаление аккаунта необратимо.</p>
+            </div>
+            <label class="form-row">
+              <span>Введите пароль для удаления аккаунта</span>
+              <input id="deleteAccountPasswordInput" type="password" autocomplete="current-password" />
+            </label>
+            <button id="deleteAccountBtn" class="btn btn--danger" type="button">Удалить аккаунт</button>
+          </section>
+        </article>
+
+        <article class="account-pane" data-pane="prefs">
+          <header class="svacc-pane__head">
+            <h2>Предпочтения</h2>
+            <p>Язык интерфейса, тема и формат даты.</p>
+          </header>
+
+          <div class="settings-grid">
+            <label class="form-row">
+              <span>Язык</span>
+              <select id="localeSelect">
+                <option value="ru">RU</option>
+                <option value="en">EN</option>
+                <option value="kz">KZ</option>
+              </select>
+            </label>
+            <label class="form-row">
+              <span>Тема</span>
+              <select id="themeSelect">
+                <option value="light">Светлая</option>
+                <option value="dark">Тёмная</option>
+                <option value="system">Системная</option>
+              </select>
+            </label>
+            <label class="form-row">
+              <span>Формат даты</span>
+              <select id="dateFormatSelect">
+                <option value="dd.mm.yyyy">dd.mm.yyyy</option>
+                <option value="yyyy-mm-dd">yyyy-mm-dd</option>
+                <option value="mm/dd/yyyy">mm/dd/yyyy</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="settings-actions">
+            <button id="savePrefsBtn" class="btn btn--primary" type="button">Сохранить предпочтения</button>
+          </div>
+        </article>
+
+        <p id="accountStatus" class="status"></p>
+      </section>
     </main>
 
     <div id="confirmModal" class="modal" hidden>
@@ -131,6 +162,6 @@
 
     <div id="toast" class="toast" hidden></div>
 
-    <script src="/account.js?v=20260304-account-utf8"></script>
+    <script src="/account.js?v=20260304-account-max"></script>
   </body>
 </html>

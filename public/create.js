@@ -16,6 +16,18 @@
     service: "Услуги",
     events: "Мероприятия",
     voting: "Другие",
+    retail: "Услуги",
+    ecommerce: "Маркетинговое исследование",
+    product: "Маркетинговое исследование",
+    healthcare: "Здравоохранение",
+    nps: "Удовлетворенность клиентов",
+    onboarding: "Управление кадрами",
+    conference: "Мероприятия",
+    training: "Образование",
+    course: "Образование",
+    support: "Удовлетворенность клиентов",
+    government: "Госсектор и НКО",
+    nonprofit: "Госсектор и НКО",
     feedback: "Удовлетворенность клиентов",
     event: "Мероприятия",
     vote: "Другие"
@@ -38,7 +50,13 @@
     { id: "forest", name: "Forest", description: "Спокойная зелёная палитра для вовлечения.", bgColor: "#e8f4ed", accent: "#0f766e" },
     { id: "sunset", name: "Sunset", description: "Тёплая контрастная тема для ярких кампаний.", bgColor: "#fff2e8", accent: "#ea580c" },
     { id: "violet", name: "Violet", description: "Фиолетовый акцент для брендовых опросов.", bgColor: "#f5f3ff", accent: "#7c3aed" },
-    { id: "graphite", name: "Graphite", description: "Строгая светло-серая тема для бизнеса.", bgColor: "#eef2f7", accent: "#334155" }
+    { id: "graphite", name: "Graphite", description: "Строгая светло-серая тема для бизнеса.", bgColor: "#eef2f7", accent: "#334155" },
+    { id: "peach", name: "Peach", description: "Лёгкая персиковая тема для дружелюбных форм.", bgColor: "#fff4ec", accent: "#f97316" },
+    { id: "mint", name: "Mint", description: "Свежая мятная палитра для HR и onboarding.", bgColor: "#ecfdf5", accent: "#059669" },
+    { id: "skyline", name: "Skyline", description: "Чистая корпоративная тема для B2B-опросов.", bgColor: "#eef6ff", accent: "#2563eb" },
+    { id: "sand", name: "Sand", description: "Мягкая песочная тема для офлайн-мероприятий.", bgColor: "#f8f1e5", accent: "#a16207" },
+    { id: "rose", name: "Rose", description: "Нежный розовый акцент для lifestyle анкет.", bgColor: "#fff1f2", accent: "#e11d48" },
+    { id: "ice", name: "Ice", description: "Сдержанная холодная тема для формальных исследований.", bgColor: "#f1f5f9", accent: "#0f766e" }
   ];
 
   const state = {
@@ -93,8 +111,8 @@
         return;
       }
 
-      openCreationEntryModal();
-      setSaveState("saved", "Готово к созданию");
+      await startNewBlankSurvey();
+      setSaveState("saved", "Сохранено");
     } catch (error) {
       console.error(error);
       setStatus(error.message || "Ошибка инициализации", true);
@@ -142,10 +160,23 @@
       "addPageBtn",
       "surveyTitle",
       "surveyDescription",
+      "worktopSurveyTitle",
+      "builderMetaPages",
+      "builderMetaQuestions",
+      "builderMetaLogic",
+      "builderHealthPercent",
+      "builderHealthBarFill",
+      "builderCheckTitle",
+      "builderCheckQuestions",
+      "builderCheckPages",
+      "builderCheckLogic",
+      "previewSurveyBtn",
+      "shareSurveyBtn",
       "saveState",
       "saveStateText",
       "publishBtn",
       "addQuestionBtn",
+      "openTemplateCatalogBtn",
       "restoreDraftInlineBtn",
       "clearDraftInlineBtn",
       "questionList",
@@ -172,7 +203,6 @@
       "closeCreationEntryBtn",
       "entryCustomBtn",
       "entryTemplateBtn",
-      "entryAiBtn",
       "templateCatalogOverlay",
       "closeTemplateCatalogBtn",
       "templateCategoryList",
@@ -211,6 +241,7 @@
 
     refs.mobileTabs = Array.from(document.querySelectorAll("[data-panel-tab]"));
     refs.panels = Array.from(document.querySelectorAll(".constructor-panel"));
+    refs.quickTypeButtons = Array.from(document.querySelectorAll("[data-quick-question-type]"));
 
     must(refs.pagesList, "pagesList");
     must(refs.questionList, "questionList");
@@ -239,6 +270,7 @@
     refs.removePageBtn?.addEventListener("click", removeSelectedPage);
 
     refs.addQuestionBtn?.addEventListener("click", openQuestionTypeModal);
+    refs.openTemplateCatalogBtn?.addEventListener("click", openTemplateCatalogModal);
     refs.openThemePickerBtn?.addEventListener("click", openThemePickerModal);
     refs.entryCustomBtn?.addEventListener("click", () => {
       startNewBlankSurvey().catch((error) => {
@@ -249,9 +281,6 @@
     refs.entryTemplateBtn?.addEventListener("click", () => {
       closeCreationEntryModal(false);
       openTemplateCatalogModal();
-    });
-    refs.entryAiBtn?.addEventListener("click", () => {
-      toast("ИИ-конструктор скоро появится");
     });
     refs.templateCreateBlankBtn?.addEventListener("click", () => {
       closeTemplateCatalogModal();
@@ -349,6 +378,28 @@
       }
     });
 
+    refs.previewSurveyBtn?.addEventListener("click", () => {
+      if (!surveyId) {
+        setStatus("Сначала сохраните анкету", true);
+        return;
+      }
+      window.open(`/survey/${encodeURIComponent(surveyId)}`, "_blank", "noopener,noreferrer");
+    });
+
+    refs.shareSurveyBtn?.addEventListener("click", async () => {
+      if (!surveyId) {
+        setStatus("Сначала сохраните анкету", true);
+        return;
+      }
+      const link = `${window.location.origin}/survey/${encodeURIComponent(surveyId)}`;
+      try {
+        await navigator.clipboard.writeText(link);
+        toast("Ссылка скопирована");
+      } catch {
+        setStatus(link);
+      }
+    });
+
     refs.restoreDraftBtn?.addEventListener("click", restoreDraft);
     refs.resetDraftBtn?.addEventListener("click", resetDraft);
     refs.restoreDraftInlineBtn?.addEventListener("click", restoreDraft);
@@ -356,6 +407,7 @@
 
     refs.surveyTitle?.addEventListener("input", (event) => {
       state.survey.title = event.target.value;
+      if (refs.worktopSurveyTitle) refs.worktopSurveyTitle.textContent = state.survey.title || "Новая анкета";
       markDirty();
     });
 
@@ -501,6 +553,14 @@
         setMobilePanel(state.mobilePanel);
       }
     });
+
+    refs.quickTypeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const type = String(button.dataset.quickQuestionType || "").trim();
+        if (!type) return;
+        addQuestion(type);
+      });
+    });
   }
 
   async function ensureSurvey() {
@@ -547,6 +607,8 @@
   function renderAll() {
     refs.surveyTitle.value = state.survey.title;
     refs.surveyDescription.value = state.survey.description;
+    if (refs.worktopSurveyTitle) refs.worktopSurveyTitle.textContent = state.survey.title || "Новая анкета";
+    updateBuilderMeta();
 
     renderPages();
     renderQuestions();
@@ -557,6 +619,73 @@
     if (window.innerWidth <= 1100) {
       setMobilePanel(state.mobilePanel);
     }
+  }
+
+  function updateBuilderMeta() {
+    const pages = Array.isArray(state.survey.pages) ? state.survey.pages.length : 0;
+    const questions = (state.survey.pages || []).reduce((sum, page) => sum + (Array.isArray(page.questions) ? page.questions.length : 0), 0);
+    const logicRoutes = (state.survey.pages || []).reduce(
+      (sum, page) =>
+        sum +
+        (Array.isArray(page.questions)
+          ? page.questions.reduce(
+              (qSum, question) =>
+                qSum +
+                (Array.isArray(question.options)
+                  ? question.options.filter((opt) => {
+                      if (!question.logicEnabled) return false;
+                      return Number.isInteger(resolveOptionJumpIndex(opt));
+                    }).length
+                  : 0),
+              0
+            )
+          : 0),
+      0
+    );
+    if (refs.builderMetaPages) refs.builderMetaPages.textContent = `${pages} стр.`;
+    if (refs.builderMetaQuestions) refs.builderMetaQuestions.textContent = `${questions} вопросов`;
+    if (refs.builderMetaLogic) refs.builderMetaLogic.textContent = `${logicRoutes} переходов`;
+    updateBuilderHealth({ pages, questions, logicRoutes });
+  }
+
+  function updateBuilderHealth(metrics = null) {
+    const pages = metrics?.pages ?? (Array.isArray(state.survey.pages) ? state.survey.pages.length : 0);
+    const questions =
+      metrics?.questions ??
+      (state.survey.pages || []).reduce((sum, page) => sum + (Array.isArray(page.questions) ? page.questions.length : 0), 0);
+    const logicRoutes =
+      metrics?.logicRoutes ??
+      (state.survey.pages || []).reduce(
+        (sum, page) =>
+          sum +
+          (Array.isArray(page.questions)
+            ? page.questions.reduce(
+                (qSum, question) =>
+                  qSum +
+                  (Array.isArray(question.options)
+                    ? question.options.filter((opt) => question.logicEnabled && Number.isInteger(resolveOptionJumpIndex(opt))).length
+                    : 0),
+                0
+              )
+            : 0),
+        0
+      );
+
+    const checks = {
+      title: String(state.survey.title || "").trim().length >= 3,
+      questions: questions >= 3,
+      pages: pages >= 1,
+      logic: logicRoutes >= 1
+    };
+    const passed = Object.values(checks).filter(Boolean).length;
+    const percent = Math.round((passed / 4) * 100);
+
+    if (refs.builderHealthPercent) refs.builderHealthPercent.textContent = `${percent}%`;
+    if (refs.builderHealthBarFill) refs.builderHealthBarFill.style.width = `${percent}%`;
+    refs.builderCheckTitle?.classList.toggle("is-done", checks.title);
+    refs.builderCheckQuestions?.classList.toggle("is-done", checks.questions);
+    refs.builderCheckPages?.classList.toggle("is-done", checks.pages);
+    refs.builderCheckLogic?.classList.toggle("is-done", checks.logic);
   }
 
   function renderPages() {
@@ -1026,7 +1155,7 @@
   }
 
   async function startNewBlankSurvey() {
-    closeCreationEntryModal();
+    closeCreationEntryModal(false);
     closeTemplateCatalogModal();
     closeTemplatePreviewModal();
     await ensureSurvey();
@@ -1374,6 +1503,7 @@
 
     saveDraft();
     renderSurveyPreview();
+    updateBuilderMeta();
 
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
@@ -1751,7 +1881,9 @@
       themeId: theme.id,
       bgColor: isHexColor(raw?.bgColor) ? raw.bgColor : theme.bgColor,
       bgImage: String(raw?.bgImage || ""),
-      layout: ["full", "split-right-image", "split-left-image"].includes(layoutRaw) ? layoutRaw : "full",
+      layout: ["full", "split-right-image", "split-left-image", "cover-top-image", "center-card"].includes(layoutRaw)
+        ? layoutRaw
+        : "full",
       overlay: Number.isFinite(overlayValue) ? Math.max(0, Math.min(90, Math.round(overlayValue))) : 0
     };
   }
@@ -1765,6 +1897,12 @@
     const hasImage = Boolean(design.bgImage);
     if (design.layout === "full" || !hasImage) {
       return `background:${design.bgColor}${hasImage ? `, url('${image}') center/cover no-repeat` : ""};`;
+    }
+    if (design.layout === "cover-top-image") {
+      return `background:linear-gradient(180deg, transparent 0 38%, ${design.bgColor} 38%), url('${image}') top center/100% 40% no-repeat, ${design.bgColor};`;
+    }
+    if (design.layout === "center-card") {
+      return `background:radial-gradient(circle at center, rgba(255,255,255,0.88) 0 28%, rgba(255,255,255,0) 58%), ${design.bgColor}${hasImage ? `, url('${image}') center/cover no-repeat` : ""};`;
     }
     if (design.layout === "split-right-image") {
       return `background:linear-gradient(90deg, ${design.bgColor} 0 52%, transparent 52%), url('${image}') right center/50% 100% no-repeat;`;
@@ -1783,6 +1921,10 @@
         backgroundLayer = `linear-gradient(90deg, ${design.bgColor} 0 56%, transparent 56%), ${overlayColor}, url('${image}') right center/48% 100% no-repeat, ${design.bgColor}`;
       } else if (design.layout === "split-left-image") {
         backgroundLayer = `linear-gradient(90deg, transparent 0 44%, ${design.bgColor} 44%), ${overlayColor}, url('${image}') left center/48% 100% no-repeat, ${design.bgColor}`;
+      } else if (design.layout === "cover-top-image") {
+        backgroundLayer = `linear-gradient(180deg, transparent 0 38%, ${design.bgColor} 38%), ${overlayColor}, url('${image}') top center/100% 40% no-repeat, ${design.bgColor}`;
+      } else if (design.layout === "center-card") {
+        backgroundLayer = `radial-gradient(circle at center, rgba(255,255,255,0.82) 0 34%, rgba(255,255,255,0) 62%), ${overlayColor}, url('${image}') center/cover no-repeat, ${design.bgColor}`;
       } else {
         backgroundLayer = `${overlayColor}, url('${image}') center/cover no-repeat, ${design.bgColor}`;
       }
@@ -1805,11 +1947,14 @@
   }
 
   function sanitizeCssUrl(value) {
-    return String(value || "")
-      .trim()
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    return encodeURI(raw)
       .replace(/\\/g, "")
       .replace(/'/g, "%27")
-      .replace(/"/g, "%22");
+      .replace(/"/g, "%22")
+      .replace(/\(/g, "%28")
+      .replace(/\)/g, "%29");
   }
 
 function createOption(text = "") {

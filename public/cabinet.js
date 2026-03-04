@@ -1,16 +1,15 @@
-﻿
-const surveyRows = document.getElementById("surveyRows");
 const logoutBtn = document.getElementById("logoutBtn");
 const searchInput = document.getElementById("searchInput");
 const statusFilter = document.getElementById("statusFilter");
 const sortSelect = document.getElementById("sortSelect");
-const tableWrap = document.getElementById("tableWrap");
-const tableSkeleton = document.getElementById("tableSkeleton");
+const surveysGrid = document.getElementById("surveysGrid");
+const cardsSkeleton = document.getElementById("cardsSkeleton");
 const emptyState = document.getElementById("emptyState");
 const toast = document.getElementById("toast");
 
 const statTotal = document.getElementById("statTotal");
 const statActive = document.getElementById("statActive");
+const statDraft = document.getElementById("statDraft");
 const statArchived = document.getElementById("statArchived");
 const statResponses = document.getElementById("statResponses");
 
@@ -30,7 +29,8 @@ const confirmSubmit = document.getElementById("confirmSubmit");
 const state = {
   surveys: [],
   filtered: [],
-  confirmAction: null
+  confirmAction: null,
+  trends: new Map()
 };
 
 const api = {
@@ -51,7 +51,9 @@ function showToast(message, isError = false) {
   clearTimeout(showToast.timer);
   showToast.timer = setTimeout(() => {
     toast.classList.remove("is-visible");
-    setTimeout(() => (toast.hidden = true), 180);
+    setTimeout(() => {
+      toast.hidden = true;
+    }, 180);
   }, 2200);
 }
 
@@ -75,20 +77,17 @@ function getPublicLink(id) {
   return `${window.location.origin}/survey/${id}`;
 }
 
-function getWorkspaceLink(id, tab = "constructor") {
-  return `/survey.html?id=${id}&tab=${encodeURIComponent(tab)}`;
+function getBuilderLink(id) {
+  return `/create?surveyId=${encodeURIComponent(id)}`;
 }
 
-function isCreatedSurvey(item) {
-  if (!item || item.id == null) return false;
-  const title = String(item.title || "").trim();
-  if (!title) return false;
-  return true;
+function getResultsLink(id) {
+  return `/survey.html?id=${encodeURIComponent(id)}&tab=results`;
 }
 
 function normalizeSurvey(item) {
   const statusRaw = String(item.status || "").trim().toLowerCase();
-  const status = statusRaw === "archived" ? "archived" : statusRaw === "published" ? "published" : "created";
+  const status = statusRaw === "published" || statusRaw === "archived" ? statusRaw : "draft";
   return {
     ...item,
     id: Number(item.id),
@@ -101,26 +100,49 @@ function normalizeSurvey(item) {
 
 function updateStats() {
   const total = state.surveys.length;
-  const active = state.surveys.filter((x) => x.status === "published" || x.status === "created").length;
-  const archived = state.surveys.filter((x) => x.status === "archived").length;
-  const responses = state.surveys.reduce((sum, x) => sum + Number(x.responses_count || 0), 0);
+  const published = state.surveys.filter((item) => item.status === "published").length;
+  const draft = state.surveys.filter((item) => item.status === "draft").length;
+  const archived = state.surveys.filter((item) => item.status === "archived").length;
+  const responses = state.surveys.reduce((sum, item) => sum + Number(item.responses_count || 0), 0);
 
   statTotal.textContent = String(total);
-  statActive.textContent = String(active);
+  statActive.textContent = String(published);
+  statDraft.textContent = String(draft);
   statArchived.textContent = String(archived);
   statResponses.textContent = String(responses);
 }
 
-function statusBadge(status) {
-  const archived = status === "archived";
-  return `<span class="cabinet-status-pill${archived ? " is-archived" : ""}"><span class="cabinet-status-dot" aria-hidden="true"></span>${archived ? "Архив" : "Активная"}</span>`;
+function statusLabel(status) {
+  if (status === "published") return "Опубликован";
+  if (status === "archived") return "Архив";
+  return "Черновик";
+}
+
+function statusClass(status) {
+  if (status === "published") return "is-published";
+  if (status === "archived") return "is-archived";
+  return "is-draft";
+}
+
+function getWindowState(survey) {
+  const now = Date.now();
+  const starts = survey.starts_at ? Date.parse(survey.starts_at) : null;
+  const ends = survey.ends_at ? Date.parse(survey.ends_at) : null;
+  if (survey.status !== "published") return { label: "Неактивен", className: "is-muted" };
+  if (starts && starts > now) return { label: "Ожидает старта", className: "is-pending" };
+  if (ends && ends < now) return { label: "Завершен", className: "is-ended" };
+  return { label: "Идет сбор", className: "is-live" };
 }
 
 function getSorted(items) {
   const mode = sortSelect.value;
   const result = [...items];
-  if (mode === "title") return result.sort((a, b) => String(a.title || "").localeCompare(String(b.title || ""), "ru"));
-  if (mode === "responses") return result.sort((a, b) => Number(b.responses_count || 0) - Number(a.responses_count || 0));
+  if (mode === "title") {
+    return result.sort((a, b) => String(a.title || "").localeCompare(String(b.title || ""), "ru"));
+  }
+  if (mode === "responses") {
+    return result.sort((a, b) => Number(b.responses_count || 0) - Number(a.responses_count || 0));
+  }
   return result.sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0));
 }
 
@@ -129,67 +151,120 @@ function applyFilters() {
   const status = statusFilter.value;
 
   let list = state.surveys.filter((item) => {
-    if (status === "published" && item.status !== "published" && item.status !== "created") return false;
-    if (status !== "all" && status !== "published" && item.status !== status) return false;
+    if (status !== "all" && item.status !== status) return false;
     if (!query) return true;
     return `${item.title || ""} ${item.description || ""}`.toLowerCase().includes(query);
   });
 
   state.filtered = getSorted(list);
-  renderTable();
+  renderCards();
 }
 
-function actionMenu(survey) {
-  const id = Number(survey.id);
-  const isArchived = survey.status === "archived";
-  return `
-    <div class="actions-menu-wrap">
-      <a class="btn btn--outline btn--xs" href="${getWorkspaceLink(id)}">Открыть</a>
-      <button class="btn btn--ghost btn--xs actions-trigger" type="button" data-menu-trigger="${id}" aria-label="Меню действий">⋯</button>
-      <div class="actions-menu" data-menu="${id}">
-        <button class="actions-item" type="button" data-copy="${id}">Скопировать ссылку</button>
-        <button class="actions-item" type="button" data-qr="${id}">QR-код</button>
-        <a class="actions-item" href="${getWorkspaceLink(id, "results")}">Результаты</a>
-        <a class="actions-item" href="/api/surveys/${id}/export.csv" target="_blank" rel="noopener">Экспорт CSV</a>
-        <a class="actions-item" href="/api/surveys/${id}/export.xlsx" target="_blank" rel="noopener">Экспорт XLSX</a>
-        <button class="actions-item" type="button" data-duplicate="${id}">Дублировать</button>
-        <button class="actions-item" type="button" data-archive="${id}">${isArchived ? "Восстановить" : "Архивировать"}</button>
-        <button class="actions-item actions-item--danger" type="button" data-delete="${id}">Удалить</button>
-      </div>
-    </div>
-  `;
-}
-
-function renderTable() {
-  closeMenus();
-
+function renderCards() {
   if (!state.filtered.length) {
-    surveyRows.innerHTML = "";
-    tableWrap.hidden = true;
+    surveysGrid.innerHTML = "";
     emptyState.hidden = false;
     return;
   }
 
-  tableWrap.hidden = false;
   emptyState.hidden = true;
-
-  surveyRows.innerHTML = state.filtered.map((survey) => `
-    <tr class="table-row">
-      <td class="survey-col">
-        <strong class="survey-name">${escapeHtml(survey.title || "Без названия")}</strong>
-        <div class="meta-line">${escapeHtml(survey.description || "Описание не заполнено")}</div>
-      </td>
-      <td>${statusBadge(survey.status)}</td>
-      <td><span class="badge">${Number(survey.responses_count || 0)}</span></td>
-      <td class="date-col">${escapeHtml(formatDate(survey.starts_at))}</td>
-      <td class="date-col">${escapeHtml(formatDate(survey.ends_at))}</td>
-      <td>${actionMenu(survey)}</td>
-    </tr>
-  `).join("");
+  const maxResponses = Math.max(1, ...state.filtered.map((s) => Number(s.responses_count || 0)));
+  surveysGrid.innerHTML = state.filtered
+    .map((survey) => {
+      const archiveLabel = survey.status === "archived" ? "Восстановить" : "Архивировать";
+      const windowState = getWindowState(survey);
+      const responsePercent = Math.max(2, Math.round((Number(survey.responses_count || 0) / maxResponses) * 100));
+      return `
+        <article class="svdash-card">
+          <header class="svdash-card__head">
+            <h3>${escapeHtml(survey.title || "Без названия")}</h3>
+            <span class="svdash-pill ${statusClass(survey.status)}">${statusLabel(survey.status)}</span>
+          </header>
+          <div class="svdash-card__window">
+            <span class="svdash-window ${windowState.className}">${windowState.label}</span>
+          </div>
+          <p class="svdash-card__desc">${escapeHtml(survey.description || "Описание не заполнено")}</p>
+          <div class="svdash-card__meta">
+            <span>Ответов: <strong>${Number(survey.responses_count || 0)}</strong></span>
+            <span>Старт: ${escapeHtml(formatDate(survey.starts_at))}</span>
+            <span>Финиш: ${escapeHtml(formatDate(survey.ends_at))}</span>
+          </div>
+          <div class="svdash-response-bar">
+            <span style="width:${responsePercent}%"></span>
+          </div>
+          <div class="svdash-card__trend">
+            ${renderTrendSparkline(survey.id)}
+          </div>
+          <div class="svdash-card__actions">
+            <a class="btn btn--outline btn--xs" href="${getBuilderLink(survey.id)}">Открыть</a>
+            <a class="btn btn--ghost btn--xs" href="${getResultsLink(survey.id)}">Результаты</a>
+            <button class="btn btn--ghost btn--xs" type="button" data-copy="${survey.id}">Ссылка</button>
+            <button class="btn btn--ghost btn--xs" type="button" data-qr="${survey.id}">QR</button>
+            <button class="btn btn--ghost btn--xs" type="button" data-duplicate="${survey.id}">Дублировать</button>
+            <button class="btn btn--ghost btn--xs" type="button" data-archive="${survey.id}">${archiveLabel}</button>
+            <button class="btn btn--danger btn--xs" type="button" data-delete="${survey.id}">Удалить</button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
 }
 
-function closeMenus() {
-  surveyRows.querySelectorAll(".actions-menu.is-open").forEach((menu) => menu.classList.remove("is-open"));
+function renderTrendSparkline(surveyId) {
+  const trend = state.trends.get(Number(surveyId));
+  if (!Array.isArray(trend) || !trend.length) {
+    return `<div class="svdash-trend-empty">Динамика ответов появится после первых ответов</div>`;
+  }
+
+  const values = trend.map((item) => Math.max(0, Number(item.count || 0)));
+  const max = Math.max(1, ...values);
+  const width = 240;
+  const height = 52;
+  const padding = 4;
+  const step = values.length > 1 ? (width - padding * 2) / (values.length - 1) : 0;
+
+  const points = values
+    .map((value, index) => {
+      const x = padding + index * step;
+      const y = height - padding - (value / max) * (height - padding * 2);
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(" ");
+
+  const areaPoints = `0,${height - padding} ${points} ${width},${height - padding}`;
+  const total = values.reduce((sum, value) => sum + value, 0);
+
+  return `
+    <div class="svdash-trend">
+      <div class="svdash-trend__head">
+        <span>Динамика ответов</span>
+        <strong>${total}</strong>
+      </div>
+      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">
+        <polygon class="svdash-trend__area" points="${areaPoints}" />
+        <polyline class="svdash-trend__line" points="${points}" />
+      </svg>
+    </div>
+  `;
+}
+
+async function loadTrendsForSurveys(surveys) {
+  const ids = surveys
+    .map((survey) => Number(survey.id))
+    .filter((id) => Number.isInteger(id) && id > 0);
+  if (!ids.length) return;
+
+  const requests = ids.map(async (surveyId) => {
+    try {
+      const payload = await api.request(`/api/surveys/${surveyId}/results`);
+      state.trends.set(surveyId, Array.isArray(payload.trend) ? payload.trend : []);
+    } catch {
+      state.trends.set(surveyId, []);
+    }
+  });
+
+  await Promise.allSettled(requests);
+  renderCards();
 }
 
 function openQrModal(link) {
@@ -207,6 +282,14 @@ function closeQrModal() {
 }
 
 function openConfirm({ title, text, action, danger = false }) {
+  if (typeof window !== "undefined" && typeof window.confirm === "function") {
+    const accepted = window.confirm(`${title}\n\n${text}`);
+    if (!accepted) return;
+    Promise.resolve(action()).catch((error) => {
+      showToast(error.message || "Ошибка действия", true);
+    });
+    return;
+  }
   state.confirmAction = action;
   confirmTitle.textContent = title;
   confirmText.textContent = text;
@@ -221,32 +304,21 @@ function closeConfirm() {
 }
 
 async function loadSurveys() {
-  tableSkeleton.hidden = false;
-  tableWrap.hidden = true;
+  cardsSkeleton.hidden = false;
+  surveysGrid.innerHTML = "";
   emptyState.hidden = true;
 
   try {
-    const payload = await api.request("/api/surveys");
+    const payload = await api.request("/api/surveys?mine=1");
     const list = Array.isArray(payload.surveys) ? payload.surveys : [];
-    const base = list.filter(isCreatedSurvey).map(normalizeSurvey);
-    const resolved = await Promise.all(
-      base.map(async (survey) => {
-        if (survey.status === "published") return survey;
-        try {
-          const details = await api.request(`/api/surveys/${survey.id}`);
-          const questionCount = Array.isArray(details.questions) ? details.questions.length : 0;
-          if (questionCount > 0) return survey;
-          return null;
-        } catch {
-          return null;
-        }
-      })
-    );
-    state.surveys = resolved.filter(Boolean);
+    state.surveys = list
+      .map(normalizeSurvey)
+      .filter((item) => Number.isInteger(item.id) && item.id > 0 && String(item.title || "").trim().length > 0);
     updateStats();
     applyFilters();
+    loadTrendsForSurveys(state.surveys).catch(() => {});
   } finally {
-    tableSkeleton.hidden = true;
+    cardsSkeleton.hidden = true;
   }
 }
 
@@ -260,31 +332,18 @@ function bindEvents() {
   statusFilter?.addEventListener("change", applyFilters);
   sortSelect?.addEventListener("change", applyFilters);
 
-  document.addEventListener("click", (event) => {
-    const trigger = event.target.closest("[data-menu-trigger]");
-    if (trigger) {
-      const id = trigger.dataset.menuTrigger;
-      const menu = surveyRows.querySelector(`[data-menu="${id}"]`);
-      const opened = menu?.classList.contains("is-open");
-      closeMenus();
-      if (menu && !opened) menu.classList.add("is-open");
-      return;
-    }
-
-    if (!event.target.closest(".actions-menu-wrap")) closeMenus();
-
+  surveysGrid?.addEventListener("click", (event) => {
     const copyBtn = event.target.closest("[data-copy]");
     if (copyBtn) {
-      const id = copyBtn.dataset.copy;
+      const id = Number(copyBtn.dataset.copy);
       navigator.clipboard.writeText(getPublicLink(id)).then(() => showToast("Ссылка скопирована"));
-      closeMenus();
       return;
     }
 
     const qrBtn = event.target.closest("[data-qr]");
     if (qrBtn) {
-      openQrModal(getPublicLink(qrBtn.dataset.qr));
-      closeMenus();
+      const id = Number(qrBtn.dataset.qr);
+      openQrModal(getPublicLink(id));
       return;
     }
 
@@ -293,27 +352,29 @@ function bindEvents() {
       const id = Number(dupBtn.dataset.duplicate);
       api.request(`/api/surveys/${id}/duplicate`, { method: "POST" })
         .then(() => loadSurveys())
-        .then(() => showToast("Анкета продублирована"))
-        .catch((e) => showToast(e.message || "Ошибка", true));
-      closeMenus();
+        .then(() => showToast("Опрос продублирован"))
+        .catch((error) => showToast(error.message || "Ошибка", true));
       return;
     }
 
     const arcBtn = event.target.closest("[data-archive]");
     if (arcBtn) {
       const id = Number(arcBtn.dataset.archive);
-      const survey = state.surveys.find((x) => x.id === id);
-      const actionTitle = survey?.status === "archived" ? "Восстановить анкету" : "Архивировать анкету";
+      const survey = state.surveys.find((item) => item.id === id);
+      const isArchived = survey?.status === "archived";
       openConfirm({
-        title: actionTitle,
-        text: "Это действие можно отменить позже.",
+        title: isArchived ? "Восстановить опрос" : "Архивировать опрос",
+        text: isArchived ? "Опрос снова станет доступен в списке активных." : "Опрос будет скрыт в архив.",
         action: async () => {
-          await api.request(`/api/surveys/${id}/archive`, { method: "POST" });
+          if (isArchived) {
+            await api.request(`/api/surveys/${id}/unarchive`, { method: "POST" });
+          } else {
+            await api.request(`/api/surveys/${id}/archive`, { method: "POST" });
+          }
           await loadSurveys();
-          showToast(survey?.status === "archived" ? "Анкета восстановлена" : "Анкета архивирована");
+          showToast(isArchived ? "Опрос восстановлен" : "Опрос архивирован");
         }
       });
-      closeMenus();
       return;
     }
 
@@ -321,16 +382,15 @@ function bindEvents() {
     if (delBtn) {
       const id = Number(delBtn.dataset.delete);
       openConfirm({
-        title: "Удалить анкету",
-        text: "Анкета и ответы будут удалены без возможности восстановления.",
+        title: "Удалить опрос",
+        text: "Действие необратимо: будут удалены анкета и ответы.",
         danger: true,
         action: async () => {
           await api.request(`/api/surveys/${id}`, { method: "DELETE" });
           await loadSurveys();
-          showToast("Анкета удалена");
+          showToast("Опрос удалён");
         }
       });
-      closeMenus();
     }
   });
 
@@ -361,8 +421,10 @@ function bindEvents() {
 (async function bootstrap() {
   try {
     const me = await api.request("/api/auth/me");
-    if (!me.user) return (location.href = "/auth?next=/cabinet");
-
+    if (!me.user) {
+      location.href = "/auth?next=/cabinet";
+      return;
+    }
     bindEvents();
     await loadSurveys();
   } catch (error) {

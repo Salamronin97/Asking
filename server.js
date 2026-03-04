@@ -1725,8 +1725,11 @@ app.post("/api/surveys/:id/unarchive", requireAuth, async (req, res, next) => {
 app.delete("/api/surveys/:id", requireAuth, async (req, res, next) => {
   try {
     const surveyId = Number(req.params.id);
-    const survey = await get("SELECT id FROM surveys WHERE id = ? AND owner_user_id = ?", [surveyId, req.user.id]);
+    const survey = await get("SELECT id, owner_user_id FROM surveys WHERE id = ?", [surveyId]);
     if (!survey) return res.status(404).json({ error: "Survey not found" });
+    if (survey.owner_user_id !== req.user.id && survey.owner_user_id != null) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
 
     await run("DELETE FROM surveys WHERE id = ?", [surveyId]);
     res.json({ ok: true });
