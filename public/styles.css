@@ -3658,6 +3658,12 @@ body.modal-open {
   box-shadow: 0 8px 16px rgba(49, 89, 245, 0.16);
 }
 
+.constructor-page-item.drop-target {
+  border-color: #1d4ed8;
+  background: #e8efff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
 .constructor-bank {
   margin-top: 4px;
   border: 1px solid #dfe6f4;
@@ -3941,6 +3947,13 @@ body.modal-open {
   flex-wrap: wrap;
   gap: 8px;
   padding: 2px 0;
+}
+
+.constructor-toolbar__quick {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
 }
 
 .constructor-question-list {

@@ -81,7 +81,7 @@
   let surveyId = null;
   let saveTimer = null;
   let isSaving = false;
-  const dragState = { questionId: null };
+  const dragState = { questionId: null, fromPageId: null };
   const isDev =
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1" ||
@@ -242,6 +242,7 @@
     refs.mobileTabs = Array.from(document.querySelectorAll("[data-panel-tab]"));
     refs.panels = Array.from(document.querySelectorAll(".constructor-panel"));
     refs.quickTypeButtons = Array.from(document.querySelectorAll("[data-quick-question-type]"));
+    refs.quickAddButtons = Array.from(document.querySelectorAll("[data-quick-add-type]"));
 
     must(refs.pagesList, "pagesList");
     must(refs.questionList, "questionList");
@@ -561,6 +562,14 @@
         addQuestion(type);
       });
     });
+
+    refs.quickAddButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const type = String(button.dataset.quickAddType || "").trim();
+        if (!type) return;
+        addQuestion(type);
+      });
+    });
   }
 
   async function ensureSurvey() {
@@ -709,6 +718,44 @@
         renderAll();
         focusPanelOnMobile("questions");
       });
+
+      button.addEventListener("dragover", (event) => {
+        if (!dragState.questionId || !dragState.fromPageId) return;
+        if (dragState.fromPageId === page.id) return;
+        event.preventDefault();
+        button.classList.add("drop-target");
+      });
+
+      button.addEventListener("dragleave", () => {
+        button.classList.remove("drop-target");
+      });
+
+      button.addEventListener("drop", (event) => {
+        event.preventDefault();
+        button.classList.remove("drop-target");
+        const fromQuestionId = dragState.questionId;
+        const fromPageId = dragState.fromPageId;
+        const toPageId = page.id;
+        if (!fromQuestionId || !fromPageId || fromPageId === toPageId) return;
+
+        const sourcePage = state.survey.pages.find((item) => item.id === fromPageId);
+        const targetPage = state.survey.pages.find((item) => item.id === toPageId);
+        if (!sourcePage || !targetPage) return;
+
+        const fromIndex = sourcePage.questions.findIndex((q) => q.id === fromQuestionId);
+        if (fromIndex < 0) return;
+
+        const [moved] = sourcePage.questions.splice(fromIndex, 1);
+        targetPage.questions.push(moved);
+
+        dragState.questionId = null;
+        dragState.fromPageId = null;
+        state.selectedPageId = targetPage.id;
+        state.selectedQuestionId = moved.id;
+        renderAll();
+        markDirty(`Вопрос перенесён: ${sourcePage.title} -> ${targetPage.title}`);
+      });
+
       refs.pagesList.appendChild(button);
     });
 
@@ -836,6 +883,7 @@
       const dragHandle = card.querySelector("[data-action='drag']");
       dragHandle?.addEventListener("dragstart", (event) => {
         dragState.questionId = question.id;
+        dragState.fromPageId = page.id;
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData("text/plain", question.id);
         card.classList.add("is-dragging");
@@ -843,8 +891,12 @@
 
       dragHandle?.addEventListener("dragend", () => {
         dragState.questionId = null;
+        dragState.fromPageId = null;
         refs.questionList.querySelectorAll(".question-card").forEach((node) => {
           node.classList.remove("is-dragging", "drop-before", "drop-after");
+        });
+        refs.pagesList.querySelectorAll(".constructor-page-item").forEach((node) => {
+          node.classList.remove("drop-target");
         });
       });
 
