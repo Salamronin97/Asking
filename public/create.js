@@ -1182,7 +1182,7 @@
     document.body.classList.add("modal-open");
   }
 
-  function closeCreationEntryModal(allowRedirect = true) {
+  function closeCreationEntryModal(allowRedirect = false) {
     if (!refs.creationEntryOverlay || refs.creationEntryOverlay.hidden) return;
     refs.creationEntryOverlay.hidden = true;
     cleanupModals();
@@ -1344,7 +1344,7 @@
 
   function closeAllModals() {
     closeQuestionTypeModal();
-    closeCreationEntryModal();
+    closeCreationEntryModal(false);
     closeTemplateCatalogModal();
     closeTemplatePreviewModal();
     closeThemePickerModal();
@@ -1800,14 +1800,13 @@
         if (item && typeof item === "object") {
           const text = String(item.text || "").trim();
           if (!text) return null;
+          const parsedJumpIndex = parseJumpIndex(item.jumpToPageIndex);
           return {
             id: String(item.id || createId()),
             text,
             imageUrl: String(item.imageUrl || ""),
             jumpToPageId: String(item.jumpToPageId || item.targetPageId || ""),
-            jumpToPageIndex: Number.isInteger(Number(item.jumpToPageIndex))
-              ? Number(item.jumpToPageIndex)
-              : null
+            jumpToPageIndex: parsedJumpIndex
           };
         }
 
@@ -1819,8 +1818,8 @@
   function resolveOptionJumpIndex(option) {
     if (!option || typeof option !== "object") return null;
     if (Number.isInteger(option.jumpToPageIndex)) return option.jumpToPageIndex;
-    const rawIndex = Number(option.jumpToPageIndex);
-    if (Number.isInteger(rawIndex)) return rawIndex;
+    const parsed = parseJumpIndex(option.jumpToPageIndex);
+    if (Number.isInteger(parsed)) return parsed;
 
     const targetId = String(option.jumpToPageId || option.targetPageId || "").trim();
     if (!targetId) return null;
@@ -1896,13 +1895,15 @@
     const image = sanitizeCssUrl(design.bgImage);
     const hasImage = Boolean(design.bgImage);
     if (design.layout === "full" || !hasImage) {
-      return `background:${design.bgColor}${hasImage ? `, url('${image}') center/cover no-repeat` : ""};`;
+      return hasImage
+        ? `background:url('${image}') center/cover no-repeat, ${design.bgColor};`
+        : `background:${design.bgColor};`;
     }
     if (design.layout === "cover-top-image") {
       return `background:linear-gradient(180deg, transparent 0 38%, ${design.bgColor} 38%), url('${image}') top center/100% 40% no-repeat, ${design.bgColor};`;
     }
     if (design.layout === "center-card") {
-      return `background:radial-gradient(circle at center, rgba(255,255,255,0.88) 0 28%, rgba(255,255,255,0) 58%), ${design.bgColor}${hasImage ? `, url('${image}') center/cover no-repeat` : ""};`;
+      return `background:radial-gradient(circle at center, rgba(255,255,255,0.88) 0 28%, rgba(255,255,255,0) 58%), url('${image}') center/cover no-repeat, ${design.bgColor};`;
     }
     if (design.layout === "split-right-image") {
       return `background:linear-gradient(90deg, ${design.bgColor} 0 52%, transparent 52%), url('${image}') right center/50% 100% no-repeat;`;
@@ -1914,19 +1915,20 @@
     const image = sanitizeCssUrl(design.bgImage);
     const overlayAlpha = (design.overlay || 0) / 100;
     const overlayColor = `rgba(15, 23, 42, ${overlayAlpha.toFixed(2)})`;
+    const overlayLayer = `linear-gradient(${overlayColor}, ${overlayColor})`;
     let backgroundLayer = design.bgColor;
 
     if (design.bgImage) {
       if (design.layout === "split-right-image") {
-        backgroundLayer = `linear-gradient(90deg, ${design.bgColor} 0 56%, transparent 56%), ${overlayColor}, url('${image}') right center/48% 100% no-repeat, ${design.bgColor}`;
+        backgroundLayer = `linear-gradient(90deg, ${design.bgColor} 0 56%, transparent 56%), ${overlayLayer}, url('${image}') right center/48% 100% no-repeat, ${design.bgColor}`;
       } else if (design.layout === "split-left-image") {
-        backgroundLayer = `linear-gradient(90deg, transparent 0 44%, ${design.bgColor} 44%), ${overlayColor}, url('${image}') left center/48% 100% no-repeat, ${design.bgColor}`;
+        backgroundLayer = `linear-gradient(90deg, transparent 0 44%, ${design.bgColor} 44%), ${overlayLayer}, url('${image}') left center/48% 100% no-repeat, ${design.bgColor}`;
       } else if (design.layout === "cover-top-image") {
-        backgroundLayer = `linear-gradient(180deg, transparent 0 38%, ${design.bgColor} 38%), ${overlayColor}, url('${image}') top center/100% 40% no-repeat, ${design.bgColor}`;
+        backgroundLayer = `linear-gradient(180deg, transparent 0 38%, ${design.bgColor} 38%), ${overlayLayer}, url('${image}') top center/100% 40% no-repeat, ${design.bgColor}`;
       } else if (design.layout === "center-card") {
-        backgroundLayer = `radial-gradient(circle at center, rgba(255,255,255,0.82) 0 34%, rgba(255,255,255,0) 62%), ${overlayColor}, url('${image}') center/cover no-repeat, ${design.bgColor}`;
+        backgroundLayer = `radial-gradient(circle at center, rgba(255,255,255,0.82) 0 34%, rgba(255,255,255,0) 62%), ${overlayLayer}, url('${image}') center/cover no-repeat, ${design.bgColor}`;
       } else {
-        backgroundLayer = `${overlayColor}, url('${image}') center/cover no-repeat, ${design.bgColor}`;
+        backgroundLayer = `${overlayLayer}, url('${image}') center/cover no-repeat, ${design.bgColor}`;
       }
     }
 
@@ -1966,6 +1968,14 @@ function createOption(text = "") {
     jumpToPageIndex: null
   };
 }
+
+  function parseJumpIndex(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed)) return null;
+    if (parsed < 0) return null;
+    return parsed;
+  }
 
   function createId() {
     if (window.crypto?.randomUUID) return window.crypto.randomUUID();
