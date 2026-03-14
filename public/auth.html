@@ -1,159 +1,91 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Asking | Authentication</title>
-    <link rel="stylesheet" href="/styles.css" />
-    <style>
-      .auth-page {
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        padding: 24px;
-      }
-      .auth-card {
-        width: min(640px, 96vw);
-        display: grid;
-        gap: 14px;
-      }
-      .auth-head {
-        display: grid;
-        gap: 6px;
-      }
-      .auth-grid {
-        display: grid;
-        gap: 12px;
-      }
-      .auth-row {
-        display: grid;
-        gap: 8px;
-      }
-      .auth-row[hidden],
-      .panel[hidden],
-      .auth-aux[hidden] {
-        display: none !important;
-      }
-      .auth-row label {
-        font-weight: 600;
-      }
-      .auth-switch {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      .auth-mode {
-        background: #f1e5d8;
-      }
-      .auth-mode.is-active {
-        background: var(--accent);
-        color: #fff;
-      }
-      .muted {
-        color: var(--muted);
-        font-size: 16px;
-      }
-      .error {
-        color: #b91c1c;
-        min-height: 20px;
-      }
-      .ok {
-        color: #166534;
-        min-height: 20px;
-      }
-      .ghost-link {
-        border: none;
-        background: transparent;
-        color: var(--accent-strong);
-        font-weight: 700;
-        padding: 0;
-        text-align: left;
-        cursor: pointer;
-      }
-      .auth-aux {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-      }
-      .panel {
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        background: #fff;
-        padding: 12px;
-        display: grid;
-        gap: 10px;
-      }
-      .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        border: 0;
-      }
-    </style>
+    <title>Asking | Вход и регистрация</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css?v=20260315-auth-refresh" />
   </head>
-  <body class="workspace-page">
-    <div class="auth-page">
-      <form id="authForm" class="card auth-card">
-        <div class="auth-switch" style="justify-content: flex-end;">
+  <body class="workspace-page auth-screen">
+    <main class="auth-layout">
+      <form id="authForm" class="card auth-card" novalidate>
+        <div class="auth-card__top">
+          <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
           <select id="languageSelect" class="lang-select" aria-label="Language">
-            <option value="en">EN</option>
             <option value="ru">RU</option>
+            <option value="en">EN</option>
             <option value="kz">KZ</option>
           </select>
         </div>
+
         <div class="auth-head">
-          <h2 id="authTitle" data-i18n="signIn">Sign In</h2>
-          <p class="muted" id="authLead" data-i18n="authLead">Use your email and password.</p>
+          <h1 id="authTitle" data-i18n="signIn">Вход</h1>
+          <p class="auth-head__lead" id="authLead" data-i18n="authLead">Используйте email и пароль.</p>
         </div>
-        <div class="auth-switch">
-          <button type="button" class="btn auth-mode is-active" id="toLogin" data-i18n="login">Login</button>
-          <button type="button" class="btn auth-mode" id="toRegister" data-i18n="register">Register</button>
-          <a class="btn btn--outline" href="/" data-i18n="back">Back</a>
+
+        <div class="auth-switch" role="tablist" aria-label="Режим">
+          <button type="button" class="btn auth-mode is-active" id="toLogin" data-i18n="login">Войти</button>
+          <button type="button" class="btn auth-mode" id="toRegister" data-i18n="register">Регистрация</button>
+          <a class="btn btn--outline" href="/" data-i18n="back">Назад</a>
         </div>
 
         <div class="auth-grid">
-          <div class="sr-only">
+          <div class="auth-honeypot" aria-hidden="true">
             <label for="website">Website</label>
             <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
           </div>
-          <div class="auth-row">
+
+          <div class="auth-row" id="emailRow">
             <label for="email" data-i18n="email">Email</label>
             <input id="email" type="email" required autocomplete="email" placeholder="you@mail.com" data-i18n-placeholder="emailPlaceholder" />
           </div>
+
           <div class="auth-row">
-            <label for="password" data-i18n="password">Password</label>
-            <input id="password" type="password" required autocomplete="current-password" />
+            <label for="password" data-i18n="password">Пароль</label>
+            <div class="auth-input-wrap">
+              <input id="password" type="password" required autocomplete="current-password" />
+              <button id="togglePasswordBtn" class="auth-input-toggle" type="button" data-i18n="show">Показать</button>
+            </div>
           </div>
+
+          <div class="auth-row" id="confirmPasswordRow" hidden>
+            <label for="confirmPassword" data-i18n="confirmPassword">Повторите пароль</label>
+            <div class="auth-input-wrap">
+              <input id="confirmPassword" type="password" autocomplete="new-password" />
+              <button id="toggleConfirmPasswordBtn" class="auth-input-toggle" type="button" data-i18n="show">Показать</button>
+            </div>
+          </div>
+
           <div class="auth-row" id="resetTokenRow" hidden>
-            <label for="resetToken" data-i18n="resetToken">Reset token</label>
+            <label for="resetToken" data-i18n="resetToken">Токен сброса</label>
             <input id="resetToken" type="text" autocomplete="off" />
           </div>
-          <button class="btn" id="submitBtn" type="submit" data-i18n="login">Login</button>
+
+          <button class="btn btn--primary" id="submitBtn" type="submit" data-i18n="login">Войти</button>
+
           <div class="auth-aux" id="authAux">
-            <button class="ghost-link" id="forgotBtn" type="button" data-i18n="forgotPassword">Forgot password?</button>
+            <button class="ghost-link" id="forgotBtn" type="button" data-i18n="forgotPassword">Забыли пароль?</button>
           </div>
         </div>
 
-        <div class="error" id="errorBox"></div>
-        <div class="ok" id="okBox"></div>
+        <div class="auth-status auth-status--error" id="errorBox" role="alert" aria-live="polite"></div>
+        <div class="auth-status auth-status--ok" id="okBox" aria-live="polite"></div>
 
-        <div class="panel" id="forgotPanel" hidden>
-          <strong data-i18n="passwordRecovery">Password recovery</strong>
+        <div class="auth-panel" id="forgotPanel" hidden>
+          <strong data-i18n="passwordRecovery">Восстановление пароля</strong>
           <div class="auth-row">
-            <label for="forgotEmail" data-i18n="accountEmail">Account email</label>
+            <label for="forgotEmail" data-i18n="accountEmail">Email аккаунта</label>
             <input id="forgotEmail" type="email" autocomplete="email" placeholder="you@mail.com" data-i18n-placeholder="emailPlaceholder" />
           </div>
-          <button class="btn btn--outline" id="forgotSendBtn" type="button" data-i18n="sendResetLink">Send reset link</button>
+          <button class="btn btn--outline" id="forgotSendBtn" type="button" data-i18n="sendResetLink">Отправить ссылку для сброса</button>
         </div>
       </form>
-    </div>
-    <script src="/auth.js"></script>
+    </main>
+
+    <script src="/auth.js?v=20260315-auth-refresh"></script>
   </body>
 </html>
-
