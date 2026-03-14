@@ -44,6 +44,12 @@
     "Услуги",
     "Другие"
   ];
+  function resolveTemplateCategory(key) {
+    if (TEMPLATE_CATEGORY_MAP[key]) return TEMPLATE_CATEGORY_MAP[key];
+    const normalized = String(key || "").toLowerCase();
+    const byToken = Object.entries(TEMPLATE_CATEGORY_MAP).find(([token]) => normalized.includes(String(token).toLowerCase()));
+    return byToken ? byToken[1] : "Другие";
+  }
   const BUILDER_THEMES = [
     { id: "sea", name: "Sea", description: "Светлая тема с мягким голубым фоном.", bgColor: "#eaf3fb", accent: "#3159f5" },
     { id: "school", name: "School", description: "Нейтральная тема для образовательных анкет.", bgColor: "#f5efe2", accent: "#6b7280" },
@@ -259,6 +265,7 @@
       "closeTemplateCatalogBtn",
       "templateCategoryList",
       "templateSearchInput",
+      "templateCountBadge",
       "templateCreateBlankBtn",
       "templateCatalogGrid",
       "templatePreviewOverlay",
@@ -2337,16 +2344,17 @@
     const search = state.templateSearch;
 
     const filtered = templates.filter(([key, template]) => {
-      const category = TEMPLATE_CATEGORY_MAP[key] || "Другие";
+      const category = resolveTemplateCategory(key);
       const passCategory = selectedCategory === "Все категории" || category === selectedCategory;
       const textBlob = `${template.title || ""} ${template.description || ""}`.toLowerCase();
       const passSearch = !search || textBlob.includes(search);
       return passCategory && passSearch;
     });
+    if (refs.templateCountBadge) refs.templateCountBadge.textContent = `${filtered.length}/${templates.length} templates`;
 
     refs.templateCatalogGrid.innerHTML = filtered
       .map(([key, template]) => {
-        const category = TEMPLATE_CATEGORY_MAP[key] || "Другие";
+        const category = resolveTemplateCategory(key);
         const tintClass = `constructor-template-card--${String(key).replace(/[^a-z0-9_-]/gi, "")}`;
         const pagesCount = Array.isArray(template.pages) ? template.pages.length : 0;
         const questionsCount = Array.isArray(template.pages)

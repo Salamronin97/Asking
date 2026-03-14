@@ -253,6 +253,69 @@
     }
   };
 
+  function cloneDeep(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  const MASS_TEMPLATE_BASE_KEYS = [
+    "feedback",
+    "education",
+    "hr",
+    "marketing",
+    "service",
+    "events",
+    "voting",
+    "ecommerce",
+    "healthcare",
+    "onboarding",
+    "conference",
+    "nps"
+  ];
+  const MASS_TEMPLATE_DOMAINS = [
+    { key: "retail", label: "Retail" },
+    { key: "saas", label: "SaaS" },
+    { key: "agency", label: "Agency" },
+    { key: "restaurant", label: "Restaurant" },
+    { key: "realestate", label: "Real Estate" },
+    { key: "educationplus", label: "Academy" }
+  ];
+  const MASS_TEMPLATE_MODES = [
+    { key: "quick", label: "Quick check" },
+    { key: "deep", label: "Deep dive" },
+    { key: "pulse", label: "Pulse survey" },
+    { key: "quarterly", label: "Quarterly review" }
+  ];
+
+  MASS_TEMPLATE_BASE_KEYS.forEach((baseKey) => {
+    const base = templates[baseKey];
+    if (!base) return;
+    MASS_TEMPLATE_DOMAINS.forEach((domain) => {
+      MASS_TEMPLATE_MODES.forEach((mode) => {
+        const key = `${baseKey}_${domain.key}_${mode.key}`;
+        const variant = cloneDeep(base);
+        variant.title = `${mode.label}: ${domain.label} - ${base.title || baseKey}`;
+        variant.description = `${base.description || "Template"} (industry: ${domain.label}, format: ${mode.label.toLowerCase()}).`;
+        variant.pages = Array.isArray(variant.pages)
+          ? variant.pages.map((page, pageIndex) => ({
+              ...page,
+              title: pageIndex === 0 ? `${page.title || "Page"} (${domain.label})` : page.title || `Page ${pageIndex + 1}`,
+              questions: Array.isArray(page.questions)
+                ? page.questions.map((question, questionIndex) =>
+                    questionIndex === 0
+                      ? {
+                          ...question,
+                          description: `${question.description || ""} ${mode.label}. ${domain.label}.`.trim()
+                        }
+                      : question
+                  )
+                : []
+            }))
+          : [];
+        templates[key] = variant;
+      });
+    });
+  });
+
   templates.event = templates.events;
   templates.vote = templates.voting;
 
