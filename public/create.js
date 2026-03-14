@@ -178,6 +178,7 @@
 
   async function init() {
     cacheRefs();
+    applyStaticBuilderTextFixes();
     enhanceQuestionEditorLayout();
     setAdvancedMode(state.advancedMode, false);
     setDensityMode(state.densityMode, false);
@@ -207,6 +208,173 @@
       setStatus(error.message || "Ошибка инициализации", true);
       closeAllModals();
     }
+  }
+
+  function applyStaticBuilderTextFixes() {
+    const setText = (selector, value) => {
+      const node = document.querySelector(selector);
+      if (node) node.textContent = value;
+    };
+    const setAttr = (selector, attr, value) => {
+      const node = document.querySelector(selector);
+      if (node) node.setAttribute(attr, value);
+    };
+    const setHtml = (selector, value) => {
+      const node = document.querySelector(selector);
+      if (node) node.innerHTML = value;
+    };
+
+    document.title = "Конструктор анкеты | Asking";
+
+    setText(".topbar__actions a[href='/guide']", "Инструкция");
+    setText(".topbar__actions a[href='/cabinet']", "Кабинет");
+    setText(".topbar__actions a[href='/account']", "Аккаунт");
+    setText("#logoutBtn", "Выйти");
+
+    setText("#draftBanner > span", "Найден черновик. Восстановить изменения?");
+    setText("#restoreDraftBtn", "Восстановить");
+    setText("#resetDraftBtn", "Сбросить");
+
+    setText(".constructor-mobile-tab[data-panel-tab='pages']", "Страницы");
+    setText(".constructor-mobile-tab[data-panel-tab='questions']", "Вопросы");
+    setText(".constructor-mobile-tab[data-panel-tab='settings']", "Настройки");
+
+    setText("#pagesPanel .constructor-head-sm h3", "Страницы");
+    setText("#renamePageBtn", "Переименовать");
+    setText("#duplicatePageBtn", "Дублировать");
+    setText("#removePageBtn", "Удалить");
+    setText("#addPageBtn", "+ Добавить страницу");
+    setText(".constructor-bank__head h4", "Банк вопросов");
+
+    const bankButtons = Array.from(document.querySelectorAll(".constructor-bank__item"));
+    if (bankButtons[0]) setHtml(".constructor-bank__item:nth-of-type(1)", "<strong>Один выбор</strong><span>Радио-кнопки</span>");
+    if (bankButtons[1]) setHtml(".constructor-bank__item:nth-of-type(2)", "<strong>Множественный</strong><span>Чекбоксы</span>");
+    if (bankButtons[2]) setHtml(".constructor-bank__item:nth-of-type(3)", "<strong>Список</strong><span>Выпадающий select</span>");
+    if (bankButtons[3]) setHtml(".constructor-bank__item:nth-of-type(4)", "<strong>Рейтинг</strong><span>Шкала 1-5</span>");
+    if (bankButtons[4]) setHtml(".constructor-bank__item:nth-of-type(5)", "<strong>Текст</strong><span>Свободный ответ</span>");
+
+    setText(".constructor-kitbank .constructor-bank__head h4", "Готовые наборы");
+    setHtml(".constructor-kitbank__item[data-question-preset='registration']", "<strong>Регистрация</strong><span>Имя, контакт, согласие</span>");
+    setHtml(".constructor-kitbank__item[data-question-preset='event-feedback']", "<strong>Фидбек события</strong><span>NPS, оценка, комментарий</span>");
+    setHtml(".constructor-kitbank__item[data-question-preset='product-discovery']", "<strong>Исследование продукта</strong><span>Проблема, приоритет, барьеры</span>");
+    setHtml(".constructor-kitbank__item[data-question-preset='hr-pulse']", "<strong>HR Pulse</strong><span>Атмосфера, нагрузка, eNPS</span>");
+
+    setText("#publishBtn", "Опубликовать");
+    setAttr("#surveyTitle", "placeholder", "Название анкеты");
+    setAttr("#surveyDescription", "placeholder", "Краткое описание анкеты");
+    setText("#saveStateText", "Сохранено");
+
+    setAttr("#settingsPanel", "aria-label", "Редактор вопроса");
+    setText("#settingsPanel .constructor-head-sm h3", "Настройки вопроса");
+    setText("#settingsTabQuestion", "Вопрос");
+    setText("#settingsTabDesign", "Дизайн");
+    setText("#emptyEditor p", "Выберите вопрос в центре, чтобы изменить его параметры.");
+
+    setText("label[for='questionTitleInput'] span", "Текст вопроса");
+    setText("label[for='questionDescriptionInput'] span", "Описание / подсказка");
+    setAttr("#questionDescriptionInput", "placeholder", "Дополнительный текст под вопросом");
+    setText("label.inline-check span", "Обязательный вопрос");
+    setText("label[for='questionTypeInput'] span", "Тип вопроса");
+
+    setText("#ratingEditor h4", "Шкала рейтинга");
+    setText("label[for='ratingLabelMin'] span", "Подпись 1");
+    setAttr("#ratingLabelMin", "placeholder", "Например: Плохо");
+    setText("label[for='ratingLabelMax'] span", "Подпись 5");
+    setAttr("#ratingLabelMax", "placeholder", "Например: Отлично");
+
+    setText("#optionsEditor h4", "Варианты ответа");
+    setText("#optionsEditor .inline-check span", "Логика переходов по ответам");
+    setText("#questionLogicHint", "Выберите, на какую страницу перейдет участник после каждого варианта.");
+    setText(".constructor-option-presets__label", "Готовые варианты:");
+    setText("[data-option-preset='yes-no']", "Да / Нет");
+    setText("[data-option-preset='agree']", "Степень согласия");
+    setText("[data-option-preset='satisfaction']", "Оценка 1-5");
+    setText("#addOptionBtn", "+ Добавить вариант");
+    setText("#normalizeOptionsBtn", "Нормализовать");
+    setText("#bulkOptionsToggleBtn", "Массовый ввод");
+    setText("#bulkOptionsWrap .form-row span", "Один вариант на строку");
+    setAttr("#bulkOptionsInput", "placeholder", "Вариант 1\nВариант 2\nВариант 3");
+    setText("#applyBulkOptionsBtn", "Применить список");
+    setText("#removeQuestionBtn", "Удалить вопрос");
+
+    setText("#settingsDesignPane .constructor-design__head h4", "Дизайн страницы");
+    setText("#openThemePickerBtn", "Выбрать тему");
+    setText("label[for='pageBgColorInput'] span", "Цвет фона");
+    setText("label[for='pageBgImageInput'] span", "Фоновое изображение (URL)");
+    setText("label[for='pageLayoutInput'] span", "Макет");
+    setText("#applyDesignAllBtn", "Применить ко всем");
+    setText("#resetDesignBtn", "Сброс");
+
+    setText(".constructor-health .constructor-fold__summary span", "Качество анкеты");
+    setText("#builderCheckTitle", "Качество названия");
+    setText("#builderCheckQuestions", "Минимум 4 вопроса");
+    setText("#builderCheckPages", "Хотя бы 1 страница");
+    setText("#builderCheckLogic", "Хотя бы 1 логический переход");
+    setText("#builderCheckRequired", "Хотя бы 1 обязательный вопрос");
+    setText("#builderCheckOptions", "В вопросах с выбором 2+ варианта");
+    setText(".constructor-health-reco h4", "Что улучшить");
+
+    setText("#questionTypeTitle", "Выберите тип вопроса");
+    const typeGroups = Array.from(document.querySelectorAll(".constructor-type-group"));
+    if (typeGroups[0]) {
+      const h4 = typeGroups[0].querySelector("h4");
+      if (h4) h4.textContent = "Базовые";
+      const buttons = Array.from(typeGroups[0].querySelectorAll(".constructor-type-item"));
+      if (buttons[0]) buttons[0].innerHTML = "<strong>Одиночный выбор</strong><span>Один вариант ответа</span>";
+      if (buttons[1]) buttons[1].innerHTML = "<strong>Множественный выбор</strong><span>Несколько вариантов ответа</span>";
+      if (buttons[2]) buttons[2].innerHTML = "<strong>Выбор изображения</strong><span>Карточки с изображениями</span>";
+    }
+    if (typeGroups[1]) {
+      const h4 = typeGroups[1].querySelector("h4");
+      if (h4) h4.textContent = "Открытые";
+      const buttons = Array.from(typeGroups[1].querySelectorAll(".constructor-type-item"));
+      if (buttons[0]) buttons[0].innerHTML = "<strong>Текстовый ответ</strong><span>Свободный текст</span>";
+      if (buttons[1]) buttons[1].innerHTML = "<strong>Ответ электронной почты</strong><span>Проверка email</span>";
+      if (buttons[2]) buttons[2].innerHTML = "<strong>Числовой ответ</strong><span>Числа и значения</span>";
+      if (buttons[3]) buttons[3].innerHTML = "<strong>Ответ с датой</strong><span>Дата и время</span>";
+    }
+    if (typeGroups[2]) {
+      const h4 = typeGroups[2].querySelector("h4");
+      if (h4) h4.textContent = "Структурированные";
+      const buttons = Array.from(typeGroups[2].querySelectorAll(".constructor-type-item"));
+      if (buttons[0]) buttons[0].innerHTML = "<strong>Матрица</strong><span>Сетка ответов</span>";
+      if (buttons[1]) buttons[1].innerHTML = "<strong>Ранжирование</strong><span>Порядок приоритетов</span>";
+      if (buttons[2]) buttons[2].innerHTML = "<strong>Выпадающий список</strong><span>Компактный выбор</span>";
+    }
+    if (typeGroups[3]) {
+      const h4 = typeGroups[3].querySelector("h4");
+      if (h4) h4.textContent = "Оценочные";
+      const buttons = Array.from(typeGroups[3].querySelectorAll(".constructor-type-item"));
+      if (buttons[0]) buttons[0].innerHTML = "<strong>Эмодзи рейтинг</strong><span>Быстрая оценка</span>";
+      if (buttons[1]) buttons[1].innerHTML = "<strong>Звездный рейтинг</strong><span>Шкала 1-5</span>";
+      if (buttons[2]) buttons[2].innerHTML = "<strong>Семантический дифференциал</strong><span>Оценка по полюсам</span>";
+      if (buttons[3]) buttons[3].innerHTML = "<strong>Распределительная шкала</strong><span>Распределение баллов</span>";
+    }
+    if (typeGroups[4]) {
+      const h4 = typeGroups[4].querySelector("h4");
+      if (h4) h4.textContent = "Элементы";
+      const button = typeGroups[4].querySelector(".constructor-type-item");
+      if (button) button.innerHTML = "<strong>Собственный текст</strong><span>Информационный блок</span>";
+    }
+
+    setText("#creationEntryTitle", "Создайте опрос");
+    setHtml("#entryCustomBtn", "<strong>Собственный опрос</strong><span>Создайте анкету с нуля и настройте вопросы вручную.</span>");
+    setHtml("#entryTemplateBtn", "<strong>Опрос из шаблона</strong><span>Выберите готовую структуру и адаптируйте под себя.</span>");
+    setText("#templateCatalogTitle", "Шаблоны опросов");
+    setText(".constructor-modal-lead", "Выберите категорию и создайте анкету на готовой структуре.");
+    setText("#templatePreviewTitle", "Предпросмотр шаблона");
+    setText("#themePickerTitle", "Выберите тему");
+    setText("#templateCreateBlankBtn", "+ Создать анкету");
+    setText("#applyTemplateBtn", "Использовать шаблон");
+    setText("#applyThemeBtn", "Использовать тему");
+    setText("#templateCountBadge", "0 шаблонов");
+    setAttr("#templateSearchInput", "placeholder", "Поиск шаблона");
+
+    ["#closeQuestionTypeModalBtn", "#closeCreationEntryBtn", "#closeTemplateCatalogBtn", "#closeTemplatePreviewBtn", "#closeThemePickerBtn"]
+      .forEach((selector) => {
+        setText(selector, "×");
+        setAttr(selector, "aria-label", "Закрыть");
+      });
   }
 
   async function apiRequest(url, options = {}) {
