@@ -725,6 +725,16 @@ h3 {
   .landing-nav {
     display: none;
   }
+
+  .topbar__actions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .topbar__actions .btn {
+    flex: 0 0 auto;
+  }
 }
 
 @media (max-width: 980px) {
@@ -736,6 +746,44 @@ h3 {
 @media (max-width: 760px) {
   body {
     font-size: 16px;
+  }
+
+  .topbar {
+    height: auto;
+    min-height: 64px;
+  }
+
+  .topbar__inner {
+    height: auto;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 0;
+  }
+
+  .brand {
+    font-size: 20px;
+  }
+
+  .brand__mark {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .topbar__actions {
+    width: 100%;
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+
+  .topbar__actions .btn {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 0 12px;
+    font-size: 14px;
   }
 
   .container {
@@ -751,12 +799,9 @@ h3 {
     padding-bottom: 28px;
   }
 
-  .topbar__actions {
-    gap: 8px;
-  }
-
   .lang-select {
-    width: 78px;
+    width: 72px;
+    min-height: 38px;
   }
 
   .feature-grid,
@@ -2869,11 +2914,24 @@ body.modal-open {
 
   .survey-tabs {
     gap: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
   }
 
   .survey-tab {
+    width: auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .survey-head-actions,
+  .survey-page .settings-actions,
+  .survey-page .modal-actions {
     width: 100%;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: 1fr;
   }
 }
 

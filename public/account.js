@@ -41,6 +41,80 @@ const api = {
   }
 };
 
+function applyStaticAccountTextFixes() {
+  const setText = (selector, value) => {
+    const node = document.querySelector(selector);
+    if (node) node.textContent = value;
+  };
+  const setAttr = (selector, attr, value) => {
+    const node = document.querySelector(selector);
+    if (node) node.setAttribute(attr, value);
+  };
+
+  document.title = "Аккаунт | Asking";
+
+  setText(".topbar__actions a[href='/guide']", "Инструкция");
+  setText(".topbar__actions a[href='/create']", "Создать");
+  setText(".topbar__actions a[href='/cabinet']", "Кабинет");
+  setText(".topbar__actions a[href='/account']", "Аккаунт");
+  setText("#logoutBtn", "Выйти");
+
+  setText(".svacc-side h1", "Аккаунт");
+  setText(".svacc-side p", "Настройки профиля и безопасности");
+  setAttr(".svacc-nav", "aria-label", "Разделы аккаунта");
+  setText(".account-tab[data-tab='profile']", "Профиль");
+  setText(".account-tab[data-tab='security']", "Безопасность");
+  setText(".account-tab[data-tab='prefs']", "Предпочтения");
+
+  setText("[data-pane='profile'] .svacc-pane__head h2", "Профиль");
+  setText("[data-pane='profile'] .svacc-pane__head p", "Базовая информация вашей учетной записи.");
+  setText("#saveProfileBtn", "Сохранить профиль");
+
+  const displayNameLabel = displayNameInput?.closest(".form-row")?.querySelector("span");
+  if (displayNameLabel) displayNameLabel.textContent = "Имя";
+  const emailLabel = emailInput?.closest(".form-row")?.querySelector("span");
+  if (emailLabel) emailLabel.textContent = "Email";
+
+  setText("[data-pane='security'] .svacc-pane__head h2", "Безопасность");
+  setText("[data-pane='security'] .svacc-pane__head p", "Смена пароля и завершение других сессий.");
+  setText("#passwordUnavailable p", "Смена пароля недоступна в текущем режиме авторизации.");
+  setText("#changePasswordBtn", "Сменить пароль");
+  setText("#logoutAllBtn", "Выйти со всех устройств");
+  setText("#refreshSessionsBtn", "Обновить");
+  setText(".svacc-section__head h3", "Активные сессии");
+  setText(".svacc-danger__head h3", "Опасная зона");
+  setText(".svacc-danger__head p", "Удаление аккаунта необратимо.");
+  setText("#deleteAccountBtn", "Удалить аккаунт");
+
+  const currentPwdLabel = currentPasswordInput?.closest(".form-row")?.querySelector("span");
+  if (currentPwdLabel) currentPwdLabel.textContent = "Текущий пароль";
+  const newPwdLabel = newPasswordInput?.closest(".form-row")?.querySelector("span");
+  if (newPwdLabel) newPwdLabel.textContent = "Новый пароль";
+  const repeatPwdLabel = repeatPasswordInput?.closest(".form-row")?.querySelector("span");
+  if (repeatPwdLabel) repeatPwdLabel.textContent = "Повторите новый пароль";
+  const deletePwdLabel = deleteAccountPasswordInput?.closest(".form-row")?.querySelector("span");
+  if (deletePwdLabel) deletePwdLabel.textContent = "Введите пароль для удаления аккаунта";
+
+  setText("[data-pane='prefs'] .svacc-pane__head h2", "Предпочтения");
+  setText("[data-pane='prefs'] .svacc-pane__head p", "Язык интерфейса, тема и формат даты.");
+  setText("#savePrefsBtn", "Сохранить предпочтения");
+
+  const localeLabel = localeSelect?.closest(".form-row")?.querySelector("span");
+  if (localeLabel) localeLabel.textContent = "Язык";
+  const themeLabel = themeSelect?.closest(".form-row")?.querySelector("span");
+  if (themeLabel) themeLabel.textContent = "Тема";
+  const dateFormatLabel = dateFormatSelect?.closest(".form-row")?.querySelector("span");
+  if (dateFormatLabel) dateFormatLabel.textContent = "Формат даты";
+  const themeOptions = { light: "Светлая", dark: "Тёмная", system: "Системная" };
+  Array.from(themeSelect?.options || []).forEach((opt) => {
+    if (themeOptions[opt.value]) opt.textContent = themeOptions[opt.value];
+  });
+
+  setText("#confirmTitle", "Подтвердите действие");
+  setText("#confirmCancel", "Отмена");
+  setText("#confirmSubmit", "Подтвердить");
+}
+
 function showToast(message, isError = false) {
   if (!toast) return;
   toast.textContent = message;
@@ -324,6 +398,7 @@ function bindEvents() {
 
 (async function bootstrap() {
   try {
+    applyStaticAccountTextFixes();
     const me = await api.request("/api/auth/me");
     if (!me.user) return (window.location.href = "/auth");
 
