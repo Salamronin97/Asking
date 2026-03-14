@@ -1,4 +1,14 @@
 const logoutBtn = document.getElementById("logoutBtn");
+const refreshBtn = document.getElementById("refreshBtn");
+const viewToggleBtn = document.getElementById("viewToggleBtn");
+const statusLine = document.getElementById("cabinetStatusLine");
+const selectAllFilteredBtn = document.getElementById("selectAllFilteredBtn");
+const clearBulkSelectionBtn = document.getElementById("clearBulkSelectionBtn");
+const bulkSelectionCount = document.getElementById("bulkSelectionCount");
+const bulkPublishBtn = document.getElementById("bulkPublishBtn");
+const bulkArchiveBtn = document.getElementById("bulkArchiveBtn");
+const bulkDeleteBtn = document.getElementById("bulkDeleteBtn");
+
 const searchInput = document.getElementById("searchInput");
 const statusFilter = document.getElementById("statusFilter");
 const sortSelect = document.getElementById("sortSelect");
@@ -6,6 +16,7 @@ const surveysGrid = document.getElementById("surveysGrid");
 const cardsSkeleton = document.getElementById("cardsSkeleton");
 const emptyState = document.getElementById("emptyState");
 const toast = document.getElementById("toast");
+const resultsCount = document.getElementById("resultsCount");
 
 const statTotal = document.getElementById("statTotal");
 const statActive = document.getElementById("statActive");
@@ -26,11 +37,18 @@ const confirmText = document.getElementById("confirmText");
 const confirmCancel = document.getElementById("confirmCancel");
 const confirmSubmit = document.getElementById("confirmSubmit");
 
+const VALID_STATUS = new Set(["all", "published", "draft", "archived"]);
+const VIEW_KEY = "asking_cabinet_view";
+const STATUS_TIMEOUT_MS = 3200;
+
 const state = {
   surveys: [],
   filtered: [],
   confirmAction: null,
-  trends: new Map()
+  trends: new Map(),
+  loading: false,
+  viewMode: localStorage.getItem(VIEW_KEY) === "compact" ? "compact" : "grid",
+  selectedSurveyIds: []
 };
 
 const api = {
@@ -57,6 +75,20 @@ function showToast(message, isError = false) {
   }, 2200);
 }
 
+function setStatusLine(message, isError = false) {
+  if (!statusLine) return;
+  statusLine.textContent = message || "";
+  statusLine.classList.toggle("is-error", isError);
+  clearTimeout(setStatusLine.timer);
+  if (!message) return;
+  setStatusLine.timer = setTimeout(() => {
+    if (statusLine.textContent === message) {
+      statusLine.textContent = "";
+      statusLine.classList.remove("is-error");
+    }
+  }, STATUS_TIMEOUT_MS);
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -66,11 +98,30 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function highlightMatch(text, query) {
+  const source = String(text || "");
+  if (!query) return escapeHtml(source);
+  const lower = source.toLowerCase();
+  const idx = lower.indexOf(query.toLowerCase());
+  if (idx < 0) return escapeHtml(source);
+
+  const before = source.slice(0, idx);
+  const match = source.slice(idx, idx + query.length);
+  const after = source.slice(idx + query.length);
+  return `${escapeHtml(before)}<mark>${escapeHtml(match)}</mark>${escapeHtml(after)}`;
+}
+
 function formatDate(value) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString("ru-RU", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleString("ru-RU", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 function getPublicLink(id) {
@@ -98,6 +149,38 @@ function normalizeSurvey(item) {
   };
 }
 
+function getStatusFromUrl() {
+  const status = String(new URLSearchParams(window.location.search).get("status") || "").trim().toLowerCase();
+  return VALID_STATUS.has(status) ? status : "all";
+}
+
+function applyInitialFiltersFromUrl() {
+  if (statusFilter) statusFilter.value = getStatusFromUrl();
+  if (searchInput) searchInput.value = String(new URLSearchParams(window.location.search).get("q") || "").trim();
+}
+
+function syncUrlWithFilters() {
+  const params = new URLSearchParams(window.location.search);
+  const status = String(statusFilter?.value || "all");
+  const q = String(searchInput?.value || "").trim();
+
+  if (status !== "all") params.set("status", status);
+  else params.delete("status");
+
+  if (q) params.set("q", q);
+  else params.delete("q");
+
+  const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+  window.history.replaceState({}, "", next);
+}
+
+function updateFolderChips() {
+  const current = String(statusFilter?.value || "all");
+  document.querySelectorAll("[data-status-chip]").forEach((node) => {
+    node.classList.toggle("is-active", node.getAttribute("data-status-chip") === current);
+  });
+}
+
 function updateStats() {
   const total = state.surveys.length;
   const published = state.surveys.filter((item) => item.status === "published").length;
@@ -112,6 +195,63 @@ function updateStats() {
   statResponses.textContent = String(responses);
 }
 
+function updateResultsCount() {
+  if (!resultsCount) return;
+  const modeLabel = state.viewMode === "compact" ? "компакт" : "карточки";
+  resultsCount.textContent = `Показано ${state.filtered.length} из ${state.surveys.length} • Вид: ${modeLabel}`;
+}
+
+function getSelectedSurveyIds() {
+  const existing = new Set(state.surveys.map((item) => Number(item.id)));
+  const normalized = (Array.isArray(state.selectedSurveyIds) ? state.selectedSurveyIds : [])
+    .map((id) => Number(id))
+    .filter((id, index, list) => Number.isInteger(id) && existing.has(id) && list.indexOf(id) === index);
+  state.selectedSurveyIds = normalized;
+  return normalized;
+}
+
+function isSurveySelected(surveyId) {
+  return getSelectedSurveyIds().includes(Number(surveyId));
+}
+
+function setSelectedSurveyIds(ids) {
+  state.selectedSurveyIds = Array.isArray(ids) ? ids.map((id) => Number(id)).filter((id) => Number.isInteger(id)) : [];
+  updateBulkControls();
+}
+
+function toggleSurveySelection(surveyId) {
+  const id = Number(surveyId);
+  if (!Number.isInteger(id)) return;
+  const selected = getSelectedSurveyIds();
+  if (selected.includes(id)) {
+    setSelectedSurveyIds(selected.filter((item) => item !== id));
+  } else {
+    setSelectedSurveyIds([...selected, id]);
+  }
+}
+
+function clearSurveySelection() {
+  setSelectedSurveyIds([]);
+  renderCards();
+  setStatusLine("Selection cleared");
+}
+
+function selectAllFilteredSurveys() {
+  const ids = state.filtered.map((item) => Number(item.id)).filter((id) => Number.isInteger(id));
+  setSelectedSurveyIds(ids);
+  renderCards();
+  setStatusLine(`Selected surveys: ${ids.length}`);
+}
+
+function updateBulkControls() {
+  const selectedCount = getSelectedSurveyIds().length;
+  if (bulkSelectionCount) bulkSelectionCount.textContent = `Selected: ${selectedCount}`;
+  if (clearBulkSelectionBtn) clearBulkSelectionBtn.disabled = selectedCount === 0;
+  if (bulkPublishBtn) bulkPublishBtn.disabled = selectedCount === 0;
+  if (bulkArchiveBtn) bulkArchiveBtn.disabled = selectedCount === 0;
+  if (bulkDeleteBtn) bulkDeleteBtn.disabled = selectedCount === 0;
+  if (selectAllFilteredBtn) selectAllFilteredBtn.disabled = state.filtered.length === 0;
+}
 function statusLabel(status) {
   if (status === "published") return "Опубликован";
   if (status === "archived") return "Архив";
@@ -146,21 +286,42 @@ function getSorted(items) {
   return result.sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0));
 }
 
+function setViewMode(mode, notify = false) {
+  state.viewMode = mode === "compact" ? "compact" : "grid";
+  localStorage.setItem(VIEW_KEY, state.viewMode);
+
+  surveysGrid.classList.toggle("is-compact", state.viewMode === "compact");
+  if (viewToggleBtn) {
+    const compact = state.viewMode === "compact";
+    viewToggleBtn.textContent = compact ? "Вид: карточки" : "Компактный вид";
+    viewToggleBtn.setAttribute("aria-pressed", compact ? "true" : "false");
+  }
+
+  updateResultsCount();
+  if (notify) {
+    setStatusLine(state.viewMode === "compact" ? "Включен компактный режим" : "Включен карточный режим");
+  }
+}
+
 function applyFilters() {
   const query = searchInput.value.trim().toLowerCase();
   const status = statusFilter.value;
 
-  let list = state.surveys.filter((item) => {
+  const list = state.surveys.filter((item) => {
     if (status !== "all" && item.status !== status) return false;
     if (!query) return true;
     return `${item.title || ""} ${item.description || ""}`.toLowerCase().includes(query);
   });
 
   state.filtered = getSorted(list);
+  syncUrlWithFilters();
+  updateFolderChips();
+  updateResultsCount();
   renderCards();
 }
 
 function renderCards() {
+  const query = searchInput.value.trim();
   if (!state.filtered.length) {
     surveysGrid.innerHTML = "";
     emptyState.hidden = false;
@@ -169,21 +330,25 @@ function renderCards() {
 
   emptyState.hidden = true;
   const maxResponses = Math.max(1, ...state.filtered.map((s) => Number(s.responses_count || 0)));
+
   surveysGrid.innerHTML = state.filtered
-    .map((survey) => {
+    .map((survey, index) => {
+      const selected = isSurveySelected(survey.id);
       const archiveLabel = survey.status === "archived" ? "Восстановить" : "Архивировать";
       const windowState = getWindowState(survey);
       const responsePercent = Math.max(2, Math.round((Number(survey.responses_count || 0) / maxResponses) * 100));
+      const titleHtml = highlightMatch(survey.title || "Без названия", query);
+      const descHtml = highlightMatch(survey.description || "Описание не заполнено", query);
       return `
-        <article class="svdash-card">
+        <article class="svdash-card${selected ? " is-selected" : ""}" style="--card-delay:${Math.min(index, 10) * 35}ms" data-survey-card="${survey.id}">
           <header class="svdash-card__head">
-            <h3>${escapeHtml(survey.title || "Без названия")}</h3>
+            <h3>${titleHtml}</h3>
             <span class="svdash-pill ${statusClass(survey.status)}">${statusLabel(survey.status)}</span>
           </header>
           <div class="svdash-card__window">
             <span class="svdash-window ${windowState.className}">${windowState.label}</span>
           </div>
-          <p class="svdash-card__desc">${escapeHtml(survey.description || "Описание не заполнено")}</p>
+          <p class="svdash-card__desc">${descHtml}</p>
           <div class="svdash-card__meta">
             <span>Ответов: <strong>${Number(survey.responses_count || 0)}</strong></span>
             <span>Старт: ${escapeHtml(formatDate(survey.starts_at))}</span>
@@ -196,6 +361,7 @@ function renderCards() {
             ${renderTrendSparkline(survey.id)}
           </div>
           <div class="svdash-card__actions">
+            <button class="btn btn--ghost btn--xs" type="button" data-select="${survey.id}" aria-pressed="${selected ? "true" : "false"}">${selected ? "Selected" : "Select"}</button>
             <a class="btn btn--outline btn--xs" href="${getBuilderLink(survey.id)}">Открыть</a>
             <a class="btn btn--ghost btn--xs" href="${getResultsLink(survey.id)}">Результаты</a>
             <button class="btn btn--ghost btn--xs" type="button" data-copy="${survey.id}">Ссылка</button>
@@ -208,6 +374,7 @@ function renderCards() {
       `;
     })
     .join("");
+  updateBulkControls();
 }
 
 function renderTrendSparkline(surveyId) {
@@ -290,6 +457,7 @@ function openConfirm({ title, text, action, danger = false }) {
     });
     return;
   }
+
   state.confirmAction = action;
   confirmTitle.textContent = title;
   confirmText.textContent = text;
@@ -303,22 +471,73 @@ function closeConfirm() {
   confirmModal.hidden = true;
 }
 
-async function loadSurveys() {
-  cardsSkeleton.hidden = false;
-  surveysGrid.innerHTML = "";
-  emptyState.hidden = true;
+async function runBulkAction({ title, text, action, successLabel }) {
+  const ids = getSelectedSurveyIds();
+  if (!ids.length) {
+    setStatusLine("No selected surveys");
+    return;
+  }
+
+  openConfirm({
+    title,
+    text,
+    danger: successLabel === "deleted",
+    action: async () => {
+      let okCount = 0;
+      const errors = [];
+      for (const id of ids) {
+        try {
+          await action(id);
+          okCount += 1;
+        } catch (error) {
+          errors.push(error?.message || `Error for id ${id}`);
+        }
+      }
+
+      await loadSurveys();
+      setSelectedSurveyIds([]);
+      renderCards();
+      if (okCount) {
+        showToast(`${successLabel}: ${okCount}`);
+      }
+      if (errors.length) {
+        showToast(`Failed: ${errors.length}`, true);
+      }
+    }
+  });
+}
+
+async function loadSurveys({ silent = false } = {}) {
+  if (!silent) {
+    state.loading = true;
+    cardsSkeleton.hidden = false;
+    surveysGrid.innerHTML = "";
+    emptyState.hidden = true;
+    if (refreshBtn) refreshBtn.disabled = true;
+    setStatusLine("Обновляем список опросов...");
+  }
 
   try {
-    const payload = await api.request("/api/surveys?mine=1");
+    const status = String(statusFilter?.value || "all");
+    const endpoint = status !== "all" ? `/api/surveys?mine=1&status=${encodeURIComponent(status)}` : "/api/surveys?mine=1";
+    const payload = await api.request(endpoint);
     const list = Array.isArray(payload.surveys) ? payload.surveys : [];
     state.surveys = list
       .map(normalizeSurvey)
       .filter((item) => Number.isInteger(item.id) && item.id > 0 && String(item.title || "").trim().length > 0);
+
     updateStats();
     applyFilters();
     loadTrendsForSurveys(state.surveys).catch(() => {});
+    setStatusLine(`Синхронизировано: ${new Date().toLocaleTimeString("ru-RU")}`);
+  } catch (error) {
+    const message = error.message || "Ошибка загрузки";
+    showToast(message, true);
+    setStatusLine(message, true);
   } finally {
+    state.loading = false;
     cardsSkeleton.hidden = true;
+    if (refreshBtn) refreshBtn.disabled = false;
   }
 }
 
@@ -328,15 +547,75 @@ function bindEvents() {
     location.href = "/auth";
   });
 
+  refreshBtn?.addEventListener("click", () => {
+    loadSurveys().catch(() => {});
+  });
+
+  viewToggleBtn?.addEventListener("click", () => {
+    setViewMode(state.viewMode === "compact" ? "grid" : "compact", true);
+    renderCards();
+  });
+  selectAllFilteredBtn?.addEventListener("click", selectAllFilteredSurveys);
+  clearBulkSelectionBtn?.addEventListener("click", clearSurveySelection);
+  bulkPublishBtn?.addEventListener("click", () => {
+    runBulkAction({
+      title: "Publish selected surveys",
+      text: "Selected surveys will be published.",
+      successLabel: "Published",
+      action: (id) => api.request(`/api/surveys/${id}/publish`, { method: "POST" })
+    });
+  });
+  bulkArchiveBtn?.addEventListener("click", () => {
+    runBulkAction({
+      title: "Archive selected surveys",
+      text: "Selected surveys will be moved to archive.",
+      successLabel: "Archived",
+      action: (id) => api.request(`/api/surveys/${id}/archive`, { method: "POST" })
+    });
+  });
+  bulkDeleteBtn?.addEventListener("click", () => {
+    runBulkAction({
+      title: "Delete selected surveys",
+      text: "This action is irreversible.",
+      successLabel: "deleted",
+      action: (id) => api.request(`/api/surveys/${id}`, { method: "DELETE" })
+    });
+  });
+
   searchInput?.addEventListener("input", applyFilters);
-  statusFilter?.addEventListener("change", applyFilters);
+  statusFilter?.addEventListener("change", () => {
+    applyFilters();
+    loadSurveys().catch(() => {});
+  });
   sortSelect?.addEventListener("change", applyFilters);
 
+  document.querySelectorAll("[data-status-chip]").forEach((node) => {
+    node.addEventListener("click", (event) => {
+      event.preventDefault();
+      const status = String(node.getAttribute("data-status-chip") || "all");
+      if (!VALID_STATUS.has(status)) return;
+      statusFilter.value = status;
+      applyFilters();
+      loadSurveys().catch(() => {});
+    });
+  });
+
   surveysGrid?.addEventListener("click", (event) => {
+    const selectBtn = event.target.closest("[data-select]");
+    if (selectBtn) {
+      const id = Number(selectBtn.dataset.select);
+      toggleSurveySelection(id);
+      renderCards();
+      return;
+    }
+
     const copyBtn = event.target.closest("[data-copy]");
     if (copyBtn) {
       const id = Number(copyBtn.dataset.copy);
-      navigator.clipboard.writeText(getPublicLink(id)).then(() => showToast("Ссылка скопирована"));
+      navigator.clipboard
+        .writeText(getPublicLink(id))
+        .then(() => showToast("Ссылка скопирована"))
+        .catch(() => showToast("Не удалось скопировать ссылку", true));
       return;
     }
 
@@ -388,7 +667,7 @@ function bindEvents() {
         action: async () => {
           await api.request(`/api/surveys/${id}`, { method: "DELETE" });
           await loadSurveys();
-          showToast("Опрос удалён");
+          showToast("Опрос удален");
         }
       });
     }
@@ -416,6 +695,49 @@ function bindEvents() {
       confirmSubmit.disabled = false;
     }
   });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      if (!qrModal.hidden) closeQrModal();
+      if (!confirmModal.hidden) closeConfirm();
+      return;
+    }
+
+    const inInput = event.target instanceof Element && event.target.closest("input, textarea, select, [contenteditable='true']");
+    if (inInput) return;
+
+    if (event.key === "/") {
+      event.preventDefault();
+      searchInput?.focus();
+      searchInput?.select();
+      return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      searchInput?.focus();
+      searchInput?.select();
+      return;
+    }
+
+    if (event.key.toLowerCase() === "n") {
+      event.preventDefault();
+      window.location.href = "/create";
+      return;
+    }
+
+    if (event.key.toLowerCase() === "r") {
+      event.preventDefault();
+      loadSurveys({ silent: false }).catch(() => {});
+      return;
+    }
+
+    if (event.key.toLowerCase() === "v") {
+      event.preventDefault();
+      setViewMode(state.viewMode === "compact" ? "grid" : "compact", true);
+      renderCards();
+    }
+  });
 }
 
 (async function bootstrap() {
@@ -425,9 +747,14 @@ function bindEvents() {
       location.href = "/auth?next=/cabinet";
       return;
     }
+    applyInitialFiltersFromUrl();
+    updateFolderChips();
+    setViewMode(state.viewMode, false);
     bindEvents();
+    updateBulkControls();
     await loadSurveys();
   } catch (error) {
     showToast(error.message || "Не удалось загрузить кабинет", true);
   }
 })();
+

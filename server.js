@@ -134,6 +134,9 @@ function randomToken(size = 32) {
 function rateLimitAuth(action) {
   const conf = AUTH_LIMITS[action];
   return (req, res, next) => {
+    if (process.env.DISABLE_AUTH_RATE_LIMIT === "1" || process.env.NODE_ENV === "test") {
+      return next();
+    }
     if (!conf) return next();
     const forwarded = req.headers["x-forwarded-for"];
     const ipRaw = Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "unknown";
@@ -308,7 +311,8 @@ function normalizeQuestion(question, index) {
         const jumpToPageId = String(item.jumpToPageId || item.targetPageId || "").trim();
         const jumpToPageIndexRaw = Number(item.jumpToPageIndex);
         const jumpToPageIndex = Number.isInteger(jumpToPageIndexRaw) ? jumpToPageIndexRaw : null;
-        return cleanedText ? { text: cleanedText, imageUrl, jumpToPageId, jumpToPageIndex } : null;
+        if (!cleanedText && !imageUrl) return null;
+        return { text: cleanedText || "Option", imageUrl, jumpToPageId, jumpToPageIndex };
       }
       return null;
     })
@@ -406,16 +410,16 @@ async function getSurveyQuestionsDetailed(surveyId) {
             }
             if (item && typeof item === "object") {
               const cleanedText = String(item.text || "").trim();
+              const imageUrl = String(item.imageUrl || "").trim();
               const jumpToPageIndexRaw = Number(item.jumpToPageIndex);
               const jumpToPageIndex = Number.isInteger(jumpToPageIndexRaw) ? jumpToPageIndexRaw : null;
-              return cleanedText
-                ? {
-                    text: cleanedText,
-                    imageUrl: String(item.imageUrl || "").trim(),
-                    jumpToPageId: String(item.jumpToPageId || item.targetPageId || "").trim(),
-                    jumpToPageIndex
-                  }
-                : null;
+              if (!cleanedText && !imageUrl) return null;
+              return {
+                text: cleanedText || "Option",
+                imageUrl,
+                jumpToPageId: String(item.jumpToPageId || item.targetPageId || "").trim(),
+                jumpToPageIndex
+              };
             }
             return null;
           })
@@ -1725,13 +1729,33 @@ app.post("/api/surveys/:id/unarchive", requireAuth, async (req, res, next) => {
 app.delete("/api/surveys/:id", requireAuth, async (req, res, next) => {
   try {
     const surveyId = Number(req.params.id);
+    if (!Number.isInteger(surveyId) || surveyId <= 0) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+
     const survey = await get("SELECT id, owner_user_id FROM surveys WHERE id = ?", [surveyId]);
     if (!survey) return res.status(404).json({ error: "Survey not found" });
     if (survey.owner_user_id !== req.user.id && survey.owner_user_id != null) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    await run("DELETE FROM surveys WHERE id = ?", [surveyId]);
+    await run("BEGIN IMMEDIATE TRANSACTION");
+    try {
+      // Explicit cleanup keeps deletion working even on legacy DB schemas without reliable cascades.
+      await run("DELETE FROM answers WHERE response_id IN (SELECT id FROM responses WHERE survey_id = ?)", [surveyId]);
+      await run("DELETE FROM answers WHERE question_id IN (SELECT id FROM questions WHERE survey_id = ?)", [surveyId]);
+      await run("DELETE FROM question_media WHERE question_id IN (SELECT id FROM questions WHERE survey_id = ?)", [surveyId]);
+      await run("DELETE FROM options WHERE question_id IN (SELECT id FROM questions WHERE survey_id = ?)", [surveyId]);
+      await run("DELETE FROM responses WHERE survey_id = ?", [surveyId]);
+      await run("DELETE FROM questions WHERE survey_id = ?", [surveyId]);
+      await run("DELETE FROM pages WHERE survey_id = ?", [surveyId]);
+      await run("DELETE FROM surveys WHERE id = ?", [surveyId]);
+      await run("COMMIT");
+    } catch (error) {
+      await run("ROLLBACK").catch(() => {});
+      throw error;
+    }
+
     res.json({ ok: true });
   } catch (error) {
     next(error);
@@ -2029,7 +2053,8 @@ app.post("/api/questions/:questionId/options", requireAuth, async (req, res, nex
             if (item && typeof item === "object") {
               const text = String(item.text || "").trim();
               const imageUrl = String(item.imageUrl || "").trim();
-              return text ? { text, imageUrl } : null;
+              if (!text && !imageUrl) return null;
+              return { text: text || "Option", imageUrl };
             }
             return null;
           })

@@ -82,6 +82,19 @@
           </label>
         </section>
 
+        <section id="bulkBar" class="svdash-bulkbar" hidden>
+          <div class="svdash-bulkbar__left">
+            <strong id="bulkCount" class="svdash-bulkbar__count">0 selected</strong>
+            <button id="selectAllFilteredBtn" class="btn btn--ghost btn--xs" type="button">Select all shown</button>
+            <button id="clearSelectionBtn" class="btn btn--ghost btn--xs" type="button">Clear</button>
+          </div>
+          <div class="svdash-bulkbar__right">
+            <button id="bulkPublishBtn" class="btn btn--outline btn--xs" type="button">Publish</button>
+            <button id="bulkArchiveBtn" class="btn btn--outline btn--xs" type="button">Archive</button>
+            <button id="bulkDeleteBtn" class="btn btn--danger btn--xs" type="button">Delete</button>
+          </div>
+        </section>
+
         <div id="cardsSkeleton" class="svdash-skeleton" hidden>
           <div class="svdash-skeleton__card"></div>
           <div class="svdash-skeleton__card"></div>

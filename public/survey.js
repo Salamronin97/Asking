@@ -26,6 +26,7 @@
     me: null,
     surveyId: null,
     survey: null,
+    pages: [],
     questions: [],
     activeTab: "constructor"
   };
@@ -182,18 +183,26 @@
               if (typeof item === "string") return { text: item, imageUrl: "", jumpToPageIndex: null, jumpToPageId: "" };
               if (!item || typeof item !== "object") return null;
               const text = String(item.text || "").trim();
+              const imageUrl = String(item.imageUrl || "");
               const jumpToPageIndexRaw = Number(item.jumpToPageIndex);
-              return text
-                ? {
-                    text,
-                    imageUrl: String(item.imageUrl || ""),
-                    jumpToPageId: String(item.jumpToPageId || item.targetPageId || ""),
-                    jumpToPageIndex: Number.isInteger(jumpToPageIndexRaw) ? jumpToPageIndexRaw : null
-                  }
-                : null;
+              if (!text && !imageUrl) return null;
+              return {
+                text: text || "Option",
+                imageUrl,
+                jumpToPageId: String(item.jumpToPageId || item.targetPageId || ""),
+                jumpToPageIndex: Number.isInteger(jumpToPageIndexRaw) ? jumpToPageIndexRaw : null
+              };
             })
             .filter(Boolean)
         : []
+    };
+  }
+
+  function normalizeOwnerPageFromApi(page, index) {
+    return {
+      id: String(page?.id || `page_${index + 1}`),
+      title: String(page?.title || `Страница ${index + 1}`),
+      orderIndex: Number.isFinite(Number(page?.order_index)) ? Number(page.order_index) : index
     };
   }
 
@@ -493,6 +502,41 @@
   }
 
   function buildOwnerPayload() {
+    const normalizedPages = Array.isArray(ownerState.pages)
+      ? ownerState.pages.map((page, index) => normalizeOwnerPageFromApi(page, index))
+      : [];
+    const pagesPayload = normalizedPages.map((page, index) => ({
+      id: page.id,
+      title: String(page.title || `Страница ${index + 1}`).trim() || `Страница ${index + 1}`,
+      orderIndex: index,
+      questions: []
+    }));
+    const pageIndexById = new Map(pagesPayload.map((page, index) => [String(page.id), index]));
+    const fallbackQuestions = [];
+    const normalizedQuestions = ownerState.questions.map((q, index) => ({
+      text: String(q.text || "").trim(),
+      type: q.type === "multiple" ? "multi" : q.type === "select" ? "dropdown" : q.type,
+      required: q.required !== false,
+      options: Array.isArray(q.options) ? q.options : [],
+      order: Number.isFinite(q.order) ? q.order : index
+    }));
+    normalizedQuestions.forEach((question, index) => {
+      const pageId = String(ownerState.questions[index]?.pageId || ownerState.questions[index]?.page_id || "");
+      const targetIndex = pageIndexById.has(pageId) ? pageIndexById.get(pageId) : 0;
+      if (pagesPayload[targetIndex]) {
+        pagesPayload[targetIndex].questions.push(question);
+      } else {
+        fallbackQuestions.push(question);
+      }
+    });
+    if (fallbackQuestions.length) {
+      if (!pagesPayload.length) {
+        pagesPayload.push({ title: "Страница 1", orderIndex: 0, questions: [...fallbackQuestions] });
+      } else {
+        pagesPayload[0].questions = [...(pagesPayload[0].questions || []), ...fallbackQuestions];
+      }
+    }
+
     return {
       title: document.getElementById("settingsTitle").value.trim(),
       description: document.getElementById("settingsDescription").value.trim(),
@@ -500,13 +544,8 @@
       startsAt: toIsoOrNull(document.getElementById("settingsStartsAt").value),
       endsAt: toIsoOrNull(document.getElementById("settingsEndsAt").value),
       allowMultipleResponses: document.getElementById("settingsAllowMulti").checked,
-      questions: ownerState.questions.map((q, index) => ({
-        text: String(q.text || "").trim(),
-        type: q.type === "multiple" ? "multi" : q.type === "select" ? "dropdown" : q.type,
-        required: q.required !== false,
-        options: Array.isArray(q.options) ? q.options : [],
-        order: Number.isFinite(q.order) ? q.order : index
-      }))
+      pages: pagesPayload.length ? pagesPayload : [{ title: "Страница 1", orderIndex: 0, questions: normalizedQuestions }],
+      questions: normalizedQuestions
     };
   }
 
@@ -603,6 +642,7 @@
 
     const data = await api.request(`/api/surveys/${surveyId}`);
     ownerState.survey = data.survey;
+    ownerState.pages = Array.isArray(data.pages) ? data.pages.map(normalizeOwnerPageFromApi) : [];
     ownerState.questions = Array.isArray(data.questions) ? data.questions.map(normalizeQuestionFromApi) : [];
 
     if (!ownerState.survey) {
