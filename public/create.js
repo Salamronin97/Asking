@@ -132,6 +132,7 @@
   const FOCUS_STORAGE_KEY = "asking_builder_focus";
   const ADVANCED_STORAGE_KEY = "asking_builder_advanced";
   const TOOLBAR_LANE_STORAGE_KEY = "asking_builder_toolbar_lane";
+  const VERSION_LIMIT = 25;
 
   const state = {
     survey: {
@@ -172,6 +173,7 @@
   let saveTimer = null;
   let isSaving = false;
   let pendingSave = false;
+  let lastVersionHash = "";
   const dragState = { questionId: null, fromPageId: null, questionIds: [] };
   const pageDragState = { pageId: null };
   const historyState = { undoStack: [], redoStack: [], lastHash: "", isApplying: false, max: 60 };
@@ -271,6 +273,7 @@
 
     setText("#publishBtn", "Опубликовать");
     setText("#openQuickStartWizardBtn", "Опрос за 60 сек");
+    setText("#openVersionHistoryBtn", "Версии");
     setText("#toolbarLaneComposeBtn", "Конструктор");
     setText("#toolbarLaneOrganizeBtn", "Структура");
     setText("#toolbarLaneAdvancedBtn", "Продвинутое");
@@ -448,6 +451,7 @@
     setText(".constructor-modal-lead", "Выберите категорию и создайте анкету на готовой структуре.");
     setText("#templatePreviewTitle", "Предпросмотр шаблона");
     setText("#themePickerTitle", "Выберите тему");
+    setText("#versionHistoryTitle", "История версий");
     setText("#templateCreateBlankBtn", "+ Создать анкету");
     setText("#applyTemplateBtn", "Использовать шаблон");
     setText("#applyThemeBtn", "Использовать тему");
@@ -458,7 +462,7 @@
     setText("#wizardNextBtn", "Далее");
     setText("#wizardApplyBtn", "Создать анкету");
 
-    ["#closeQuestionTypeModalBtn", "#closeCreationEntryBtn", "#closeTemplateCatalogBtn", "#closeTemplatePreviewBtn", "#closeThemePickerBtn"]
+    ["#closeQuestionTypeModalBtn", "#closeCreationEntryBtn", "#closeTemplateCatalogBtn", "#closeTemplatePreviewBtn", "#closeThemePickerBtn", "#closeVersionHistoryBtn"]
       .forEach((selector) => {
         setText(selector, "×");
         setAttr(selector, "aria-label", "Закрыть");
@@ -530,6 +534,7 @@
       "addQuestionBtn",
       "openTemplateCatalogBtn",
       "toggleAdvancedBuilderBtn",
+      "openVersionHistoryBtn",
       "toggleDensityBtn",
       "toggleFocusBtn",
       "openCommandPaletteBtn",
@@ -572,6 +577,9 @@
       "wizardBackBtn",
       "wizardNextBtn",
       "wizardApplyBtn",
+      "versionHistoryOverlay",
+      "closeVersionHistoryBtn",
+      "versionHistoryList",
       "emptyEditor",
       "questionTitleInput",
       "questionDescriptionInput",
@@ -807,6 +815,7 @@
       setFocusMode(!state.focusMode, true);
     });
     refs.openCommandPaletteBtn?.addEventListener("click", openCommandPalette);
+    refs.openVersionHistoryBtn?.addEventListener("click", openVersionHistoryModal);
     refs.closeQuickStartWizardBtn?.addEventListener("click", closeQuickStartWizard);
     refs.wizardBackBtn?.addEventListener("click", () => setWizardStep(state.wizard.step - 1));
     refs.wizardNextBtn?.addEventListener("click", nextWizardStep);
@@ -1193,6 +1202,7 @@
     bindModal(refs.themePickerOverlay, refs.closeThemePickerBtn, closeThemePickerModal);
     bindModal(refs.commandPaletteOverlay, refs.closeCommandPaletteBtn, closeCommandPalette);
     bindModal(refs.quickStartWizardOverlay, refs.closeQuickStartWizardBtn, closeQuickStartWizard);
+    bindModal(refs.versionHistoryOverlay, refs.closeVersionHistoryBtn, closeVersionHistoryModal);
 
     refs.commandPaletteInput?.addEventListener("input", (event) => {
       state.commandSearch = String(event.target.value || "").trim().toLowerCase();
@@ -2790,6 +2800,115 @@
     refs.wizardSummaryText.textContent = `Анкета «${state.wizard.title || "Новая анкета"}», сценарий: ${presetLabel}, тема: ${theme.name}.`;
   }
 
+  function getVersionStorageKey() {
+    return `asking_builder_versions_${surveyId || state.survey.id || "new"}`;
+  }
+
+  function loadVersionHistory() {
+    const raw = localStorage.getItem(getVersionStorageKey());
+    const parsed = safeJsonParse(raw, []);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item) => item && typeof item === "object" && item.snapshot && item.createdAt);
+  }
+
+  function saveVersionHistory(items) {
+    localStorage.setItem(getVersionStorageKey(), JSON.stringify(items.slice(0, VERSION_LIMIT)));
+  }
+
+  function createVersionSnapshot(reason = "Автосохранение") {
+    const snapshot = {
+      survey: deepClone(state.survey),
+      selectedPageId: state.selectedPageId,
+      selectedQuestionId: state.selectedQuestionId,
+      selectedQuestionIds: deepClone(state.selectedQuestionIds),
+      activeThemeId: state.activeThemeId,
+      previewThemeId: state.previewThemeId,
+      settingsPane: state.settingsPane
+    };
+    const hash = JSON.stringify(snapshot.survey);
+    if (hash === lastVersionHash) return;
+    lastVersionHash = hash;
+
+    const items = loadVersionHistory();
+    items.unshift({
+      id: createId(),
+      createdAt: new Date().toISOString(),
+      reason,
+      title: String(state.survey.title || "Новая анкета"),
+      pages: Array.isArray(state.survey.pages) ? state.survey.pages.length : 0,
+      questions: (state.survey.pages || []).reduce((sum, page) => sum + (page.questions?.length || 0), 0),
+      snapshot
+    });
+    saveVersionHistory(items);
+  }
+
+  function openVersionHistoryModal() {
+    if (!refs.versionHistoryOverlay || !refs.versionHistoryOverlay.hidden) return;
+    renderVersionHistoryList();
+    refs.versionHistoryOverlay.hidden = false;
+    document.body.classList.add("modal-open");
+  }
+
+  function closeVersionHistoryModal() {
+    if (!refs.versionHistoryOverlay || refs.versionHistoryOverlay.hidden) return;
+    refs.versionHistoryOverlay.hidden = true;
+    cleanupModals();
+  }
+
+  function renderVersionHistoryList() {
+    if (!refs.versionHistoryList) return;
+    const items = loadVersionHistory();
+    if (!items.length) {
+      refs.versionHistoryList.innerHTML = "<p class='constructor-version-empty'>Пока нет сохраненных версий.</p>";
+      return;
+    }
+    refs.versionHistoryList.innerHTML = items
+      .map((item) => {
+        const date = new Date(item.createdAt);
+        const dateLabel = Number.isNaN(date.getTime()) ? item.createdAt : date.toLocaleString("ru-RU");
+        return `
+          <article class="constructor-version-item">
+            <div class="constructor-version-item__meta">
+              <strong>${escapeHtml(item.title || "Анкета")}</strong>
+              <span>${escapeHtml(dateLabel)} • ${escapeHtml(item.reason || "Автосохранение")}</span>
+              <span>${Number(item.pages || 0)} стр. • ${Number(item.questions || 0)} вопросов</span>
+            </div>
+            <div class="constructor-version-item__actions">
+              <button class="btn btn--ghost btn--xs" type="button" data-version-restore="${escapeAttr(item.id)}">Восстановить</button>
+              <button class="btn btn--outline btn--xs" type="button" data-version-delete="${escapeAttr(item.id)}">Удалить</button>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+
+    refs.versionHistoryList.querySelectorAll("[data-version-restore]").forEach((button) => {
+      button.addEventListener("click", () => {
+        restoreVersionSnapshot(String(button.dataset.versionRestore || ""));
+      });
+    });
+    refs.versionHistoryList.querySelectorAll("[data-version-delete]").forEach((button) => {
+      button.addEventListener("click", () => {
+        deleteVersionSnapshot(String(button.dataset.versionDelete || ""));
+      });
+    });
+  }
+
+  function restoreVersionSnapshot(versionId) {
+    const items = loadVersionHistory();
+    const selected = items.find((item) => item.id === versionId);
+    if (!selected?.snapshot) return;
+    applyHistorySnapshot(selected.snapshot, "Версия восстановлена");
+    closeVersionHistoryModal();
+    markDirty("Версия восстановлена");
+  }
+
+  function deleteVersionSnapshot(versionId) {
+    const items = loadVersionHistory().filter((item) => item.id !== versionId);
+    saveVersionHistory(items);
+    renderVersionHistoryList();
+  }
+
   function renderThemePicker() {
     if (!refs.themeGrid) return;
     refs.themeGrid.innerHTML = "";
@@ -2925,6 +3044,7 @@
     closeThemePickerModal();
     closeCommandPalette();
     closeQuickStartWizard();
+    closeVersionHistoryModal();
     document.body.classList.remove("modal-open");
   }
 
@@ -2936,7 +3056,8 @@
       isModalVisible(refs.templatePreviewOverlay) ||
       isModalVisible(refs.themePickerOverlay) ||
       isModalVisible(refs.commandPaletteOverlay) ||
-      isModalVisible(refs.quickStartWizardOverlay);
+      isModalVisible(refs.quickStartWizardOverlay) ||
+      isModalVisible(refs.versionHistoryOverlay);
     if (!open) document.body.classList.remove("modal-open");
   }
 
@@ -3263,6 +3384,7 @@
       });
 
       state.dirty = false;
+      createVersionSnapshot("Автосохранение");
       setSaveState("saved", "Сохранено");
       setStatus("Сохранено");
     } finally {
