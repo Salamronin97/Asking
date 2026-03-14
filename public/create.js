@@ -72,6 +72,7 @@
   };
   const DENSITY_STORAGE_KEY = "asking_builder_density";
   const FOCUS_STORAGE_KEY = "asking_builder_focus";
+  const ADVANCED_STORAGE_KEY = "asking_builder_advanced";
 
   const state = {
     survey: {
@@ -92,6 +93,7 @@
     settingsPane: "question",
     densityMode: localStorage.getItem(DENSITY_STORAGE_KEY) === "compact" ? "compact" : "cozy",
     focusMode: localStorage.getItem(FOCUS_STORAGE_KEY) === "on",
+    advancedMode: localStorage.getItem(ADVANCED_STORAGE_KEY) === "on",
     commandSearch: "",
     questionFilter: "",
     matchCursor: 0,
@@ -119,6 +121,7 @@
   async function init() {
     cacheRefs();
     enhanceQuestionEditorLayout();
+    setAdvancedMode(state.advancedMode, false);
     setDensityMode(state.densityMode, false);
     setFocusMode(state.focusMode, false);
     bindEvents();
@@ -208,6 +211,7 @@
       "publishBtn",
       "addQuestionBtn",
       "openTemplateCatalogBtn",
+      "toggleAdvancedBuilderBtn",
       "toggleDensityBtn",
       "toggleFocusBtn",
       "openCommandPaletteBtn",
@@ -440,6 +444,9 @@
 
     refs.addQuestionBtn?.addEventListener("click", openQuestionTypeModal);
     refs.openTemplateCatalogBtn?.addEventListener("click", openTemplateCatalogModal);
+    refs.toggleAdvancedBuilderBtn?.addEventListener("click", () => {
+      setAdvancedMode(!state.advancedMode, true);
+    });
     refs.toggleDensityBtn?.addEventListener("click", () => {
       setDensityMode(state.densityMode === "compact" ? "cozy" : "compact", true);
     });
@@ -1498,7 +1505,7 @@
       refs.moveSelectedToPageBtn.disabled = selectedCount < 1 || (Array.isArray(state.survey.pages) ? state.survey.pages.length : 0) < 2;
     }
     if (refs.questionBulkDock) refs.questionBulkDock.hidden = selectedCount < 2;
-    if (refs.bulkDockCount) refs.bulkDockCount.textContent = `${selectedCount} selected`;
+    if (refs.bulkDockCount) refs.bulkDockCount.textContent = `${selectedCount} выбрано`;
     if (refs.bulkDockMoveBtn) {
       refs.bulkDockMoveBtn.disabled = selectedCount < 1 || (Array.isArray(state.survey.pages) ? state.survey.pages.length : 0) < 2;
     }
@@ -2831,6 +2838,19 @@
   function focusPanelOnMobile(panel) {
     if (window.innerWidth > 1100) return;
     setMobilePanel(panel);
+  }
+
+  function setAdvancedMode(on, notify = false) {
+    state.advancedMode = Boolean(on);
+    localStorage.setItem(ADVANCED_STORAGE_KEY, state.advancedMode ? "on" : "off");
+    document.body.classList.toggle("builder-advanced", state.advancedMode);
+    refs.toggleAdvancedBuilderBtn?.setAttribute("aria-pressed", state.advancedMode ? "true" : "false");
+    if (refs.toggleAdvancedBuilderBtn) {
+      refs.toggleAdvancedBuilderBtn.textContent = state.advancedMode ? "Скрыть расширенное" : "Расширенный режим";
+    }
+    if (notify) {
+      toast(state.advancedMode ? "Расширенный режим включён" : "Расширенный режим выключен");
+    }
   }
 
   function setDensityMode(mode, notify = false) {

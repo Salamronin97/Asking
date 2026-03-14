@@ -110,62 +110,65 @@
 
 
           <div class="constructor-toolbar">
-            <div class="constructor-toolbar__group constructor-toolbar__group--core" aria-label="Core actions">
-              <span class="constructor-toolbar__group-title">Create</span>
-              <button id="addQuestionBtn" class="btn btn--outline" type="button">+ Add question</button>
-              <button id="openTemplateCatalogBtn" class="btn btn--ghost" type="button">Templates</button>
+            <div class="constructor-toolbar__group constructor-toolbar__group--core" aria-label="Основные действия">
+              <span class="constructor-toolbar__group-title">Основное</span>
+              <button id="addQuestionBtn" class="btn btn--outline" type="button">+ Добавить вопрос</button>
+              <button id="openTemplateCatalogBtn" class="btn btn--ghost" type="button">Шаблоны</button>
+              <button id="toggleAdvancedBuilderBtn" class="btn btn--ghost btn--xs" type="button" aria-pressed="false">Расширенный режим</button>
             </div>
-            <div class="constructor-toolbar__group constructor-toolbar__group--search" aria-label="Search and selection">
-              <span class="constructor-toolbar__group-title">Search</span>
+            <div class="constructor-toolbar__group constructor-toolbar__group--search" aria-label="Поиск и выделение">
+              <span class="constructor-toolbar__group-title">Поиск</span>
               <div class="constructor-toolbar__search">
-                <input id="questionSearchInput" type="search" placeholder="Search question" />
+                <input id="questionSearchInput" type="search" placeholder="Найти вопрос" />
                 <button id="prevQuestionMatchBtn" class="btn btn--ghost btn--xs" type="button" title="Shift+Enter">^</button>
                 <button id="nextQuestionMatchBtn" class="btn btn--ghost btn--xs" type="button" title="Enter">v</button>
                 <span id="questionMatchCount" class="constructor-match-count">0/0</span>
-                <button id="clearQuestionSearchBtn" class="btn btn--ghost btn--xs" type="button">Clear search</button>
-                <button id="selectAllVisibleQuestionsBtn" class="btn btn--ghost btn--xs" type="button">Select visible</button>
-                <button id="clearQuestionSelectionBtn" class="btn btn--ghost btn--xs" type="button">Clear selected</button>
-                <button id="duplicateSelectedQuestionBtn" class="btn btn--ghost btn--xs" type="button">Duplicate selected</button>
-                <button id="deleteSelectedQuestionBtn" class="btn btn--ghost btn--xs" type="button">Delete selected</button>
-                <button id="moveSelectedToPageBtn" class="btn btn--ghost btn--xs" type="button">Move to page</button>
+                <button id="clearQuestionSearchBtn" class="btn btn--ghost btn--xs" type="button">Очистить поиск</button>
+                <button id="moveSelectedToPageBtn" class="btn btn--ghost btn--xs" type="button">Перенести на стр.</button>
+                <div class="constructor-advanced constructor-toolbar__bulk">
+                  <button id="selectAllVisibleQuestionsBtn" class="btn btn--ghost btn--xs" type="button">Выделить видимые</button>
+                  <button id="clearQuestionSelectionBtn" class="btn btn--ghost btn--xs" type="button">Снять выделение</button>
+                  <button id="duplicateSelectedQuestionBtn" class="btn btn--ghost btn--xs" type="button">Дублировать</button>
+                  <button id="deleteSelectedQuestionBtn" class="btn btn--ghost btn--xs" type="button">Удалить</button>
+                </div>
               </div>
             </div>
-            <div class="constructor-toolbar__group constructor-toolbar__group--history" aria-label="History and view">
-              <span class="constructor-toolbar__group-title">Tools</span>
+            <div class="constructor-toolbar__group constructor-toolbar__group--history constructor-advanced" aria-label="Инструменты">
+              <span class="constructor-toolbar__group-title">Инструменты</span>
               <div class="constructor-toolbar__history">
-                <button id="undoBtn" class="btn btn--ghost btn--xs" type="button" title="Ctrl+Z">Undo</button>
-                <button id="redoBtn" class="btn btn--ghost btn--xs" type="button" title="Ctrl+Shift+Z">Redo</button>
+                <button id="undoBtn" class="btn btn--ghost btn--xs" type="button" title="Ctrl+Z">Отменить</button>
+                <button id="redoBtn" class="btn btn--ghost btn--xs" type="button" title="Ctrl+Shift+Z">Повторить</button>
               </div>
-              <button id="toggleDensityBtn" class="btn btn--ghost btn--xs" type="button" aria-pressed="false">Density</button>
-              <button id="toggleFocusBtn" class="btn btn--ghost btn--xs" type="button" aria-pressed="false">Focus</button>
-              <button id="openCommandPaletteBtn" class="btn btn--ghost btn--xs" type="button" title="Ctrl+K">Commands</button>
+              <button id="toggleDensityBtn" class="btn btn--ghost btn--xs" type="button" aria-pressed="false">Компактно</button>
+              <button id="toggleFocusBtn" class="btn btn--ghost btn--xs" type="button" aria-pressed="false">Фокус</button>
+              <button id="openCommandPaletteBtn" class="btn btn--ghost btn--xs" type="button" title="Ctrl+K">Команды</button>
             </div>
-            <div class="constructor-toolbar__group constructor-toolbar__group--quick" aria-label="Quick add">
-              <span class="constructor-toolbar__group-title">Quick add</span>
+            <div class="constructor-toolbar__group constructor-toolbar__group--quick" aria-label="Быстрое добавление">
+              <span class="constructor-toolbar__group-title">Быстрое добавление</span>
               <div class="constructor-toolbar__quick">
-                <button class="btn btn--ghost btn--xs" type="button" data-quick-add-type="single">+ Single choice</button>
-                <button class="btn btn--ghost btn--xs" type="button" data-quick-add-type="multiple">+ Multiple choice</button>
-                <button class="btn btn--ghost btn--xs" type="button" data-quick-add-type="text">+ Text answer</button>
+                <button class="btn btn--ghost btn--xs" type="button" data-quick-add-type="single">+ Один выбор</button>
+                <button class="btn btn--ghost btn--xs" type="button" data-quick-add-type="multiple">+ Несколько</button>
+                <button class="btn btn--ghost btn--xs" type="button" data-quick-add-type="text">+ Текст</button>
               </div>
             </div>
           </div>
           <div id="questionList" class="constructor-question-list"></div>
           <p id="statusText" class="status"></p>
-          <p id="hotkeysHint" class="constructor-hotkeys-hint">Ctrl+K commands | Ctrl+S save | Ctrl+F search | Alt+Arrows switch pages</p>
+          <p id="hotkeysHint" class="constructor-hotkeys-hint">Ctrl+S сохранить | Ctrl+F поиск | Alt+стрелки страницы</p>
           <div class="constructor-inline-draft-actions">
-            <button id="restoreDraftInlineBtn" class="btn btn--ghost btn--xs" type="button">Restore draft</button>
-            <button id="clearDraftInlineBtn" class="btn btn--ghost btn--xs" type="button">Clear draft</button>
+            <button id="restoreDraftInlineBtn" class="btn btn--ghost btn--xs" type="button">Восстановить черновик</button>
+            <button id="clearDraftInlineBtn" class="btn btn--ghost btn--xs" type="button">Очистить черновик</button>
           </div>
           <div id="questionBulkDock" class="constructor-bulk-dock" hidden>
             <div class="constructor-bulk-dock__left">
-              <strong id="bulkDockCount">0 selected</strong>
-              <span>You can move, duplicate or delete selected questions.</span>
+              <strong id="bulkDockCount">0 выбрано</strong>
+              <span>Массовые действия с выделенными вопросами.</span>
             </div>
             <div class="constructor-bulk-dock__actions">
-              <button id="bulkDockMoveBtn" class="btn btn--ghost btn--xs" type="button">Move</button>
-              <button id="bulkDockDuplicateBtn" class="btn btn--ghost btn--xs" type="button">Duplicate</button>
-              <button id="bulkDockDeleteBtn" class="btn btn--danger btn--xs" type="button">Delete</button>
-              <button id="bulkDockClearBtn" class="btn btn--outline btn--xs" type="button">Clear</button>
+              <button id="bulkDockMoveBtn" class="btn btn--ghost btn--xs" type="button">Перенести</button>
+              <button id="bulkDockDuplicateBtn" class="btn btn--ghost btn--xs" type="button">Дублировать</button>
+              <button id="bulkDockDeleteBtn" class="btn btn--danger btn--xs" type="button">Удалить</button>
+              <button id="bulkDockClearBtn" class="btn btn--outline btn--xs" type="button">Снять</button>
             </div>
           </div>
         </div>

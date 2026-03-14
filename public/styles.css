@@ -4010,6 +4010,19 @@ body.modal-open {
   font-weight: 800;
 }
 
+.constructor-advanced {
+  display: none !important;
+}
+
+body.builder-advanced .constructor-advanced {
+  display: flex !important;
+}
+
+.constructor-toolbar__bulk {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .constructor-toolbar__quick {
   display: inline-flex;
   flex-wrap: wrap;
