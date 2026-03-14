@@ -2255,9 +2255,9 @@
             </div>
             <div class="question-card__actions">
               <button type="button" class="btn btn--ghost btn--xs" data-action="select" aria-pressed="${isSelected ? "true" : "false"}">Выбрать</button>
-              <button type="button" class="btn btn--ghost btn--xs" data-action="focus">Открыть</button>
-              <button type="button" class="btn btn--ghost btn--xs" data-action="duplicate">Копия</button>
-              <button type="button" class="btn btn--ghost btn--xs" data-action="delete">Удалить</button>
+              <button type="button" class="btn btn--ghost btn--xs" data-action="focus">Редактировать</button>
+              <button type="button" class="btn btn--ghost btn--xs question-card__action-extra" data-action="duplicate">Копия</button>
+              <button type="button" class="btn btn--ghost btn--xs question-card__action-extra" data-action="delete">Удалить</button>
             </div>
           </div>
           <div class="question-card__preview">${renderQuestionCardPreview(question)}</div>
