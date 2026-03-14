@@ -3665,6 +3665,10 @@ body.modal-open {
   transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
 }
 
+.constructor-page-item.is-drag-origin {
+  opacity: 0.55;
+}
+
 .constructor-page-item__thumb {
   display: block;
   width: 100%;

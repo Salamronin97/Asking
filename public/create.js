@@ -173,6 +173,7 @@
   let isSaving = false;
   let pendingSave = false;
   const dragState = { questionId: null, fromPageId: null, questionIds: [] };
+  const pageDragState = { pageId: null };
   const historyState = { undoStack: [], redoStack: [], lastHash: "", isApplying: false, max: 60 };
   const isDev =
     window.location.hostname === "localhost" ||
@@ -808,7 +809,7 @@
     refs.openCommandPaletteBtn?.addEventListener("click", openCommandPalette);
     refs.closeQuickStartWizardBtn?.addEventListener("click", closeQuickStartWizard);
     refs.wizardBackBtn?.addEventListener("click", () => setWizardStep(state.wizard.step - 1));
-    refs.wizardNextBtn?.addEventListener("click", () => setWizardStep(state.wizard.step + 1));
+    refs.wizardNextBtn?.addEventListener("click", nextWizardStep);
     refs.wizardApplyBtn?.addEventListener("click", applyQuickStartWizard);
     refs.wizardSurveyTitleInput?.addEventListener("input", (event) => {
       state.wizard.title = String(event.target.value || "").trim() || "Новая анкета";
@@ -1640,7 +1641,9 @@
       const questionCount = Array.isArray(page.questions) ? page.questions.length : 0;
       const button = document.createElement("button");
       button.type = "button";
+      button.draggable = true;
       button.className = `constructor-page-item${page.id === state.selectedPageId ? " is-active" : ""}`;
+      button.dataset.pageId = page.id;
       button.innerHTML = `
         <span class="constructor-page-item__thumb" style="${buildPageBackgroundStyle(design)}"></span>
         <span class="constructor-page-item__title">${escapeHtml(page.title || `Страница ${index + 1}`)}</span>
@@ -1656,7 +1659,27 @@
         focusPanelOnMobile("questions");
       });
 
+      button.addEventListener("dragstart", (event) => {
+        pageDragState.pageId = page.id;
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", page.id);
+        button.classList.add("is-drag-origin");
+      });
+
+      button.addEventListener("dragend", () => {
+        pageDragState.pageId = null;
+        refs.pagesList.querySelectorAll(".constructor-page-item").forEach((node) => {
+          node.classList.remove("drop-target", "is-drag-origin");
+        });
+      });
+
       button.addEventListener("dragover", (event) => {
+        if (pageDragState.pageId) {
+          if (pageDragState.pageId === page.id) return;
+          event.preventDefault();
+          button.classList.add("drop-target");
+          return;
+        }
         if (!dragState.questionId || !dragState.fromPageId) return;
         if (dragState.fromPageId === page.id) return;
         event.preventDefault();
@@ -1670,6 +1693,22 @@
       button.addEventListener("drop", (event) => {
         event.preventDefault();
         button.classList.remove("drop-target");
+
+        if (pageDragState.pageId) {
+          const fromId = pageDragState.pageId;
+          pageDragState.pageId = null;
+          if (fromId === page.id) return;
+          const fromIndex = state.survey.pages.findIndex((item) => item.id === fromId);
+          const toIndex = state.survey.pages.findIndex((item) => item.id === page.id);
+          if (fromIndex < 0 || toIndex < 0) return;
+          const [movedPage] = state.survey.pages.splice(fromIndex, 1);
+          state.survey.pages.splice(toIndex, 0, movedPage);
+          renderPages();
+          markDirty("Порядок страниц обновлён");
+          toast("Страница перемещена");
+          return;
+        }
+
         const fromQuestionId = dragState.questionId;
         const fromPageId = dragState.fromPageId;
         const fromQuestionIds = Array.isArray(dragState.questionIds) ? dragState.questionIds : [];
@@ -2710,8 +2749,32 @@
 
     if (refs.wizardBackBtn) refs.wizardBackBtn.disabled = normalized <= 1;
     if (refs.wizardNextBtn) refs.wizardNextBtn.hidden = normalized >= 3;
+    if (refs.wizardNextBtn) refs.wizardNextBtn.disabled = normalized === 2 && !isWizardStepValid(2, false);
     if (refs.wizardApplyBtn) refs.wizardApplyBtn.hidden = normalized < 3;
+    if (refs.wizardApplyBtn) refs.wizardApplyBtn.disabled = !isWizardStepValid(3, false);
     updateWizardSummary();
+  }
+
+  function isWizardStepValid(step, notify = true) {
+    if (step <= 1) {
+      const ok = Boolean(QUESTION_PRESETS[state.wizard.preset]);
+      if (!ok && notify) setStatus("Выбери сценарий для быстрого старта", true);
+      return ok;
+    }
+    if (step === 2 || step === 3) {
+      const title = String(state.wizard.title || "").trim();
+      if (title.length < 3) {
+        if (notify) setStatus("Название анкеты должно быть не короче 3 символов", true);
+        return false;
+      }
+      return true;
+    }
+    return true;
+  }
+
+  function nextWizardStep() {
+    if (!isWizardStepValid(state.wizard.step, true)) return;
+    setWizardStep(state.wizard.step + 1);
   }
 
   function updateWizardSummary() {
@@ -2986,6 +3049,7 @@
   }
 
   function applyQuickStartWizard() {
+    if (!isWizardStepValid(3, true)) return;
     const presetPack = QUESTION_PRESETS[state.wizard.preset];
     if (!Array.isArray(presetPack) || !presetPack.length) {
       setStatus("Выберите сценарий для быстрого старта", true);
