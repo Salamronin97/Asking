@@ -4116,6 +4116,10 @@ body.builder-simple .constructor-toolbar__group {
   padding: 8px;
 }
 
+body.builder-simple .constructor-type-palette {
+  background: #fff;
+}
+
 body.builder-simple .constructor-worktop {
   background: #f8fbff;
 }
@@ -4189,6 +4193,43 @@ body.builder-advanced .constructor-advanced {
   width: 100%;
 }
 
+.constructor-type-palette {
+  border: 1px solid #dbe4f4;
+  border-radius: 12px;
+  background: #f8fbff;
+  padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.constructor-type-pill {
+  min-height: 38px;
+  border: 1px solid #d8e2f2;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color 130ms ease, background-color 130ms ease, transform 130ms ease;
+}
+
+.constructor-type-pill:hover {
+  border-color: #9fb4ff;
+  background: #eef3ff;
+  transform: translateY(-1px);
+}
+
+.constructor-type-pill.is-dragging {
+  opacity: 0.55;
+}
+
 .constructor-inline-draft-actions {
   margin-top: 8px;
   display: flex;
@@ -4240,6 +4281,12 @@ body.builder-advanced .constructor-advanced {
   gap: 12px;
   min-height: 360px;
   align-content: start;
+}
+
+.constructor-question-list.is-drop-add {
+  outline: 2px dashed #4f6ef7;
+  outline-offset: 4px;
+  border-radius: 12px;
 }
 
 /* Ensure question cards are visible in the constructor canvas */
@@ -7465,6 +7512,17 @@ details:not([open]) > .constructor-fold__summary::after {
 
   .constructor-toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .constructor-type-palette {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+
+  .constructor-type-pill {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 
   .constructor-toolbar-lanes {

@@ -178,6 +178,7 @@
   let lastVersionHash = "";
   const dragState = { questionId: null, fromPageId: null, questionIds: [] };
   const pageDragState = { pageId: null };
+  const paletteDragState = { questionType: null };
   const historyState = { undoStack: [], redoStack: [], lastHash: "", isApplying: false, max: 60 };
   const isDev =
     window.location.hostname === "localhost" ||
@@ -659,6 +660,7 @@
     refs.panels = Array.from(document.querySelectorAll(".constructor-panel"));
     refs.quickTypeButtons = Array.from(document.querySelectorAll("[data-quick-question-type]"));
     refs.quickAddButtons = Array.from(document.querySelectorAll("[data-quick-add-type]"));
+    refs.dragAddButtons = Array.from(document.querySelectorAll("[data-drag-add-type]"));
     refs.questionPresetButtons = Array.from(document.querySelectorAll("[data-question-preset]"));
     refs.toolbarLaneButtons = Array.from(document.querySelectorAll("[data-toolbar-lane-btn]"));
     refs.toolbarLaneGroups = Array.from(document.querySelectorAll("[data-toolbar-lane]"));
@@ -902,6 +904,22 @@
     });
     refs.bulkDockClearBtn?.addEventListener("click", () => {
       clearQuestionSelection();
+    });
+    refs.questionList?.addEventListener("dragover", (event) => {
+      if (!paletteDragState.questionType) return;
+      event.preventDefault();
+      refs.questionList.classList.add("is-drop-add");
+    });
+    refs.questionList?.addEventListener("dragleave", () => {
+      refs.questionList.classList.remove("is-drop-add");
+    });
+    refs.questionList?.addEventListener("drop", (event) => {
+      refs.questionList.classList.remove("is-drop-add");
+      const type = paletteDragState.questionType || event.dataTransfer.getData("application/x-question-type");
+      if (!type) return;
+      event.preventDefault();
+      paletteDragState.questionType = null;
+      addQuestion(type);
     });
     refs.builderHealthRecommendations?.addEventListener("click", (event) => {
       const actionBtn = event.target.closest("[data-health-action]");
@@ -1346,6 +1364,25 @@
         const type = String(button.dataset.quickAddType || "").trim();
         if (!type) return;
         addQuestion(type);
+      });
+    });
+    refs.dragAddButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const type = String(button.dataset.dragAddType || "").trim();
+        if (!type) return;
+        addQuestion(type);
+      });
+      button.addEventListener("dragstart", (event) => {
+        const type = String(button.dataset.dragAddType || "").trim();
+        if (!type) return;
+        paletteDragState.questionType = type;
+        button.classList.add("is-dragging");
+        event.dataTransfer.effectAllowed = "copy";
+        event.dataTransfer.setData("application/x-question-type", type);
+      });
+      button.addEventListener("dragend", () => {
+        paletteDragState.questionType = null;
+        refs.dragAddButtons.forEach((node) => node.classList.remove("is-dragging"));
       });
     });
     refs.questionPresetButtons.forEach((button) => {
