@@ -322,9 +322,26 @@
 
     setText("#settingsDesignPane .constructor-design__head h4", "Дизайн страницы");
     setText("#openThemePickerBtn", "Выбрать тему");
-    setText("label[for='pageBgColorInput'] span", "Цвет фона");
-    setText("label[for='pageBgImageInput'] span", "Фоновое изображение (URL)");
-    setText("label[for='pageLayoutInput'] span", "Макет");
+    const pageBgColorRow = document.querySelector("#pageBgColorInput")?.closest(".form-row");
+    const pageBgImageRow = document.querySelector("#pageBgImageInput")?.closest(".form-row");
+    const pageLayoutRow = document.querySelector("#pageLayoutInput")?.closest(".form-row");
+    const pageOverlayRow = document.querySelector("#pageOverlayInput")?.closest(".form-row");
+    if (pageBgColorRow) {
+      const label = pageBgColorRow.querySelector("span");
+      if (label) label.textContent = "Цвет фона";
+    }
+    if (pageBgImageRow) {
+      const label = pageBgImageRow.querySelector("span");
+      if (label) label.textContent = "Фоновое изображение (URL)";
+    }
+    if (pageLayoutRow) {
+      const label = pageLayoutRow.querySelector("span");
+      if (label) label.textContent = "Макет";
+    }
+    if (pageOverlayRow) {
+      const label = pageOverlayRow.querySelector("span");
+      if (label) label.innerHTML = 'Накладка: <strong id="pageOverlayValue">0%</strong>';
+    }
     setText("#applyDesignAllBtn", "Применить ко всем");
     setText("#resetDesignBtn", "Сброс");
 
