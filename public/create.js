@@ -285,6 +285,9 @@
     setAttr("#surveyTitle", "placeholder", "Название анкеты");
     setAttr("#surveyDescription", "placeholder", "Краткое описание анкеты");
     setText("#saveStateText", "Сохранено");
+    setText("#builderMetaTime", "~0 мин");
+    setText("#builderMetaDifficulty", "Лёгкая");
+    setText("#mobileAddQuestionFab", "+ Вопрос");
 
     setAttr("#settingsPanel", "aria-label", "Редактор вопроса");
     setText("#settingsPanel .constructor-head-sm h3", "Настройки вопроса");
@@ -518,6 +521,8 @@
       "builderMetaPages",
       "builderMetaQuestions",
       "builderMetaLogic",
+      "builderMetaTime",
+      "builderMetaDifficulty",
       "builderHealthPercent",
       "builderHealthBarFill",
       "builderCheckTitle",
@@ -568,6 +573,7 @@
       "questionList",
       "surveyPreviewList",
       "statusText",
+      "mobileAddQuestionFab",
       "questionEditor",
       "quickStartWizardOverlay",
       "closeQuickStartWizardBtn",
@@ -813,6 +819,7 @@
     refs.removePageBtn?.addEventListener("click", removeSelectedPage);
 
     refs.addQuestionBtn?.addEventListener("click", openQuestionTypeModal);
+    refs.mobileAddQuestionFab?.addEventListener("click", openQuestionTypeModal);
     refs.openQuickStartWizardBtn?.addEventListener("click", openQuickStartWizard);
     refs.openTemplateCatalogBtn?.addEventListener("click", openTemplateCatalogModal);
     refs.toggleAdvancedBuilderBtn?.addEventListener("click", () => {
@@ -1489,9 +1496,27 @@
           : 0),
       0
     );
+    const estimatedSeconds = (state.survey.pages || []).reduce((sum, page) => {
+      if (!Array.isArray(page.questions)) return sum;
+      return (
+        sum +
+        page.questions.reduce((qSum, question) => {
+          const type = normalizeType(question?.type);
+          if (type === "text") return qSum + 24;
+          if (type === "rating") return qSum + 12;
+          if (type === "select") return qSum + 14;
+          const optionCount = normalizeOptions(question?.options).length;
+          return qSum + (optionCount >= 5 ? 18 : 14);
+        }, 0)
+      );
+    }, 0);
+    const estimatedMinutes = Math.max(1, Math.round(estimatedSeconds / 60));
+    const difficulty = questions <= 8 ? "Лёгкая" : questions <= 16 ? "Средняя" : "Большая";
     if (refs.builderMetaPages) refs.builderMetaPages.textContent = `${pages} стр.`;
     if (refs.builderMetaQuestions) refs.builderMetaQuestions.textContent = `${questions} вопросов`;
     if (refs.builderMetaLogic) refs.builderMetaLogic.textContent = `${logicRoutes} переходов`;
+    if (refs.builderMetaTime) refs.builderMetaTime.textContent = `~${estimatedMinutes} мин`;
+    if (refs.builderMetaDifficulty) refs.builderMetaDifficulty.textContent = difficulty;
     updateBuilderHealth({ pages, questions, logicRoutes });
   }
 

@@ -3957,6 +3957,29 @@ body.modal-open {
   align-items: center;
 }
 
+.constructor-fab {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 58;
+  min-height: 44px;
+  border: 1px solid #2f56ea;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #4470ff 0%, #2f56ea 55%, #2346c8 100%);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 0 14px;
+  box-shadow: 0 10px 24px rgba(49, 89, 245, 0.32);
+  cursor: pointer;
+  display: none;
+}
+
+.constructor-fab:active {
+  transform: translateY(1px);
+}
+
 .builder-health {
   border: 1px solid #dfe7f5;
   border-radius: 12px;
@@ -5091,6 +5114,12 @@ body.builder-advanced .constructor-advanced {
     font-size: 11px;
     min-height: 28px;
     padding: 0 8px;
+  }
+
+  .constructor-fab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   body.builder-simple .question-card__head--simple {
