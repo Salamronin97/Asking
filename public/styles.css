@@ -4099,6 +4099,7 @@ body.builder-simple .constructor-toolbar__group--history,
 body.builder-simple #toggleAdvancedBuilderBtn,
 body.builder-simple #openQuickStartWizardBtn,
 body.builder-simple #openTemplateCatalogBtn,
+body.builder-simple .constructor-toolbar__group--quick,
 body.builder-simple .constructor-inline-draft-actions,
 body.builder-simple .constructor-hotkeys-hint,
 body.builder-simple .constructor-editor-shortcuts,
@@ -4130,6 +4131,12 @@ body.builder-simple .constructor-health {
   display: none !important;
 }
 
+body.builder-simple .constructor-pages-actions,
+body.builder-simple .constructor-bank,
+body.builder-simple .constructor-kitbank {
+  display: none !important;
+}
+
 body.builder-simple .constructor-editor {
   background: #ffffff;
 }
@@ -4148,6 +4155,18 @@ body.builder-simple .constructor-editor-group__title {
 
 body.builder-simple .constructor-editor-group[data-editor-section="actions"] {
   display: none !important;
+}
+
+body.builder-simple .question-card__head--simple {
+  align-items: center;
+}
+
+body.builder-simple .question-card__head--simple .question-card__actions .btn {
+  min-height: 32px;
+}
+
+body.builder-simple .question-card__preview {
+  margin-top: 6px;
 }
 
 body.builder-simple .constructor-editor .form-row input,

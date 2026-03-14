@@ -276,7 +276,7 @@
     setHtml(".constructor-kitbank__item[data-question-preset='hr-pulse']", "<strong>HR Pulse</strong><span>Атмосфера, нагрузка, eNPS</span>");
 
     setText("#publishBtn", "Опубликовать");
-    setText("#toggleSimpleModeBtn", "PRO");
+    setText("#toggleSimpleModeBtn", "Расширенный");
     setText("#openQuickStartWizardBtn", "Опрос за 60 сек");
     setText("#openVersionHistoryBtn", "Версии");
     setText("#toolbarLaneComposeBtn", "Конструктор");
@@ -2243,23 +2243,41 @@
       card.className = `question-card${question.id === state.selectedQuestionId ? " is-active" : ""}${isSelected ? " is-selected" : ""}`;
       card.dataset.questionId = question.id;
       card.dataset.questionIndex = String(index);
-      card.innerHTML = `
-        <div class="question-card__head">
-          <div class="question-card__left">
-            <button type="button" class="question-card__drag" data-action="drag" draggable="true" title="Перетащить вопрос">≡</button>
-            <button type="button" class="question-card__select${isSelected ? " is-on" : ""}" data-action="select" aria-pressed="${isSelected ? "true" : "false"}" title="Выделить вопрос">✓</button>
-            <div class="question-card__title-wrap">
-              <h4 class="q-title">${highlightQuestionText(`${index + 1}. ${question.title || "Новый вопрос"}`, state.questionFilter)}</h4>
-              <div class="q-meta">${escapeHtml(getMetaText(question))}</div>
+      if (state.simpleMode) {
+        card.innerHTML = `
+          <div class="question-card__head question-card__head--simple">
+            <div class="question-card__left">
+              <button type="button" class="question-card__select${isSelected ? " is-on" : ""}" data-action="select" aria-pressed="${isSelected ? "true" : "false"}" title="Выделить вопрос">✓</button>
+              <div class="question-card__title-wrap">
+                <h4 class="q-title">${highlightQuestionText(`${index + 1}. ${question.title || "Новый вопрос"}`, state.questionFilter)}</h4>
+                <div class="q-meta">${escapeHtml(getMetaText(question))}</div>
+              </div>
+            </div>
+            <div class="question-card__actions">
+              <button type="button" class="btn btn--ghost btn--xs" data-action="focus">Открыть</button>
             </div>
           </div>
-          <div class="question-card__actions">
-            <button type="button" class="question-card__icon" data-action="duplicate" title="Дублировать">⧉</button>
-            <button type="button" class="question-card__icon danger" data-action="delete" title="Удалить">✕</button>
+          <div class="question-card__preview">${renderQuestionCardPreview(question)}</div>
+        `;
+      } else {
+        card.innerHTML = `
+          <div class="question-card__head">
+            <div class="question-card__left">
+              <button type="button" class="question-card__drag" data-action="drag" draggable="true" title="Перетащить вопрос">≡</button>
+              <button type="button" class="question-card__select${isSelected ? " is-on" : ""}" data-action="select" aria-pressed="${isSelected ? "true" : "false"}" title="Выделить вопрос">✓</button>
+              <div class="question-card__title-wrap">
+                <h4 class="q-title">${highlightQuestionText(`${index + 1}. ${question.title || "Новый вопрос"}`, state.questionFilter)}</h4>
+                <div class="q-meta">${escapeHtml(getMetaText(question))}</div>
+              </div>
+            </div>
+            <div class="question-card__actions">
+              <button type="button" class="question-card__icon" data-action="duplicate" title="Дублировать">⧉</button>
+              <button type="button" class="question-card__icon danger" data-action="delete" title="Удалить">✕</button>
+            </div>
           </div>
-        </div>
-        <div class="question-card__preview">${renderQuestionCardPreview(question)}</div>
-      `;
+          <div class="question-card__preview">${renderQuestionCardPreview(question)}</div>
+        `;
+      }
 
       card.addEventListener("click", (event) => {
         const action = event.target.closest("[data-action]")?.dataset.action;
@@ -2269,6 +2287,14 @@
           toggleQuestionSelection(question.id, page);
           renderQuestions();
           renderEditor();
+          return;
+        }
+        if (action === "focus") {
+          setSingleQuestionSelection(question.id);
+          setSettingsPane("question");
+          renderQuestions();
+          renderEditor();
+          focusPanelOnMobile("settings");
           return;
         }
         if (action === "duplicate") {
@@ -3628,7 +3654,7 @@
     document.body.classList.toggle("builder-simple", state.simpleMode);
     refs.toggleSimpleModeBtn?.setAttribute("aria-pressed", state.simpleMode ? "true" : "false");
     if (refs.toggleSimpleModeBtn) {
-      refs.toggleSimpleModeBtn.textContent = state.simpleMode ? "PRO" : "Простой";
+      refs.toggleSimpleModeBtn.textContent = state.simpleMode ? "Расширенный" : "Простой";
       refs.toggleSimpleModeBtn.title = state.simpleMode ? "Переключить в расширенный режим" : "Вернуться в простой режим";
     }
     if (state.simpleMode) {
