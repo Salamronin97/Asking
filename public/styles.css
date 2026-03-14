@@ -4087,6 +4087,39 @@ body.modal-open {
   display: none;
 }
 
+body.builder-simple .constructor-toolbar-lanes {
+  display: none;
+}
+
+body.builder-simple .constructor-toolbar__group-title {
+  display: none;
+}
+
+body.builder-simple .constructor-toolbar__group--history,
+body.builder-simple #toggleAdvancedBuilderBtn,
+body.builder-simple #openQuickStartWizardBtn,
+body.builder-simple #openTemplateCatalogBtn,
+body.builder-simple .constructor-inline-draft-actions,
+body.builder-simple .constructor-hotkeys-hint,
+body.builder-simple .constructor-editor-shortcuts,
+body.builder-simple .constructor-editor-nav {
+  display: none !important;
+}
+
+body.builder-simple .constructor-toolbar {
+  grid-template-columns: 1fr;
+}
+
+body.builder-simple .constructor-toolbar__group {
+  background: #fff;
+  border-color: #dfe7f5;
+  padding: 8px;
+}
+
+body.builder-simple .constructor-worktop {
+  background: #f8fbff;
+}
+
 .constructor-toolbar__group-title {
   width: 100%;
   font-size: 11px;

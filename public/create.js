@@ -132,6 +132,7 @@
   const FOCUS_STORAGE_KEY = "asking_builder_focus";
   const ADVANCED_STORAGE_KEY = "asking_builder_advanced";
   const TOOLBAR_LANE_STORAGE_KEY = "asking_builder_toolbar_lane";
+  const SIMPLE_MODE_STORAGE_KEY = "asking_builder_simple_mode";
   const VERSION_LIMIT = 25;
 
   const state = {
@@ -154,6 +155,7 @@
     densityMode: localStorage.getItem(DENSITY_STORAGE_KEY) === "compact" ? "compact" : "cozy",
     focusMode: localStorage.getItem(FOCUS_STORAGE_KEY) === "on",
     advancedMode: localStorage.getItem(ADVANCED_STORAGE_KEY) === "on",
+    simpleMode: localStorage.getItem(SIMPLE_MODE_STORAGE_KEY) !== "off",
     commandSearch: "",
     questionFilter: "",
     matchCursor: 0,
@@ -193,6 +195,7 @@
     enhanceQuestionEditorLayout();
     setAdvancedMode(state.advancedMode, false);
     setToolbarLane(state.toolbarLane, false);
+    setSimpleMode(state.simpleMode, false);
     setDensityMode(state.densityMode, false);
     setFocusMode(state.focusMode, false);
     bindEvents();
@@ -272,6 +275,7 @@
     setHtml(".constructor-kitbank__item[data-question-preset='hr-pulse']", "<strong>HR Pulse</strong><span>Атмосфера, нагрузка, eNPS</span>");
 
     setText("#publishBtn", "Опубликовать");
+    setText("#toggleSimpleModeBtn", "PRO");
     setText("#openQuickStartWizardBtn", "Опрос за 60 сек");
     setText("#openVersionHistoryBtn", "Версии");
     setText("#toolbarLaneComposeBtn", "Конструктор");
@@ -527,6 +531,7 @@
       "saveState",
       "saveStateText",
       "publishBtn",
+      "toggleSimpleModeBtn",
       "openQuickStartWizardBtn",
       "toolbarLaneComposeBtn",
       "toolbarLaneOrganizeBtn",
@@ -740,7 +745,11 @@
     const normalized = ["content", "setup", "options", "actions"].includes(section) ? section : "content";
     state.editorSection = normalized;
     editor.querySelectorAll("[data-editor-section]").forEach((node) => {
-      node.hidden = node.dataset.editorSection !== normalized;
+      if (state.simpleMode) {
+        node.hidden = false;
+      } else {
+        node.hidden = node.dataset.editorSection !== normalized;
+      }
     });
     editor.querySelectorAll("[data-editor-section-tab]").forEach((node) => {
       node.classList.toggle("is-active", node.dataset.editorSectionTab === normalized);
@@ -800,6 +809,9 @@
     refs.openTemplateCatalogBtn?.addEventListener("click", openTemplateCatalogModal);
     refs.toggleAdvancedBuilderBtn?.addEventListener("click", () => {
       setAdvancedMode(!state.advancedMode, true);
+    });
+    refs.toggleSimpleModeBtn?.addEventListener("click", () => {
+      setSimpleMode(!state.simpleMode, true);
     });
     refs.toolbarLaneButtons.forEach((button) => {
       button.addEventListener("click", () => {
@@ -3563,8 +3575,30 @@
     setToolbarLane(state.toolbarLane, false);
   }
 
+  function setSimpleMode(on, notify = false) {
+    state.simpleMode = Boolean(on);
+    localStorage.setItem(SIMPLE_MODE_STORAGE_KEY, state.simpleMode ? "on" : "off");
+    document.body.classList.toggle("builder-simple", state.simpleMode);
+    refs.toggleSimpleModeBtn?.setAttribute("aria-pressed", state.simpleMode ? "true" : "false");
+    if (refs.toggleSimpleModeBtn) {
+      refs.toggleSimpleModeBtn.textContent = state.simpleMode ? "PRO" : "Простой";
+      refs.toggleSimpleModeBtn.title = state.simpleMode ? "Переключить в расширенный режим" : "Вернуться в простой режим";
+    }
+    if (state.simpleMode) {
+      state.toolbarLane = "compose";
+      state.advancedMode = false;
+      localStorage.setItem(ADVANCED_STORAGE_KEY, "off");
+      document.body.classList.remove("builder-advanced");
+      if (refs.toggleAdvancedBuilderBtn) refs.toggleAdvancedBuilderBtn.textContent = "Расширенный режим";
+    }
+    setToolbarLane(state.toolbarLane, false);
+    setEditorSection(state.editorSection || "content");
+    if (notify) toast(state.simpleMode ? "Простой режим включён" : "Расширенный режим интерфейса включён");
+  }
+
   function setToolbarLane(lane, notify = false) {
-    const normalized = ["compose", "organize", "advanced"].includes(lane) ? lane : "compose";
+    const normalizedBase = ["compose", "organize", "advanced"].includes(lane) ? lane : "compose";
+    const normalized = state.simpleMode ? "compose" : normalizedBase;
     state.toolbarLane = normalized;
     localStorage.setItem(TOOLBAR_LANE_STORAGE_KEY, normalized);
 
