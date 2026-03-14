@@ -16,6 +16,12 @@ app.use(express.json({ limit: "2mb" }));
 app.use(
   express.static(path.join(__dirname, "public"), {
     setHeaders(res, filePath) {
+      if (filePath.endsWith(".html") || filePath.endsWith(".css") || filePath.endsWith(".js")) {
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+        res.setHeader("Surrogate-Control", "no-store");
+      }
       if (filePath.endsWith(".html")) {
         res.setHeader("Content-Type", "text/html; charset=utf-8");
       } else if (filePath.endsWith(".css")) {
@@ -31,6 +37,10 @@ app.use(attachAuthUser);
 function sendHtmlUtf8(res, filePath) {
   res.type("html");
   res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.setHeader("Surrogate-Control", "no-store");
   res.sendFile(filePath);
 }
 
