@@ -289,9 +289,9 @@
     setText("#settingsPanel .constructor-head-sm h3", "Настройки вопроса");
     setText("#settingsTabQuestion", "Вопрос");
     setText("#settingsTabDesign", "Дизайн");
-    setText("[data-editor-section-shortcut='content']", "Текст");
-    setText("[data-editor-section-shortcut='setup']", "Параметры");
+    setText("[data-editor-section-shortcut='content']", "Вопрос");
     setText("[data-editor-section-shortcut='options']", "Варианты");
+    setText("[data-editor-section-shortcut='logic']", "Логика");
     setText("[data-editor-section-shortcut='actions']", "Удаление");
     setText("#emptyEditor p", "Выберите вопрос в центре, чтобы изменить его параметры.");
 
@@ -679,6 +679,8 @@
     const typeRow = refs.questionTypeInput?.closest(".form-row");
     const ratingSection = refs.ratingEditor;
     const optionsSection = refs.optionsEditor;
+    const logicRow = refs.questionLogicEnabledInput?.closest(".inline-check");
+    const logicHint = refs.questionLogicHint;
     const removeButton = refs.removeQuestionBtn;
 
     const createGroup = (title, tone = "") => {
@@ -693,10 +695,10 @@
 
     const mainGroup = createGroup("Текст вопроса");
     mainGroup.dataset.editorSection = "content";
-    const setupGroup = createGroup("Параметры");
-    setupGroup.dataset.editorSection = "setup";
-    const optionsGroup = createGroup("Варианты и логика");
+    const optionsGroup = createGroup("Варианты");
     optionsGroup.dataset.editorSection = "options";
+    const logicGroup = createGroup("Логика");
+    logicGroup.dataset.editorSection = "logic";
     const actionGroup = createGroup("Опасная зона", "constructor-editor-group--danger");
     actionGroup.dataset.editorSection = "actions";
     const typeHint = document.createElement("div");
@@ -706,9 +708,9 @@
     const nav = document.createElement("div");
     nav.className = "constructor-editor-nav";
     nav.innerHTML = `
-      <button type="button" class="constructor-editor-nav__tab is-active" data-editor-section-tab="content">Текст</button>
-      <button type="button" class="constructor-editor-nav__tab" data-editor-section-tab="setup">Параметры</button>
+      <button type="button" class="constructor-editor-nav__tab is-active" data-editor-section-tab="content">Вопрос</button>
       <button type="button" class="constructor-editor-nav__tab" data-editor-section-tab="options">Варианты</button>
+      <button type="button" class="constructor-editor-nav__tab" data-editor-section-tab="logic">Логика</button>
       <button type="button" class="constructor-editor-nav__tab" data-editor-section-tab="actions">Удаление</button>
     `;
 
@@ -716,17 +718,19 @@
       if (node) mainGroup.appendChild(node);
     });
     [requiredRow, typeRow, ratingSection].forEach((node) => {
-      if (node) setupGroup.appendChild(node);
+      if (node) mainGroup.appendChild(node);
     });
     [typeHint].forEach((node) => {
       if (node) mainGroup.appendChild(node);
     });
+    if (logicRow && logicRow.parentElement === optionsSection) logicGroup.appendChild(logicRow);
+    if (logicHint && logicHint.parentElement === optionsSection) logicGroup.appendChild(logicHint);
     if (optionsSection) optionsGroup.appendChild(optionsSection);
     if (removeButton) actionGroup.appendChild(removeButton);
 
     editor.innerHTML = "";
     editor.appendChild(nav);
-    [mainGroup, setupGroup, optionsGroup, actionGroup].forEach((group) => {
+    [mainGroup, optionsGroup, logicGroup, actionGroup].forEach((group) => {
       if (group.children.length > 1) editor.appendChild(group);
     });
     nav.addEventListener("click", (event) => {
@@ -742,13 +746,15 @@
   function setEditorSection(section) {
     const editor = refs.questionEditor;
     if (!editor) return;
-    const normalized = ["content", "setup", "options", "actions"].includes(section) ? section : "content";
+    const normalized = ["content", "options", "logic", "actions"].includes(section) ? section : "content";
     state.editorSection = normalized;
     editor.querySelectorAll("[data-editor-section]").forEach((node) => {
+      const isUnavailable = node.dataset.sectionAvailable === "0";
+      const isHiddenInSimple = state.simpleMode && node.dataset.editorSection === "actions";
       if (state.simpleMode) {
-        node.hidden = false;
+        node.hidden = isUnavailable || isHiddenInSimple;
       } else {
-        node.hidden = node.dataset.editorSection !== normalized;
+        node.hidden = isUnavailable || node.dataset.editorSection !== normalized;
       }
     });
     editor.querySelectorAll("[data-editor-section-tab]").forEach((node) => {
@@ -2380,12 +2386,16 @@
       if (refs.bulkOptionsWrap) refs.bulkOptionsWrap.hidden = true;
       if (refs.bulkOptionsInput) refs.bulkOptionsInput.value = "";
     }
+    const optionsGroup = refs.questionEditor?.querySelector("[data-editor-section='options']");
+    const logicGroup = refs.questionEditor?.querySelector("[data-editor-section='logic']");
+    if (optionsGroup) optionsGroup.dataset.sectionAvailable = CHOICE_TYPES.has(question.type) ? "1" : "0";
+    if (logicGroup) logicGroup.dataset.sectionAvailable = logicAvailable ? "1" : "0";
     const optionsTab = refs.questionEditor?.querySelector("[data-editor-section-tab='options']");
-    if (optionsTab) {
-      optionsTab.disabled = !CHOICE_TYPES.has(question.type);
-    }
-    if (!CHOICE_TYPES.has(question.type) && state.editorSection === "options") {
-      setEditorSection("setup");
+    const logicTab = refs.questionEditor?.querySelector("[data-editor-section-tab='logic']");
+    if (optionsTab) optionsTab.disabled = !CHOICE_TYPES.has(question.type);
+    if (logicTab) logicTab.disabled = !logicAvailable;
+    if ((!CHOICE_TYPES.has(question.type) && state.editorSection === "options") || (!logicAvailable && state.editorSection === "logic")) {
+      setEditorSection("content");
     } else {
       setEditorSection(state.editorSection || "content");
     }

@@ -4120,6 +4120,43 @@ body.builder-simple .constructor-worktop {
   background: #f8fbff;
 }
 
+body.builder-simple .constructor-settings-tabs,
+body.builder-simple #settingsDesignPane,
+body.builder-simple .constructor-health {
+  display: none !important;
+}
+
+body.builder-simple .constructor-editor {
+  background: #ffffff;
+}
+
+body.builder-simple .constructor-editor-group {
+  border-radius: 16px;
+  padding: 14px;
+  border-color: #d9e3f6;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+}
+
+body.builder-simple .constructor-editor-group__title {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+body.builder-simple .constructor-editor-group[data-editor-section="actions"] {
+  display: none !important;
+}
+
+body.builder-simple .constructor-editor .form-row input,
+body.builder-simple .constructor-editor .form-row select,
+body.builder-simple .constructor-editor .form-row textarea {
+  min-height: 44px;
+  font-size: 15px;
+}
+
+body.builder-simple .constructor-editor .form-row textarea {
+  min-height: 96px;
+}
+
 .constructor-toolbar__group-title {
   width: 100%;
   font-size: 11px;
