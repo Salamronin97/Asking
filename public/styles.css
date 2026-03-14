@@ -3790,6 +3790,49 @@ body.modal-open {
   color: #64748b;
 }
 
+.constructor-kitbank {
+  margin-top: 2px;
+  border: 1px solid #dfe6f4;
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.constructor-kitbank__list {
+  display: grid;
+  gap: 6px;
+}
+
+.constructor-kitbank__item {
+  border: 1px solid #dbe4f3;
+  border-radius: 10px;
+  background: #f8fbff;
+  text-align: left;
+  padding: 9px 10px;
+  display: grid;
+  gap: 2px;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+}
+
+.constructor-kitbank__item:hover {
+  border-color: #9fb4ff;
+  background: #eef3ff;
+  transform: translateY(-1px);
+}
+
+.constructor-kitbank__item strong {
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.constructor-kitbank__item span {
+  font-size: 12px;
+  color: #64748b;
+}
+
 .constructor-canvas {
   max-width: none;
   width: 100%;
@@ -4162,13 +4205,17 @@ body.builder-advanced .constructor-advanced {
 }
 
 .constructor-editor-nav {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
   gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
 }
 
 .constructor-editor-nav__tab {
   min-height: 34px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  padding: 0 10px;
   border: 1px solid #dbe4f3;
   border-radius: 10px;
   background: #fff;
@@ -4310,6 +4357,7 @@ body.builder-advanced .constructor-advanced {
   font-weight: 800;
   color: #64748b;
   margin-right: 2px;
+  white-space: nowrap;
 }
 
 .constructor-options-tools {
@@ -7150,3 +7198,4 @@ details:not([open]) > .constructor-fold__summary::after {
     min-width: 0;
   }
 }
+

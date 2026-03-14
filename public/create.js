@@ -65,10 +65,68 @@
     { id: "ice", name: "Ice", description: "Сдержанная холодная тема для формальных исследований.", bgColor: "#f1f5f9", accent: "#0f766e" }
   ];
   const OPTION_PRESETS = {
-    "yes-no": ["Yes", "No"],
-    agree: ["Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree"],
+    "yes-no": ["Да", "Нет"],
+    agree: ["Полностью не согласен", "Скорее не согласен", "Нейтрально", "Скорее согласен", "Полностью согласен"],
     satisfaction: ["1", "2", "3", "4", "5"],
     nps: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+  };
+  const QUESTION_PRESETS = {
+    registration: [
+      { type: "text", title: "Ваше имя", description: "Как к вам обращаться?", required: true },
+      { type: "text", title: "Контакт для связи", description: "Email или телефон", required: true },
+      {
+        type: "single",
+        title: "Согласие на обработку данных",
+        description: "Подтвердите согласие перед отправкой",
+        required: true,
+        options: [createOption("Согласен"), createOption("Не согласен")]
+      }
+    ],
+    "event-feedback": [
+      { type: "rating", title: "Как вам мероприятие?", description: "Оценка от 1 до 5", required: true },
+      {
+        type: "single",
+        title: "Порекомендовали бы вы это мероприятие?",
+        description: "Оцените готовность рекомендовать",
+        required: true,
+        options: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"].map((value) => createOption(value))
+      },
+      { type: "text", title: "Что улучшить?", description: "Короткий комментарий", required: false }
+    ],
+    "product-discovery": [
+      { type: "text", title: "Какую проблему вы решаете?", description: "Опишите задачу", required: true },
+      {
+        type: "multiple",
+        title: "Какие функции для вас важны?",
+        description: "Можно выбрать несколько",
+        required: true,
+        options: [createOption("Скорость"), createOption("Простота"), createOption("Интеграции"), createOption("Цена")]
+      },
+      {
+        type: "single",
+        title: "Что мешает использовать решение чаще?",
+        description: "Выберите главный барьер",
+        required: false,
+        options: [createOption("Цена"), createOption("Сложно настроить"), createOption("Нет нужной функции"), createOption("Неактуально")]
+      }
+    ],
+    "hr-pulse": [
+      { type: "rating", title: "Оцените атмосферу в команде", description: "1 — плохо, 5 — отлично", required: true },
+      {
+        type: "single",
+        title: "Как вы оцениваете текущую нагрузку?",
+        description: "Один вариант",
+        required: true,
+        options: [createOption("Слишком высокая"), createOption("Нормальная"), createOption("Низкая")]
+      },
+      {
+        type: "single",
+        title: "Готовы рекомендовать компанию знакомым?",
+        description: "eNPS вопрос",
+        required: true,
+        options: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"].map((value) => createOption(value))
+      }
+    ]
   };
   const DENSITY_STORAGE_KEY = "asking_builder_density";
   const FOCUS_STORAGE_KEY = "asking_builder_focus";
@@ -314,6 +372,7 @@
     refs.panels = Array.from(document.querySelectorAll(".constructor-panel"));
     refs.quickTypeButtons = Array.from(document.querySelectorAll("[data-quick-question-type]"));
     refs.quickAddButtons = Array.from(document.querySelectorAll("[data-quick-add-type]"));
+    refs.questionPresetButtons = Array.from(document.querySelectorAll("[data-question-preset]"));
 
     must(refs.pagesList, "pagesList");
     must(refs.questionList, "questionList");
@@ -341,11 +400,13 @@
       return section;
     };
 
-    const mainGroup = createGroup("Основное");
+    const mainGroup = createGroup("Текст вопроса");
     mainGroup.dataset.editorSection = "content";
+    const setupGroup = createGroup("Параметры");
+    setupGroup.dataset.editorSection = "setup";
     const optionsGroup = createGroup("Варианты и логика");
     optionsGroup.dataset.editorSection = "options";
-    const actionGroup = createGroup("Действия", "constructor-editor-group--danger");
+    const actionGroup = createGroup("Опасная зона", "constructor-editor-group--danger");
     actionGroup.dataset.editorSection = "actions";
     const typeHint = document.createElement("div");
     typeHint.id = "questionTypeHint";
@@ -354,24 +415,27 @@
     const nav = document.createElement("div");
     nav.className = "constructor-editor-nav";
     nav.innerHTML = `
-      <button type="button" class="constructor-editor-nav__tab is-active" data-editor-section-tab="content">Контент</button>
+      <button type="button" class="constructor-editor-nav__tab is-active" data-editor-section-tab="content">Текст</button>
+      <button type="button" class="constructor-editor-nav__tab" data-editor-section-tab="setup">Параметры</button>
       <button type="button" class="constructor-editor-nav__tab" data-editor-section-tab="options">Варианты</button>
-      <button type="button" class="constructor-editor-nav__tab" data-editor-section-tab="actions">Действия</button>
+      <button type="button" class="constructor-editor-nav__tab" data-editor-section-tab="actions">Удаление</button>
     `;
 
     [titleRow, descriptionRow].forEach((node) => {
       if (node) mainGroup.appendChild(node);
     });
     [requiredRow, typeRow, ratingSection].forEach((node) => {
+      if (node) setupGroup.appendChild(node);
+    });
+    [typeHint].forEach((node) => {
       if (node) mainGroup.appendChild(node);
     });
-    mainGroup.appendChild(typeHint);
     if (optionsSection) optionsGroup.appendChild(optionsSection);
     if (removeButton) actionGroup.appendChild(removeButton);
 
     editor.innerHTML = "";
     editor.appendChild(nav);
-    [mainGroup, optionsGroup, actionGroup].forEach((group) => {
+    [mainGroup, setupGroup, optionsGroup, actionGroup].forEach((group) => {
       if (group.children.length > 1) editor.appendChild(group);
     });
     nav.addEventListener("click", (event) => {
@@ -387,7 +451,7 @@
   function setEditorSection(section) {
     const editor = refs.questionEditor;
     if (!editor) return;
-    const normalized = ["content", "options", "actions"].includes(section) ? section : "content";
+    const normalized = ["content", "setup", "options", "actions"].includes(section) ? section : "content";
     state.editorSection = normalized;
     editor.querySelectorAll("[data-editor-section]").forEach((node) => {
       node.hidden = node.dataset.editorSection !== normalized;
@@ -937,6 +1001,13 @@
         const type = String(button.dataset.quickAddType || "").trim();
         if (!type) return;
         addQuestion(type);
+      });
+    });
+    refs.questionPresetButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const key = String(button.dataset.questionPreset || "").trim();
+        if (!key) return;
+        addQuestionPresetPack(key);
       });
     });
   }
@@ -1937,7 +2008,7 @@
       optionsTab.disabled = !CHOICE_TYPES.has(question.type);
     }
     if (!CHOICE_TYPES.has(question.type) && state.editorSection === "options") {
-      setEditorSection("content");
+      setEditorSection("setup");
     } else {
       setEditorSection(state.editorSection || "content");
     }
@@ -2492,6 +2563,48 @@
       ratingLabels: type === "rating" ? { low: "", high: "" } : null,
       rating: type === "rating" ? { minLabel: "", maxLabel: "" } : null
     };
+  }
+
+  function addQuestionPresetPack(key) {
+    const presetPack = QUESTION_PRESETS[key];
+    if (!Array.isArray(presetPack) || !presetPack.length) return;
+    const page = ensureSelectedPage();
+    const createdIds = [];
+
+    presetPack.forEach((preset) => {
+      const normalizedType = normalizeType(preset.type);
+      const question = {
+        id: createId(),
+        type: normalizedType,
+        title: String(preset.title || "Новый вопрос"),
+        description: String(preset.description || ""),
+        required: Boolean(preset.required),
+        logicEnabled: false,
+        options: CHOICE_TYPES.has(normalizedType)
+          ? normalizeOptions(preset.options || [createOption("Вариант 1"), createOption("Вариант 2")])
+          : [],
+        ratingLabels: normalizedType === "rating" ? { low: "", high: "" } : null,
+        rating: normalizedType === "rating" ? { minLabel: "", maxLabel: "" } : null
+      };
+      page.questions.push(question);
+      createdIds.push(question.id);
+    });
+
+    const lastId = createdIds[createdIds.length - 1] || null;
+    if (lastId) setSingleQuestionSelection(lastId);
+    setSettingsPane("question");
+    renderAll();
+    markDirty(`Добавлен набор: ${presetPack.length} вопросов`);
+    focusPanelOnMobile("questions");
+    toast(`Добавлено ${presetPack.length} вопросов`);
+
+    requestAnimationFrame(() => {
+      if (!lastId) return;
+      refs.questionList.querySelector(`[data-question-id="${cssEscape(lastId)}"]`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+    });
   }
 
   function addQuestionFromPicker(button) {

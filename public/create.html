@@ -77,6 +77,29 @@
             </button>
           </div>
         </section>
+        <section class="constructor-kitbank">
+          <div class="constructor-bank__head">
+            <h4>Готовые наборы</h4>
+          </div>
+          <div class="constructor-kitbank__list">
+            <button class="constructor-kitbank__item" type="button" data-question-preset="registration">
+              <strong>Регистрация</strong>
+              <span>Имя, контакт, согласие</span>
+            </button>
+            <button class="constructor-kitbank__item" type="button" data-question-preset="event-feedback">
+              <strong>Фидбек события</strong>
+              <span>NPS, оценка, комментарий</span>
+            </button>
+            <button class="constructor-kitbank__item" type="button" data-question-preset="product-discovery">
+              <strong>Исследование продукта</strong>
+              <span>Проблема, приоритет, барьеры</span>
+            </button>
+            <button class="constructor-kitbank__item" type="button" data-question-preset="hr-pulse">
+              <strong>HR Pulse</strong>
+              <span>Атмосфера, нагрузка, eNPS</span>
+            </button>
+          </div>
+        </section>
       </aside>
 
       <section id="questionsPanel" class="constructor-canvas workspace-main card constructor-panel is-active" data-panel="questions" aria-label="Р’РѕРїСЂРѕСЃС‹">
@@ -90,7 +113,7 @@
             <span id="builderMetaLogic" class="constructor-worktop__pill">0 РїРµСЂРµС…РѕРґРѕРІ</span>
           </div>
           <div class="constructor-worktop__actions">
-            <button id="publishBtn" class="btn btn--primary btn--xs" type="button">Publish</button>
+            <button id="publishBtn" class="btn btn--primary btn--xs" type="button">Опубликовать</button>
           </div>
         </div>
 
@@ -239,25 +262,25 @@
                 Р’С‹Р±РµСЂРёС‚Рµ, РЅР° РєР°РєСѓСЋ СЃС‚СЂР°РЅРёС†Сѓ РїРµСЂРµР№РґС‘С‚ СѓС‡Р°СЃС‚РЅРёРє РїРѕСЃР»Рµ РєР°Р¶РґРѕРіРѕ РІР°СЂРёР°РЅС‚Р°.
               </p>
               <div class="constructor-option-presets" aria-label="Option presets">
-                <span class="constructor-option-presets__label">Smart presets:</span>
-                <button class="btn btn--ghost btn--xs" type="button" data-option-preset="yes-no">Yes / No</button>
-                <button class="btn btn--ghost btn--xs" type="button" data-option-preset="agree">Agreement</button>
-                <button class="btn btn--ghost btn--xs" type="button" data-option-preset="satisfaction">Satisfaction 1-5</button>
+                <span class="constructor-option-presets__label">Готовые варианты:</span>
+                <button class="btn btn--ghost btn--xs" type="button" data-option-preset="yes-no">Да / Нет</button>
+                <button class="btn btn--ghost btn--xs" type="button" data-option-preset="agree">Степень согласия</button>
+                <button class="btn btn--ghost btn--xs" type="button" data-option-preset="satisfaction">Оценка 1-5</button>
                 <button class="btn btn--ghost btn--xs" type="button" data-option-preset="nps">NPS 0-10</button>
               </div>
 
               <div id="optionsList" class="constructor-options-list"></div>
               <div class="constructor-options-tools">
-                <button id="addOptionBtn" class="btn btn--outline btn--xs" type="button">+ Add option</button>
-                <button id="normalizeOptionsBtn" class="btn btn--ghost btn--xs" type="button">Normalize</button>
-                <button id="bulkOptionsToggleBtn" class="btn btn--ghost btn--xs" type="button">Bulk edit</button>
+                <button id="addOptionBtn" class="btn btn--outline btn--xs" type="button">+ Добавить вариант</button>
+                <button id="normalizeOptionsBtn" class="btn btn--ghost btn--xs" type="button">Нормализовать</button>
+                <button id="bulkOptionsToggleBtn" class="btn btn--ghost btn--xs" type="button">Массовый ввод</button>
               </div>
               <div id="bulkOptionsWrap" class="constructor-bulk-options" hidden>
                 <label class="form-row">
-                  <span>One option per line</span>
-                  <textarea id="bulkOptionsInput" placeholder="Option 1&#10;Option 2&#10;Option 3"></textarea>
+                  <span>Один вариант на строку</span>
+                  <textarea id="bulkOptionsInput" placeholder="Вариант 1&#10;Вариант 2&#10;Вариант 3"></textarea>
                 </label>
-                <button id="applyBulkOptionsBtn" class="btn btn--primary btn--xs" type="button">Apply list</button>
+                <button id="applyBulkOptionsBtn" class="btn btn--primary btn--xs" type="button">Применить список</button>
               </div>
             </section>
 
@@ -308,22 +331,22 @@
 
         <details class="constructor-health card" open>
           <summary class="constructor-fold__summary">
-            <span>Survey quality</span>
+            <span>Качество анкеты</span>
             <strong id="builderHealthPercent">0%</strong>
           </summary>
           <div class="constructor-health__bar">
             <span id="builderHealthBarFill" style="width: 0%"></span>
           </div>
           <ul class="constructor-health__list">
-            <li id="builderCheckTitle">Title quality</li>
-            <li id="builderCheckQuestions">Minimum 4 questions</li>
-            <li id="builderCheckPages">At least 1 page</li>
-            <li id="builderCheckLogic">At least 1 logic route</li>
-            <li id="builderCheckRequired">At least 1 required question</li>
-            <li id="builderCheckOptions">Choice questions have 2+ options</li>
+            <li id="builderCheckTitle">Качество названия</li>
+            <li id="builderCheckQuestions">Минимум 4 вопроса</li>
+            <li id="builderCheckPages">Хотя бы 1 страница</li>
+            <li id="builderCheckLogic">Хотя бы 1 логический переход</li>
+            <li id="builderCheckRequired">Хотя бы 1 обязательный вопрос</li>
+            <li id="builderCheckOptions">В вопросах с выбором 2+ варианта</li>
           </ul>
           <div class="constructor-health-reco">
-            <h4>Recommended actions</h4>
+            <h4>Что улучшить</h4>
             <ul id="builderHealthRecommendations" class="constructor-health-reco__list"></ul>
           </div>
         </details>
@@ -334,7 +357,7 @@
       <div class="constructor-modal" role="dialog" aria-modal="true" aria-labelledby="questionTypeTitle">
         <div class="constructor-modal-head">
           <h3 id="questionTypeTitle">Р’С‹Р±РµСЂРёС‚Рµ С‚РёРї РІРѕРїСЂРѕСЃР°</h3>
-          <button id="closeQuestionTypeModalBtn" class="constructor-modal-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">Г—</button>
+          <button id="closeQuestionTypeModalBtn" class="constructor-modal-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">×</button>
         </div>
         <div class="constructor-type-groups">
           <section class="constructor-type-group">
@@ -385,7 +408,7 @@
       <div class="constructor-modal constructor-modal--entry" role="dialog" aria-modal="true" aria-labelledby="creationEntryTitle">
         <div class="constructor-modal-head">
           <h3 id="creationEntryTitle">РЎРѕР·РґР°Р№С‚Рµ РѕРїСЂРѕСЃ</h3>
-          <button id="closeCreationEntryBtn" class="constructor-modal-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">Г—</button>
+          <button id="closeCreationEntryBtn" class="constructor-modal-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">×</button>
         </div>
         <div class="constructor-entry-grid">
           <button id="entryCustomBtn" class="constructor-entry-item" type="button">
@@ -404,7 +427,7 @@
       <div class="constructor-modal constructor-modal--catalog" role="dialog" aria-modal="true" aria-labelledby="templateCatalogTitle">
         <div class="constructor-modal-head">
           <h3 id="templateCatalogTitle">РЁР°Р±Р»РѕРЅС‹ РѕРїСЂРѕСЃРѕРІ</h3>
-          <button id="closeTemplateCatalogBtn" class="constructor-modal-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">Г—</button>
+          <button id="closeTemplateCatalogBtn" class="constructor-modal-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">×</button>
         </div>
         <p class="constructor-modal-lead">Р’С‹Р±РµСЂРёС‚Рµ РєР°С‚РµРіРѕСЂРёСЋ Рё СЃРѕР·РґР°Р№С‚Рµ Р°РЅРєРµС‚Сѓ РЅР° РіРѕС‚РѕРІРѕР№ СЃС‚СЂСѓРєС‚СѓСЂРµ.</p>
         <div class="constructor-catalog">
@@ -414,7 +437,7 @@
           <section class="constructor-catalog__content">
             <div class="constructor-catalog__toolbar">
               <input id="templateSearchInput" type="search" class="constructor-catalog__search" placeholder="РџРѕРёСЃРє С€Р°Р±Р»РѕРЅР°" />
-              <span id="templateCountBadge" class="ui-badge ui-badge--muted">0 templates</span>
+              <span id="templateCountBadge" class="ui-badge ui-badge--muted">0 шаблонов</span>
               <button id="templateCreateBlankBtn" class="btn btn--primary btn--xs" type="button">+ РЎРѕР·РґР°С‚СЊ Р°РЅРєРµС‚Сѓ</button>
             </div>
             <div id="templateCatalogGrid" class="constructor-catalog-grid"></div>
@@ -427,7 +450,7 @@
       <div class="constructor-modal constructor-modal--preview" role="dialog" aria-modal="true" aria-labelledby="templatePreviewTitle">
         <div class="constructor-modal-head">
           <h3 id="templatePreviewTitle">РџСЂРµРґРїСЂРѕСЃРјРѕС‚СЂ С€Р°Р±Р»РѕРЅР°</h3>
-          <button id="closeTemplatePreviewBtn" class="constructor-modal-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">Г—</button>
+          <button id="closeTemplatePreviewBtn" class="constructor-modal-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">×</button>
         </div>
         <div class="constructor-preview-layout">
           <div class="constructor-preview-body">
@@ -446,7 +469,7 @@
       <div class="constructor-modal constructor-modal--theme" role="dialog" aria-modal="true" aria-labelledby="themePickerTitle">
         <div class="constructor-modal-head">
           <h3 id="themePickerTitle">Р’С‹Р±РµСЂРёС‚Рµ С‚РµРјСѓ</h3>
-          <button id="closeThemePickerBtn" class="constructor-modal-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">Г—</button>
+          <button id="closeThemePickerBtn" class="constructor-modal-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">×</button>
         </div>
         <div class="constructor-theme-layout">
           <div class="constructor-theme-preview">
