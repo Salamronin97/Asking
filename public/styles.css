@@ -4148,6 +4148,41 @@ body.modal-open {
   gap: 12px;
 }
 
+.constructor-editor-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.constructor-editor-nav__tab {
+  min-height: 34px;
+  border: 1px solid #dbe4f3;
+  border-radius: 10px;
+  background: #fff;
+  color: #475569;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.constructor-editor-nav__tab:hover {
+  border-color: #9fb4ff;
+  color: #1e40af;
+  background: #f8faff;
+}
+
+.constructor-editor-nav__tab.is-active {
+  border-color: #9fb4ff;
+  background: #eef3ff;
+  color: #1e40af;
+}
+
+.constructor-editor-nav__tab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .constructor-editor-group {
   border: 1px solid #dfe6f4;
   border-radius: 14px;

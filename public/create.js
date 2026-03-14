@@ -89,7 +89,8 @@
     commandSearch: "",
     questionFilter: "",
     matchCursor: 0,
-    selectedQuestionIds: []
+    selectedQuestionIds: [],
+    editorSection: "content"
   };
 
   const refs = {};
@@ -330,30 +331,59 @@
     };
 
     const mainGroup = createGroup("Основное");
-    const behaviorGroup = createGroup("Тип и правила");
+    mainGroup.dataset.editorSection = "content";
     const optionsGroup = createGroup("Варианты и логика");
-    const dangerGroup = createGroup("Опасная зона", "constructor-editor-group--danger");
+    optionsGroup.dataset.editorSection = "options";
+    const actionGroup = createGroup("Действия", "constructor-editor-group--danger");
+    actionGroup.dataset.editorSection = "actions";
     const typeHint = document.createElement("div");
     typeHint.id = "questionTypeHint";
     typeHint.className = "constructor-type-hint";
     typeHint.textContent = "Подсказки появятся после выбора вопроса.";
+    const nav = document.createElement("div");
+    nav.className = "constructor-editor-nav";
+    nav.innerHTML = `
+      <button type="button" class="constructor-editor-nav__tab is-active" data-editor-section-tab="content">Контент</button>
+      <button type="button" class="constructor-editor-nav__tab" data-editor-section-tab="options">Варианты</button>
+      <button type="button" class="constructor-editor-nav__tab" data-editor-section-tab="actions">Действия</button>
+    `;
 
     [titleRow, descriptionRow].forEach((node) => {
       if (node) mainGroup.appendChild(node);
     });
     [requiredRow, typeRow, ratingSection].forEach((node) => {
-      if (node) behaviorGroup.appendChild(node);
+      if (node) mainGroup.appendChild(node);
     });
-    behaviorGroup.appendChild(typeHint);
+    mainGroup.appendChild(typeHint);
     if (optionsSection) optionsGroup.appendChild(optionsSection);
-    if (removeButton) dangerGroup.appendChild(removeButton);
+    if (removeButton) actionGroup.appendChild(removeButton);
 
     editor.innerHTML = "";
-    [mainGroup, behaviorGroup, optionsGroup, dangerGroup].forEach((group) => {
+    editor.appendChild(nav);
+    [mainGroup, optionsGroup, actionGroup].forEach((group) => {
       if (group.children.length > 1) editor.appendChild(group);
+    });
+    nav.addEventListener("click", (event) => {
+      const tab = event.target.closest("[data-editor-section-tab]");
+      if (!tab) return;
+      setEditorSection(String(tab.dataset.editorSectionTab || "content"));
     });
 
     editor.dataset.layoutEnhanced = "1";
+    setEditorSection(state.editorSection || "content");
+  }
+
+  function setEditorSection(section) {
+    const editor = refs.questionEditor;
+    if (!editor) return;
+    const normalized = ["content", "options", "actions"].includes(section) ? section : "content";
+    state.editorSection = normalized;
+    editor.querySelectorAll("[data-editor-section]").forEach((node) => {
+      node.hidden = node.dataset.editorSection !== normalized;
+    });
+    editor.querySelectorAll("[data-editor-section-tab]").forEach((node) => {
+      node.classList.toggle("is-active", node.dataset.editorSectionTab === normalized);
+    });
   }
 
   function getQuestionTypeHint(type) {
@@ -1887,6 +1917,15 @@
       refs.optionsList.innerHTML = "";
       if (refs.bulkOptionsWrap) refs.bulkOptionsWrap.hidden = true;
       if (refs.bulkOptionsInput) refs.bulkOptionsInput.value = "";
+    }
+    const optionsTab = refs.questionEditor?.querySelector("[data-editor-section-tab='options']");
+    if (optionsTab) {
+      optionsTab.disabled = !CHOICE_TYPES.has(question.type);
+    }
+    if (!CHOICE_TYPES.has(question.type) && state.editorSection === "options") {
+      setEditorSection("content");
+    } else {
+      setEditorSection(state.editorSection || "content");
     }
 
     if (question.type === "rating") {
