@@ -1570,49 +1570,49 @@
     const suggestions = [];
     if (!report.checks.title) {
       suggestions.push({
-        text: "Improve title clarity for better completion rate.",
+        text: "Сделайте название анкеты более конкретным.",
         action: "auto-title",
-        label: "Auto title"
+        label: "Исправить название"
       });
     }
     if (!report.checks.questions) {
       suggestions.push({
-        text: "Add more questions to collect enough signal.",
+        text: "Добавьте больше вопросов для качественного анализа.",
         action: "add-question",
-        label: "Add question"
+        label: "Добавить вопрос"
       });
     }
     if (!report.checks.pages) {
       suggestions.push({
-        text: "Create at least one page to structure the survey.",
+        text: "Добавьте страницу, чтобы структурировать анкету.",
         action: "add-page",
-        label: "Add page"
+        label: "Добавить страницу"
       });
     }
     if (!report.checks.logic) {
       suggestions.push({
-        text: "Add one logic jump to personalize respondent flow.",
+        text: "Добавьте хотя бы один логический переход.",
         action: "focus-logic",
-        label: "Go to logic"
+        label: "Настроить логику"
       });
     }
     if (!report.checks.required) {
       suggestions.push({
-        text: "Mark at least one key question as required.",
+        text: "Сделайте минимум один ключевой вопрос обязательным.",
         action: "mark-required",
-        label: "Mark required"
+        label: "Сделать обязательным"
       });
     }
     if (!report.checks.options) {
       suggestions.push({
-        text: "Some choice questions have less than 2 options.",
+        text: "В части вопросов с выбором меньше двух вариантов.",
         action: "fix-options",
-        label: "Fix options"
+        label: "Исправить варианты"
       });
     }
 
     if (!suggestions.length) {
-      refs.builderHealthRecommendations.innerHTML = "<li class='is-good'>Great structure. Survey is ready to publish.</li>";
+      refs.builderHealthRecommendations.innerHTML = "<li class='is-good'>Структура отличная, анкету можно публиковать.</li>";
       return;
     }
 
@@ -1645,7 +1645,7 @@
     if (action === "auto-title") {
       const firstPage = state.survey.pages?.[0];
       const firstQuestion = firstPage?.questions?.[0];
-      const fallbackTitle = firstQuestion?.title ? `Survey: ${String(firstQuestion.title).slice(0, 36)}` : "Customer Feedback Survey";
+      const fallbackTitle = firstQuestion?.title ? `Анкета: ${String(firstQuestion.title).slice(0, 36)}` : "Анкета обратной связи";
       state.survey.title = fallbackTitle;
       if (refs.surveyTitle) refs.surveyTitle.value = state.survey.title;
       if (refs.worktopSurveyTitle) refs.worktopSurveyTitle.textContent = state.survey.title;
@@ -1676,13 +1676,13 @@
       const page = getSelectedPage();
       const choiceQuestion = (page?.questions || []).find((question) => CHOICE_TYPES.has(normalizeType(question.type)));
       if (!choiceQuestion) {
-        setStatus("Add a choice question first to configure logic", true);
+        setStatus("Сначала добавьте вопрос с выбором, чтобы настроить логику", true);
         return;
       }
       setSingleQuestionSelection(choiceQuestion.id);
       choiceQuestion.logicEnabled = true;
       renderAll();
-      setStatus("Logic enabled for selected question");
+      setStatus("Логика включена для выбранного вопроса");
       markDirty();
       return;
     }
@@ -1692,7 +1692,7 @@
         (question) => CHOICE_TYPES.has(normalizeType(question.type)) && normalizeOptions(question.options).length < 2
       );
       if (!invalid) return;
-      invalid.options = [createOption("Option 1"), createOption("Option 2")];
+      invalid.options = [createOption("Вариант 1"), createOption("Вариант 2")];
       setSingleQuestionSelection(invalid.id);
       renderAll();
       markDirty("Варианты восстановлены");
@@ -1805,8 +1805,8 @@
         markDirty(moveMessage);
         toast(
           moved.length > 1
-            ? `Moved ${moved.length} questions to "${targetPage.title}"`
-            : `Moved question to "${targetPage.title}"`
+            ? `Перенесено вопросов: ${moved.length} → ${targetPage.title}`
+            : `Вопрос перенесен → ${targetPage.title}`
         );
       });
 
@@ -2147,9 +2147,9 @@
     state.selectedQuestionIds = moved.map((question) => question.id);
     renderAll();
 
-    const targetTitle = targetPage.title || "Target page";
+    const targetTitle = targetPage.title || "Страница";
     markDirty(`Вопросов перенесено: ${moved.length} -> ${targetTitle}`);
-    toast(moved.length > 1 ? `Moved ${moved.length} questions to "${targetTitle}"` : `Moved question to "${targetTitle}"`);
+    toast(moved.length > 1 ? `Перенесено вопросов: ${moved.length} → ${targetTitle}` : `Вопрос перенесен → ${targetTitle}`);
   }
 
   function highlightQuestionText(text, query) {
