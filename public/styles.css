@@ -4033,6 +4033,41 @@ body.modal-open {
   padding: 2px 0 4px;
 }
 
+.constructor-toolbar-lanes {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.constructor-toolbar-lane {
+  min-height: 32px;
+  border: 1px solid #dbe4f3;
+  border-radius: 999px;
+  background: #fff;
+  color: #475569;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0 12px;
+  cursor: pointer;
+  transition: border-color 130ms ease, background-color 130ms ease, color 130ms ease, transform 130ms ease;
+}
+
+.constructor-toolbar-lane:hover {
+  border-color: #9fb4ff;
+  color: #1e40af;
+  background: #f7faff;
+  transform: translateY(-1px);
+}
+
+.constructor-toolbar-lane.is-active {
+  border-color: #9fb4ff;
+  background: #eaf0ff;
+  color: #1d4ed8;
+}
+
 .constructor-toolbar__group {
   border: 1px solid #dbe4f4;
   border-radius: 12px;
@@ -4042,6 +4077,10 @@ body.modal-open {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+
+.constructor-toolbar__group.is-hidden {
+  display: none;
 }
 
 .constructor-toolbar__group-title {
@@ -7183,6 +7222,17 @@ details:not([open]) > .constructor-fold__summary::after {
 
   .constructor-toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .constructor-toolbar-lanes {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+
+  .constructor-toolbar-lane {
+    white-space: nowrap;
+    flex: 0 0 auto;
   }
 
   .constructor-toolbar__group {

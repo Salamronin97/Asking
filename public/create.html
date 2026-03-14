@@ -133,13 +133,18 @@
 
 
           <div class="constructor-toolbar">
-            <div class="constructor-toolbar__group constructor-toolbar__group--core" aria-label="Основные действия">
+            <div class="constructor-toolbar-lanes" aria-label="Режимы конструктора">
+              <button id="toolbarLaneComposeBtn" class="constructor-toolbar-lane is-active" type="button" data-toolbar-lane-btn="compose" aria-pressed="true">Конструктор</button>
+              <button id="toolbarLaneOrganizeBtn" class="constructor-toolbar-lane" type="button" data-toolbar-lane-btn="organize" aria-pressed="false">Структура</button>
+              <button id="toolbarLaneAdvancedBtn" class="constructor-toolbar-lane" type="button" data-toolbar-lane-btn="advanced" aria-pressed="false">Продвинутое</button>
+            </div>
+            <div class="constructor-toolbar__group constructor-toolbar__group--core" data-toolbar-lane="compose" aria-label="Основные действия">
               <span class="constructor-toolbar__group-title">Основное</span>
               <button id="addQuestionBtn" class="btn btn--outline" type="button">+ Добавить вопрос</button>
               <button id="openTemplateCatalogBtn" class="btn btn--ghost" type="button">Шаблоны</button>
               <button id="toggleAdvancedBuilderBtn" class="btn btn--ghost btn--xs" type="button" aria-pressed="false">Расширенный режим</button>
             </div>
-            <div class="constructor-toolbar__group constructor-toolbar__group--search" aria-label="Поиск и выделение">
+            <div class="constructor-toolbar__group constructor-toolbar__group--search" data-toolbar-lane="compose organize" aria-label="Поиск и выделение">
               <span class="constructor-toolbar__group-title">Поиск</span>
               <div class="constructor-toolbar__search">
                 <input id="questionSearchInput" type="search" placeholder="Найти вопрос" />
@@ -156,7 +161,7 @@
                 </div>
               </div>
             </div>
-            <div class="constructor-toolbar__group constructor-toolbar__group--history constructor-advanced" aria-label="Инструменты">
+            <div class="constructor-toolbar__group constructor-toolbar__group--history constructor-advanced" data-toolbar-lane="advanced" aria-label="Инструменты">
               <span class="constructor-toolbar__group-title">Инструменты</span>
               <div class="constructor-toolbar__history">
                 <button id="undoBtn" class="btn btn--ghost btn--xs" type="button" title="Ctrl+Z">Отменить</button>
@@ -166,7 +171,7 @@
               <button id="toggleFocusBtn" class="btn btn--ghost btn--xs" type="button" aria-pressed="false">Фокус</button>
               <button id="openCommandPaletteBtn" class="btn btn--ghost btn--xs" type="button" title="Ctrl+K">Команды</button>
             </div>
-            <div class="constructor-toolbar__group constructor-toolbar__group--quick" aria-label="Быстрое добавление">
+            <div class="constructor-toolbar__group constructor-toolbar__group--quick" data-toolbar-lane="compose" aria-label="Быстрое добавление">
               <span class="constructor-toolbar__group-title">Быстрое добавление</span>
               <div class="constructor-toolbar__quick">
                 <button class="btn btn--ghost btn--xs" type="button" data-quick-add-type="single">+ Один выбор</button>

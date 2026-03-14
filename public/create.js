@@ -131,6 +131,7 @@
   const DENSITY_STORAGE_KEY = "asking_builder_density";
   const FOCUS_STORAGE_KEY = "asking_builder_focus";
   const ADVANCED_STORAGE_KEY = "asking_builder_advanced";
+  const TOOLBAR_LANE_STORAGE_KEY = "asking_builder_toolbar_lane";
 
   const state = {
     survey: {
@@ -156,7 +157,8 @@
     questionFilter: "",
     matchCursor: 0,
     selectedQuestionIds: [],
-    editorSection: "content"
+    editorSection: "content",
+    toolbarLane: localStorage.getItem(TOOLBAR_LANE_STORAGE_KEY) || "compose"
   };
 
   const refs = {};
@@ -181,6 +183,7 @@
     applyStaticBuilderTextFixes();
     enhanceQuestionEditorLayout();
     setAdvancedMode(state.advancedMode, false);
+    setToolbarLane(state.toolbarLane, false);
     setDensityMode(state.densityMode, false);
     setFocusMode(state.focusMode, false);
     bindEvents();
@@ -260,6 +263,9 @@
     setHtml(".constructor-kitbank__item[data-question-preset='hr-pulse']", "<strong>HR Pulse</strong><span>Атмосфера, нагрузка, eNPS</span>");
 
     setText("#publishBtn", "Опубликовать");
+    setText("#toolbarLaneComposeBtn", "Конструктор");
+    setText("#toolbarLaneOrganizeBtn", "Структура");
+    setText("#toolbarLaneAdvancedBtn", "Продвинутое");
     setAttr("#surveyTitle", "placeholder", "Название анкеты");
     setAttr("#surveyDescription", "placeholder", "Краткое описание анкеты");
     setText("#saveStateText", "Сохранено");
@@ -501,6 +507,9 @@
       "saveState",
       "saveStateText",
       "publishBtn",
+      "toolbarLaneComposeBtn",
+      "toolbarLaneOrganizeBtn",
+      "toolbarLaneAdvancedBtn",
       "addQuestionBtn",
       "openTemplateCatalogBtn",
       "toggleAdvancedBuilderBtn",
@@ -607,6 +616,8 @@
     refs.quickTypeButtons = Array.from(document.querySelectorAll("[data-quick-question-type]"));
     refs.quickAddButtons = Array.from(document.querySelectorAll("[data-quick-add-type]"));
     refs.questionPresetButtons = Array.from(document.querySelectorAll("[data-question-preset]"));
+    refs.toolbarLaneButtons = Array.from(document.querySelectorAll("[data-toolbar-lane-btn]"));
+    refs.toolbarLaneGroups = Array.from(document.querySelectorAll("[data-toolbar-lane]"));
 
     must(refs.pagesList, "pagesList");
     must(refs.questionList, "questionList");
@@ -744,6 +755,13 @@
     refs.openTemplateCatalogBtn?.addEventListener("click", openTemplateCatalogModal);
     refs.toggleAdvancedBuilderBtn?.addEventListener("click", () => {
       setAdvancedMode(!state.advancedMode, true);
+    });
+    refs.toolbarLaneButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const lane = String(button.dataset.toolbarLaneBtn || "").trim();
+        if (!lane) return;
+        setToolbarLane(lane, true);
+      });
     });
     refs.toggleDensityBtn?.addEventListener("click", () => {
       setDensityMode(state.densityMode === "compact" ? "cozy" : "compact", true);
@@ -3197,6 +3215,37 @@
     }
     if (notify) {
       toast(state.advancedMode ? "Расширенный режим включён" : "Расширенный режим выключен");
+    }
+    setToolbarLane(state.toolbarLane, false);
+  }
+
+  function setToolbarLane(lane, notify = false) {
+    const normalized = ["compose", "organize", "advanced"].includes(lane) ? lane : "compose";
+    state.toolbarLane = normalized;
+    localStorage.setItem(TOOLBAR_LANE_STORAGE_KEY, normalized);
+
+    refs.toolbarLaneButtons.forEach((button) => {
+      const isActive = button.dataset.toolbarLaneBtn === normalized;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+
+    refs.toolbarLaneGroups.forEach((group) => {
+      const laneNames = String(group.dataset.toolbarLane || "compose")
+        .split(/\s+/)
+        .filter(Boolean);
+      const hiddenByLane = !laneNames.includes(normalized);
+      const hiddenByAdvanced = group.classList.contains("constructor-advanced") && !state.advancedMode;
+      group.classList.toggle("is-hidden", hiddenByLane || hiddenByAdvanced);
+    });
+
+    if (notify) {
+      const laneTitle = normalized === "compose"
+        ? "Конструктор"
+        : normalized === "organize"
+          ? "Структура"
+          : "Продвинутое";
+      toast(`Режим: ${laneTitle}`);
     }
   }
 
