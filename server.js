@@ -1449,7 +1449,7 @@ app.post("/api/surveys/:id/duplicate", requireAuth, async (req, res, next) => {
     );
     if (!survey) return res.status(404).json({ error: "Survey not found" });
 
-    const questions = await getSurveyQuestionsDetailed(surveyId);
+    const [pages, questions] = await Promise.all([getSurveyPages(surveyId), getSurveyQuestionsDetailed(surveyId)]);
 
     const createdAt = nowIso();
     const clone = await run(
@@ -1468,15 +1468,38 @@ app.post("/api/surveys/:id/duplicate", requireAuth, async (req, res, next) => {
         createdAt
       ]
     );
-    const page = await ensureSurveyPage(clone.lastID);
+    const createdPageIds = new Map();
+    const sourcePages = Array.isArray(pages) && pages.length ? pages : [{ id: null, title: "Страница 1", order_index: 0, design: {} }];
+
+    for (let pageIndex = 0; pageIndex < sourcePages.length; pageIndex += 1) {
+      const sourcePage = sourcePages[pageIndex];
+      const pageStamp = nowIso();
+      const insertedPage = await run(
+        `INSERT INTO pages (survey_id, title, design_json, order_index, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          clone.lastID,
+          String(sourcePage.title || `Страница ${pageIndex + 1}`),
+          JSON.stringify(normalizePageDesign(sourcePage.design || {})),
+          Number.isFinite(Number(sourcePage.order_index)) ? Number(sourcePage.order_index) : pageIndex,
+          pageStamp,
+          pageStamp
+        ]
+      );
+      createdPageIds.set(String(sourcePage.id ?? `fallback_${pageIndex}`), insertedPage.lastID);
+    }
+
+    const fallbackPage = await ensureSurveyPage(clone.lastID);
 
     for (const question of questions) {
+      const sourcePageId = String(question.pageId ?? question.page_id ?? "");
+      const targetPageId = createdPageIds.get(sourcePageId) || fallbackPage.id;
       const inserted = await run(
         `INSERT INTO questions (survey_id, page_id, question_text, help_text, type, options_json, required, question_order)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           clone.lastID,
-          page.id,
+          targetPageId,
           question.text,
           question.helpText || "",
           question.type,

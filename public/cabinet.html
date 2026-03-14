@@ -50,6 +50,24 @@
           <a class="btn btn--primary" href="/create">+ Новый опрос</a>
         </header>
 
+        <section class="svdash-toolbar" aria-label="Быстрые действия">
+          <div class="svdash-toolbar__title">
+            <strong>Быстрые действия</strong>
+            <span>Обновляйте список и переключайте вид карточек.</span>
+          </div>
+          <div class="svdash-toolbar__actions">
+            <button id="refreshBtn" class="btn btn--outline btn--xs" type="button">Обновить</button>
+            <button id="viewToggleBtn" class="btn btn--ghost btn--xs" type="button" aria-pressed="false">Компактный вид</button>
+          </div>
+        </section>
+
+        <div class="svdash-mobile-chips" aria-label="Фильтр статуса">
+          <button class="svdash-side__chip is-active" type="button" data-status-chip="all">Все</button>
+          <button class="svdash-side__chip" type="button" data-status-chip="published">Опубликованные</button>
+          <button class="svdash-side__chip" type="button" data-status-chip="draft">Черновики</button>
+          <button class="svdash-side__chip" type="button" data-status-chip="archived">Архив</button>
+        </div>
+
         <section class="svdash-stats" id="statsGrid">
           <article class="svdash-stat"><span>Всего</span><strong id="statTotal">0</strong></article>
           <article class="svdash-stat"><span>Опубликовано</span><strong id="statActive">0</strong></article>
@@ -81,6 +99,9 @@
             </select>
           </label>
         </section>
+
+        <p id="resultsCount" class="svdash-results-count"></p>
+        <p id="cabinetStatusLine" class="svdash-status-line" aria-live="polite"></p>
 
         <section id="bulkBar" class="svdash-bulkbar" hidden>
           <div class="svdash-bulkbar__left">
