@@ -270,20 +270,43 @@
     setText("#settingsTabDesign", "Дизайн");
     setText("#emptyEditor p", "Выберите вопрос в центре, чтобы изменить его параметры.");
 
-    setText("label[for='questionTitleInput'] span", "Текст вопроса");
-    setText("label[for='questionDescriptionInput'] span", "Описание / подсказка");
+    const questionTitleRow = document.querySelector("#questionTitleInput")?.closest(".form-row");
+    const questionDescriptionRow = document.querySelector("#questionDescriptionInput")?.closest(".form-row");
+    const questionTypeRow = document.querySelector("#questionTypeInput")?.closest(".form-row");
+    const ratingMinRow = document.querySelector("#ratingLabelMin")?.closest(".form-row");
+    const ratingMaxRow = document.querySelector("#ratingLabelMax")?.closest(".form-row");
+    const inlineChecks = Array.from(document.querySelectorAll("label.inline-check span"));
+
+    if (questionTitleRow) {
+      const label = questionTitleRow.querySelector("span");
+      if (label) label.textContent = "Текст вопроса";
+    }
+    if (questionDescriptionRow) {
+      const label = questionDescriptionRow.querySelector("span");
+      if (label) label.textContent = "Описание / подсказка";
+    }
     setAttr("#questionDescriptionInput", "placeholder", "Дополнительный текст под вопросом");
-    setText("label.inline-check span", "Обязательный вопрос");
-    setText("label[for='questionTypeInput'] span", "Тип вопроса");
+    if (inlineChecks[0]) inlineChecks[0].textContent = "Обязательный вопрос";
+    if (questionTypeRow) {
+      const label = questionTypeRow.querySelector("span");
+      if (label) label.textContent = "Тип вопроса";
+    }
 
     setText("#ratingEditor h4", "Шкала рейтинга");
-    setText("label[for='ratingLabelMin'] span", "Подпись 1");
+    if (ratingMinRow) {
+      const label = ratingMinRow.querySelector("span");
+      if (label) label.textContent = "Подпись 1";
+    }
     setAttr("#ratingLabelMin", "placeholder", "Например: Плохо");
-    setText("label[for='ratingLabelMax'] span", "Подпись 5");
+    if (ratingMaxRow) {
+      const label = ratingMaxRow.querySelector("span");
+      if (label) label.textContent = "Подпись 5";
+    }
     setAttr("#ratingLabelMax", "placeholder", "Например: Отлично");
 
     setText("#optionsEditor h4", "Варианты ответа");
-    setText("#optionsEditor .inline-check span", "Логика переходов по ответам");
+    const optionsInlineCheck = document.querySelector("#optionsEditor .inline-check span");
+    if (optionsInlineCheck) optionsInlineCheck.textContent = "Логика переходов по ответам";
     setText("#questionLogicHint", "Выберите, на какую страницу перейдет участник после каждого варианта.");
     setText(".constructor-option-presets__label", "Готовые варианты:");
     setText("[data-option-preset='yes-no']", "Да / Нет");
