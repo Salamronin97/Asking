@@ -4117,8 +4117,19 @@ body.builder-simple .constructor-toolbar__group {
   padding: 8px;
 }
 
+body.builder-simple .constructor-toolbar__group--core {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body.builder-simple .constructor-toolbar__group--core #addQuestionBtn {
+  grid-column: 1 / -1;
+  min-height: 40px;
+}
+
 body.builder-simple .constructor-type-palette {
-  background: #fff;
+  display: none !important;
 }
 
 body.builder-simple .constructor-worktop {
@@ -4159,14 +4170,24 @@ body.builder-simple .constructor-editor-group[data-editor-section="actions"] {
 
 body.builder-simple .question-card__head--simple {
   align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 body.builder-simple .question-card__head--simple .question-card__actions .btn {
   min-height: 32px;
+  white-space: nowrap;
 }
 
 body.builder-simple .question-card__preview {
   margin-top: 6px;
+}
+
+body.builder-simple .question-card__head--simple .question-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 body.builder-simple .constructor-editor .form-row input,
@@ -4237,6 +4258,12 @@ body.builder-advanced .constructor-advanced {
   gap: 8px;
   cursor: pointer;
   transition: border-color 130ms ease, background-color 130ms ease, transform 130ms ease;
+}
+
+.constructor-sheet,
+.constructor-editor,
+.question-card {
+  overflow-wrap: anywhere;
 }
 
 .constructor-type-pill:hover {
@@ -7542,6 +7569,10 @@ details:not([open]) > .constructor-fold__summary::after {
   .constructor-type-pill {
     flex: 0 0 auto;
     white-space: nowrap;
+  }
+
+  .constructor-type-pill span {
+    display: none;
   }
 
   .constructor-toolbar-lanes {

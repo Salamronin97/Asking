@@ -1450,8 +1450,9 @@
     updateQuestionActionButtons();
     updateBuilderMeta();
     if (refs.hotkeysHint) {
-      refs.hotkeysHint.textContent =
-        `Ctrl/Cmd+клик множественный выбор • Ctrl+D дубль • Del удалить • Ctrl+K команды • Alt+↑/↓ страницы • режим: ${state.densityMode === "compact" ? "компакт" : "обычный"}`;
+      refs.hotkeysHint.textContent = state.simpleMode
+        ? "Клик по карточке открывает редактирование • Режим: простой"
+        : `Ctrl/Cmd+клик множественный выбор • Ctrl+D дубль • Del удалить • Ctrl+K команды • Alt+↑/↓ страницы • режим: ${state.densityMode === "compact" ? "компакт" : "обычный"}`;
     }
 
     renderPages();
@@ -1537,16 +1538,16 @@
 
     if (refs.builderHealthPercent) refs.builderHealthPercent.textContent = `${percent}%`;
     if (refs.builderHealthBarFill) refs.builderHealthBarFill.style.width = `${percent}%`;
-    if (refs.builderCheckTitle) refs.builderCheckTitle.textContent = `Title quality (${titleLength}/5+)`;
-    if (refs.builderCheckQuestions) refs.builderCheckQuestions.textContent = `Minimum 4 questions (${questions})`;
-    if (refs.builderCheckPages) refs.builderCheckPages.textContent = `At least 1 page (${pages})`;
-    if (refs.builderCheckLogic) refs.builderCheckLogic.textContent = `At least 1 logic route (${logicRoutes})`;
-    if (refs.builderCheckRequired) refs.builderCheckRequired.textContent = `At least 1 required question (${requiredCount})`;
+    if (refs.builderCheckTitle) refs.builderCheckTitle.textContent = `Название: минимум 5 символов (${titleLength})`;
+    if (refs.builderCheckQuestions) refs.builderCheckQuestions.textContent = `Минимум 4 вопроса (${questions})`;
+    if (refs.builderCheckPages) refs.builderCheckPages.textContent = `Хотя бы 1 страница (${pages})`;
+    if (refs.builderCheckLogic) refs.builderCheckLogic.textContent = `Хотя бы 1 логический переход (${logicRoutes})`;
+    if (refs.builderCheckRequired) refs.builderCheckRequired.textContent = `Хотя бы 1 обязательный вопрос (${requiredCount})`;
     if (refs.builderCheckOptions) {
       refs.builderCheckOptions.textContent =
         choiceQuestionsWithBadOptions === 0
-          ? "Choice questions have 2+ options"
-          : `Fix choice options (${choiceQuestionsWithBadOptions} issue${choiceQuestionsWithBadOptions > 1 ? "s" : ""})`;
+          ? "В вопросах с выбором 2+ варианта"
+          : `Исправьте варианты в вопросах (${choiceQuestionsWithBadOptions})`;
     }
     refs.builderCheckTitle?.classList.toggle("is-done", checks.title);
     refs.builderCheckQuestions?.classList.toggle("is-done", checks.questions);
@@ -1990,12 +1991,12 @@
       refs.deleteSelectedQuestionBtn.disabled = selectedCount < 1;
       refs.deleteSelectedQuestionBtn.textContent = selectedCount > 1 ? `Удалить (${selectedCount})` : "Удалить";
     }
-    if (refs.clearQuestionSelectionBtn) refs.clearQuestionSelectionBtn.disabled = selectedCount <= 1;
-    if (refs.selectAllVisibleQuestionsBtn) refs.selectAllVisibleQuestionsBtn.disabled = getVisibleQuestions(page).length < 2;
+    if (refs.clearQuestionSelectionBtn) refs.clearQuestionSelectionBtn.disabled = state.simpleMode || selectedCount <= 1;
+    if (refs.selectAllVisibleQuestionsBtn) refs.selectAllVisibleQuestionsBtn.disabled = state.simpleMode || getVisibleQuestions(page).length < 2;
     if (refs.moveSelectedToPageBtn) {
       refs.moveSelectedToPageBtn.disabled = selectedCount < 1 || (Array.isArray(state.survey.pages) ? state.survey.pages.length : 0) < 2;
     }
-    if (refs.questionBulkDock) refs.questionBulkDock.hidden = selectedCount < 2;
+    if (refs.questionBulkDock) refs.questionBulkDock.hidden = state.simpleMode || selectedCount < 2;
     if (refs.bulkDockCount) refs.bulkDockCount.textContent = `${selectedCount} выбрано`;
     if (refs.bulkDockMoveBtn) {
       refs.bulkDockMoveBtn.disabled = selectedCount < 1 || (Array.isArray(state.survey.pages) ? state.survey.pages.length : 0) < 2;
@@ -2100,7 +2101,7 @@
     }
 
     const hint = targetOptions.map(({ page, index }) => `${index}: ${page.title || `Страница ${index}`}`).join("\n");
-    const answer = window.prompt(`Move selected questions to page number:\n${hint}`);
+    const answer = window.prompt(`Перенести выбранные вопросы на страницу:\n${hint}`);
     if (answer == null) return;
     const targetIndex = Number(String(answer).trim());
     if (!Number.isInteger(targetIndex)) {
@@ -2247,14 +2248,16 @@
         card.innerHTML = `
           <div class="question-card__head question-card__head--simple">
             <div class="question-card__left">
-              <button type="button" class="question-card__select${isSelected ? " is-on" : ""}" data-action="select" aria-pressed="${isSelected ? "true" : "false"}" title="Выделить вопрос">✓</button>
               <div class="question-card__title-wrap">
                 <h4 class="q-title">${highlightQuestionText(`${index + 1}. ${question.title || "Новый вопрос"}`, state.questionFilter)}</h4>
                 <div class="q-meta">${escapeHtml(getMetaText(question))}</div>
               </div>
             </div>
             <div class="question-card__actions">
+              <button type="button" class="btn btn--ghost btn--xs" data-action="select" aria-pressed="${isSelected ? "true" : "false"}">Выбрать</button>
               <button type="button" class="btn btn--ghost btn--xs" data-action="focus">Открыть</button>
+              <button type="button" class="btn btn--ghost btn--xs" data-action="duplicate">Копия</button>
+              <button type="button" class="btn btn--ghost btn--xs" data-action="delete">Удалить</button>
             </div>
           </div>
           <div class="question-card__preview">${renderQuestionCardPreview(question)}</div>
@@ -2314,7 +2317,9 @@
           return;
         }
 
-        if (event.shiftKey && state.selectedQuestionId) {
+        if (state.simpleMode) {
+          setSingleQuestionSelection(question.id);
+        } else if (event.shiftKey && state.selectedQuestionId) {
           selectQuestionRange(state.selectedQuestionId, question.id, page);
         } else if (event.ctrlKey || event.metaKey) {
           toggleQuestionSelection(question.id, page);
@@ -3487,6 +3492,7 @@
       description: String(state.survey.description || "").trim(),
       pages: state.survey.pages.map((page, pageIndex) => ({
         title: String(page.title || `Страница ${pageIndex + 1}`),
+        design: normalizePageDesign(page.design || {}),
         questions: page.questions.map((q, qIndex) => ({
           text: String(q.title || `Вопрос ${qIndex + 1}`),
           helpText: String(q.description || ""),
@@ -3660,12 +3666,15 @@
     if (state.simpleMode) {
       state.toolbarLane = "compose";
       state.advancedMode = false;
+      state.selectedQuestionIds = state.selectedQuestionId ? [state.selectedQuestionId] : [];
       localStorage.setItem(ADVANCED_STORAGE_KEY, "off");
       document.body.classList.remove("builder-advanced");
       if (refs.toggleAdvancedBuilderBtn) refs.toggleAdvancedBuilderBtn.textContent = "Расширенный режим";
     }
     setToolbarLane(state.toolbarLane, false);
     setEditorSection(state.editorSection || "content");
+    renderQuestions();
+    updateQuestionActionButtons();
     if (notify) toast(state.simpleMode ? "Простой режим включён" : "Расширенный режим интерфейса включён");
   }
 

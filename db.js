@@ -87,6 +87,7 @@ async function init() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       survey_id INTEGER NOT NULL,
       title TEXT NOT NULL,
+      design_json TEXT,
       order_index INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
@@ -215,6 +216,10 @@ async function init() {
     await run("ALTER TABLE users ADD COLUMN date_format TEXT");
   }
   const questionColumns = await all("PRAGMA table_info(questions)");
+  const pageColumns = await all("PRAGMA table_info(pages)");
+  if (!pageColumns.some((column) => column.name === "design_json")) {
+    await run("ALTER TABLE pages ADD COLUMN design_json TEXT");
+  }
   if (!questionColumns.some((column) => column.name === "page_id")) {
     await run("ALTER TABLE questions ADD COLUMN page_id INTEGER");
   }

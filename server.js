@@ -124,6 +124,24 @@ function parseBool(value, fallback = false) {
   return fallback;
 }
 
+function normalizePageDesign(raw) {
+  const obj = raw && typeof raw === "object" ? raw : {};
+  const allowedLayouts = new Set(["full", "split-right-image", "split-left-image", "cover-top-image", "center-card"]);
+  const bgColorRaw = String(obj.bgColor || "").trim();
+  const bgImageRaw = String(obj.bgImage || "").trim();
+  const layoutRaw = String(obj.layout || "").trim();
+  const themeIdRaw = String(obj.themeId || "").trim();
+  const overlayRaw = Number(obj.overlay);
+
+  return {
+    themeId: themeIdRaw ? themeIdRaw.slice(0, 80) : "",
+    bgColor: /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(bgColorRaw) ? bgColorRaw : "#eaf3fb",
+    bgImage: /^https?:\/\//i.test(bgImageRaw) ? bgImageRaw.slice(0, 1200) : "",
+    layout: allowedLayouts.has(layoutRaw) ? layoutRaw : "full",
+    overlay: Number.isFinite(overlayRaw) ? Math.max(0, Math.min(90, Math.round(overlayRaw))) : 0
+  };
+}
+
 function getClientIp(req) {
   const forwarded = req.headers["x-forwarded-for"];
   const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "";
@@ -353,13 +371,17 @@ async function syncQuestionOptions(questionId, options) {
 }
 
 async function getSurveyPages(surveyId) {
-  return all(
-    `SELECT id, survey_id, title, order_index
+  const rows = await all(
+    `SELECT id, survey_id, title, design_json, order_index
      FROM pages
      WHERE survey_id = ?
      ORDER BY order_index ASC, id ASC`,
     [surveyId]
   );
+  return rows.map((page) => ({
+    ...page,
+    design: normalizePageDesign(safeJsonParse(page.design_json, {}))
+  }));
 }
 
 async function getSurveyQuestionsDetailed(surveyId) {
@@ -472,9 +494,9 @@ async function ensureSurveyPage(surveyId, title = "Страница 1") {
   if (first) return first;
   const stamp = nowIso();
   const created = await run(
-    `INSERT INTO pages (survey_id, title, order_index, created_at, updated_at)
-     VALUES (?, ?, 0, ?, ?)`,
-    [surveyId, title, stamp, stamp]
+    `INSERT INTO pages (survey_id, title, design_json, order_index, created_at, updated_at)
+     VALUES (?, ?, ?, 0, ?, ?)`,
+    [surveyId, title, JSON.stringify(normalizePageDesign({})), stamp, stamp]
   );
   return { id: created.lastID, title };
 }
@@ -502,6 +524,7 @@ function validateSurveyPayload(payload) {
       const pageQuestions = pageQuestionsRaw.map((question, idx) => normalizeQuestion(question, questions.length + idx));
       normalizedPages.push({
         title: pageTitle,
+        design: normalizePageDesign(page?.design),
         orderIndex: Number.isFinite(page?.orderIndex) ? Number(page.orderIndex) : pageIndex,
         questions: pageQuestions
       });
@@ -509,7 +532,7 @@ function validateSurveyPayload(payload) {
     });
   } else {
     const normalizedQuestions = fallbackQuestions.map((question, idx) => normalizeQuestion(question, idx));
-    normalizedPages.push({ title: "Страница 1", orderIndex: 0, questions: normalizedQuestions });
+    normalizedPages.push({ title: "Страница 1", design: normalizePageDesign({}), orderIndex: 0, questions: normalizedQuestions });
     questions.push(...normalizedQuestions);
   }
 
@@ -1290,9 +1313,9 @@ app.post("/api/surveys/from-template", requireAuth, async (req, res, next) => {
       const pageTitle = String(pagePayload.title || `Страница ${pageIndex + 1}`).trim() || `Страница ${pageIndex + 1}`;
       const pageStamp = nowIso();
       const pageCreated = await run(
-        `INSERT INTO pages (survey_id, title, order_index, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?)`,
-        [surveyId, pageTitle, pageIndex, pageStamp, pageStamp]
+        `INSERT INTO pages (survey_id, title, design_json, order_index, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [surveyId, pageTitle, JSON.stringify(normalizePageDesign(pagePayload.design)), pageIndex, pageStamp, pageStamp]
       );
 
       const pageQuestions = Array.isArray(pagePayload.questions) ? pagePayload.questions : [];
@@ -1527,9 +1550,9 @@ app.post("/api/surveys", requireAuth, async (req, res, next) => {
       const pagePayload = payload.pages[pageIndex];
       const pageStamp = nowIso();
       const page = await run(
-        `INSERT INTO pages (survey_id, title, order_index, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?)`,
-        [created.lastID, pagePayload.title, pageIndex, pageStamp, pageStamp]
+        `INSERT INTO pages (survey_id, title, design_json, order_index, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [created.lastID, pagePayload.title, JSON.stringify(normalizePageDesign(pagePayload.design)), pageIndex, pageStamp, pageStamp]
       );
 
       for (const question of pagePayload.questions) {
@@ -1594,9 +1617,9 @@ app.put("/api/surveys/:id", requireAuth, async (req, res, next) => {
       const pagePayload = payload.pages[pageIndex];
       const pageStamp = nowIso();
       const page = await run(
-        `INSERT INTO pages (survey_id, title, order_index, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?)`,
-        [surveyId, pagePayload.title, pageIndex, pageStamp, pageStamp]
+        `INSERT INTO pages (survey_id, title, design_json, order_index, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [surveyId, pagePayload.title, JSON.stringify(normalizePageDesign(pagePayload.design)), pageIndex, pageStamp, pageStamp]
       );
 
       for (const question of pagePayload.questions) {
@@ -1661,9 +1684,9 @@ app.patch("/api/surveys/:id", requireAuth, async (req, res, next) => {
       const pagePayload = payload.pages[pageIndex];
       const pageStamp = nowIso();
       const page = await run(
-        `INSERT INTO pages (survey_id, title, order_index, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?)`,
-        [surveyId, pagePayload.title, pageIndex, pageStamp, pageStamp]
+        `INSERT INTO pages (survey_id, title, design_json, order_index, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [surveyId, pagePayload.title, JSON.stringify(normalizePageDesign(pagePayload.design)), pageIndex, pageStamp, pageStamp]
       );
 
       for (const question of pagePayload.questions) {
@@ -1895,9 +1918,9 @@ app.post("/api/surveys/:id/pages", requireAuth, async (req, res, next) => {
     const orderIndex = Number.isFinite(order) ? order : Number(maxRow?.max_order || -1) + 1;
     const stamp = nowIso();
     const created = await run(
-      `INSERT INTO pages (survey_id, title, order_index, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?)`,
-      [surveyId, title, orderIndex, stamp, stamp]
+      `INSERT INTO pages (survey_id, title, design_json, order_index, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [surveyId, title, JSON.stringify(normalizePageDesign(req.body?.design)), orderIndex, stamp, stamp]
     );
     res.status(201).json({ id: created.lastID, title, orderIndex });
   } catch (error) {
@@ -1919,13 +1942,24 @@ app.put("/api/pages/:pageId", requireAuth, async (req, res, next) => {
     if (!page) return res.status(404).json({ error: "Page not found" });
     const title = String(req.body?.title || "").trim();
     const orderIndex = Number(req.body?.orderIndex);
+    const hasDesign = req.body && Object.prototype.hasOwnProperty.call(req.body, "design");
+    const designJson = hasDesign ? JSON.stringify(normalizePageDesign(req.body.design)) : null;
     await run(
       `UPDATE pages
        SET title = COALESCE(?, title),
+           design_json = CASE WHEN ? IS NULL THEN design_json ELSE ? END,
            order_index = CASE WHEN ? IS NULL THEN order_index ELSE ? END,
            updated_at = ?
        WHERE id = ?`,
-      [title || null, Number.isFinite(orderIndex) ? orderIndex : null, Number.isFinite(orderIndex) ? orderIndex : null, nowIso(), pageId]
+      [
+        title || null,
+        designJson,
+        designJson,
+        Number.isFinite(orderIndex) ? orderIndex : null,
+        Number.isFinite(orderIndex) ? orderIndex : null,
+        nowIso(),
+        pageId
+      ]
     );
     res.json({ ok: true });
   } catch (error) {
