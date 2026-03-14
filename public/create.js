@@ -291,6 +291,19 @@
       const label = questionTypeRow.querySelector("span");
       if (label) label.textContent = "Тип вопроса";
     }
+    const questionTypeSelect = document.querySelector("#questionTypeInput");
+    if (questionTypeSelect) {
+      const optionMap = {
+        text: "Текст",
+        single: "Один выбор",
+        multiple: "Множественный",
+        rating: "Рейтинг",
+        select: "Список"
+      };
+      Array.from(questionTypeSelect.options).forEach((option) => {
+        option.textContent = optionMap[option.value] || option.textContent;
+      });
+    }
 
     setText("#ratingEditor h4", "Шкала рейтинга");
     if (ratingMinRow) {
@@ -337,6 +350,19 @@
     if (pageLayoutRow) {
       const label = pageLayoutRow.querySelector("span");
       if (label) label.textContent = "Макет";
+    }
+    const pageLayoutSelect = document.querySelector("#pageLayoutInput");
+    if (pageLayoutSelect) {
+      const layoutMap = {
+        full: "Цельный фон",
+        "split-right-image": "Фото справа",
+        "split-left-image": "Фото слева",
+        "cover-top-image": "Обложка сверху",
+        "center-card": "Карточка по центру"
+      };
+      Array.from(pageLayoutSelect.options).forEach((option) => {
+        option.textContent = layoutMap[option.value] || option.textContent;
+      });
     }
     if (pageOverlayRow) {
       const label = pageOverlayRow.querySelector("span");
