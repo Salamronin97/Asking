@@ -141,6 +141,7 @@
             <div class="constructor-toolbar__group constructor-toolbar__group--core" data-toolbar-lane="compose" aria-label="Основные действия">
               <span class="constructor-toolbar__group-title">Основное</span>
               <button id="addQuestionBtn" class="btn btn--outline" type="button">+ Добавить вопрос</button>
+              <button id="openQuickStartWizardBtn" class="btn btn--ghost" type="button">Опрос за 60 сек</button>
               <button id="openTemplateCatalogBtn" class="btn btn--ghost" type="button">Шаблоны</button>
               <button id="toggleAdvancedBuilderBtn" class="btn btn--ghost btn--xs" type="button" aria-pressed="false">Расширенный режим</button>
             </div>
@@ -212,6 +213,12 @@
         </div>
 
         <div id="settingsQuestionPane">
+          <div class="constructor-editor-shortcuts" aria-label="Навигатор секций">
+            <button class="constructor-editor-shortcut is-active" type="button" data-editor-section-shortcut="content">Текст</button>
+            <button class="constructor-editor-shortcut" type="button" data-editor-section-shortcut="setup">Параметры</button>
+            <button class="constructor-editor-shortcut" type="button" data-editor-section-shortcut="options">Варианты</button>
+            <button class="constructor-editor-shortcut" type="button" data-editor-section-shortcut="actions">Удаление</button>
+          </div>
           <div id="emptyEditor" class="constructor-empty-editor">
             <p>Р’С‹Р±РµСЂРёС‚Рµ РІРѕРїСЂРѕСЃ РІ С†РµРЅС‚СЂРµ, С‡С‚РѕР±С‹ РёР·РјРµРЅРёС‚СЊ РµРіРѕ РїР°СЂР°РјРµС‚СЂС‹.</p>
           </div>
@@ -488,6 +495,61 @@
           <div class="constructor-theme-footer">
             <button id="applyThemeBtn" class="btn btn--primary" type="button">РСЃРїРѕР»СЊР·РѕРІР°С‚СЊ С‚РµРјСѓ</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="quickStartWizardOverlay" class="constructor-modal-overlay" hidden>
+      <div class="constructor-modal constructor-modal--wizard" role="dialog" aria-modal="true" aria-labelledby="quickStartWizardTitle">
+        <div class="constructor-modal-head">
+          <h3 id="quickStartWizardTitle">Опрос за 60 секунд</h3>
+          <button id="closeQuickStartWizardBtn" class="constructor-modal-close" type="button" aria-label="Закрыть">×</button>
+        </div>
+        <div class="constructor-wizard-steps">
+          <span id="wizardStep1" class="constructor-wizard-step is-active">1. Сценарий</span>
+          <span id="wizardStep2" class="constructor-wizard-step">2. Оформление</span>
+          <span id="wizardStep3" class="constructor-wizard-step">3. Запуск</span>
+        </div>
+        <section id="wizardPaneScenario" class="constructor-wizard-pane">
+          <p>Выбери готовый сценарий, чтобы получить рабочий каркас вопросов.</p>
+          <div class="constructor-wizard-grid">
+            <button class="constructor-wizard-card is-active" type="button" data-wizard-preset="registration">Регистрация</button>
+            <button class="constructor-wizard-card" type="button" data-wizard-preset="event-feedback">Фидбек события</button>
+            <button class="constructor-wizard-card" type="button" data-wizard-preset="product-discovery">Исследование продукта</button>
+            <button class="constructor-wizard-card" type="button" data-wizard-preset="hr-pulse">HR Pulse</button>
+          </div>
+        </section>
+        <section id="wizardPaneTheme" class="constructor-wizard-pane" hidden>
+          <p>Выбери визуальный стиль и название будущей анкеты.</p>
+          <label class="form-row">
+            <span>Название</span>
+            <input id="wizardSurveyTitleInput" type="text" value="Новая анкета" />
+          </label>
+          <label class="form-row">
+            <span>Тема</span>
+            <select id="wizardThemeSelect">
+              <option value="sea">Sea</option>
+              <option value="forest">Forest</option>
+              <option value="skyline">Skyline</option>
+              <option value="sunset">Sunset</option>
+            </select>
+          </label>
+        </section>
+        <section id="wizardPaneLaunch" class="constructor-wizard-pane" hidden>
+          <p id="wizardSummaryText">Проверь настройки и нажми «Создать анкету».</p>
+          <div class="constructor-wizard-summary">
+            <strong>Что будет сделано:</strong>
+            <ul>
+              <li>Создана страница с готовым набором вопросов</li>
+              <li>Применена выбранная тема</li>
+              <li>Открыт редактор для точечной доработки</li>
+            </ul>
+          </div>
+        </section>
+        <div class="constructor-wizard-actions">
+          <button id="wizardBackBtn" class="btn btn--outline btn--xs" type="button">Назад</button>
+          <button id="wizardNextBtn" class="btn btn--primary btn--xs" type="button">Далее</button>
+          <button id="wizardApplyBtn" class="btn btn--primary btn--xs" type="button" hidden>Создать анкету</button>
         </div>
       </div>
     </div>

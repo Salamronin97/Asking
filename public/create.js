@@ -158,7 +158,13 @@
     matchCursor: 0,
     selectedQuestionIds: [],
     editorSection: "content",
-    toolbarLane: localStorage.getItem(TOOLBAR_LANE_STORAGE_KEY) || "compose"
+    toolbarLane: localStorage.getItem(TOOLBAR_LANE_STORAGE_KEY) || "compose",
+    wizard: {
+      step: 1,
+      preset: "registration",
+      themeId: "sea",
+      title: "Новая анкета"
+    }
   };
 
   const refs = {};
@@ -263,6 +269,7 @@
     setHtml(".constructor-kitbank__item[data-question-preset='hr-pulse']", "<strong>HR Pulse</strong><span>Атмосфера, нагрузка, eNPS</span>");
 
     setText("#publishBtn", "Опубликовать");
+    setText("#openQuickStartWizardBtn", "Опрос за 60 сек");
     setText("#toolbarLaneComposeBtn", "Конструктор");
     setText("#toolbarLaneOrganizeBtn", "Структура");
     setText("#toolbarLaneAdvancedBtn", "Продвинутое");
@@ -274,6 +281,10 @@
     setText("#settingsPanel .constructor-head-sm h3", "Настройки вопроса");
     setText("#settingsTabQuestion", "Вопрос");
     setText("#settingsTabDesign", "Дизайн");
+    setText("[data-editor-section-shortcut='content']", "Текст");
+    setText("[data-editor-section-shortcut='setup']", "Параметры");
+    setText("[data-editor-section-shortcut='options']", "Варианты");
+    setText("[data-editor-section-shortcut='actions']", "Удаление");
     setText("#emptyEditor p", "Выберите вопрос в центре, чтобы изменить его параметры.");
 
     const questionTitleRow = document.querySelector("#questionTitleInput")?.closest(".form-row");
@@ -441,6 +452,10 @@
     setText("#applyThemeBtn", "Использовать тему");
     setText("#templateCountBadge", "0 шаблонов");
     setAttr("#templateSearchInput", "placeholder", "Поиск шаблона");
+    setText("#quickStartWizardTitle", "Опрос за 60 секунд");
+    setText("#wizardBackBtn", "Назад");
+    setText("#wizardNextBtn", "Далее");
+    setText("#wizardApplyBtn", "Создать анкету");
 
     ["#closeQuestionTypeModalBtn", "#closeCreationEntryBtn", "#closeTemplateCatalogBtn", "#closeTemplatePreviewBtn", "#closeThemePickerBtn"]
       .forEach((selector) => {
@@ -507,6 +522,7 @@
       "saveState",
       "saveStateText",
       "publishBtn",
+      "openQuickStartWizardBtn",
       "toolbarLaneComposeBtn",
       "toolbarLaneOrganizeBtn",
       "toolbarLaneAdvancedBtn",
@@ -541,6 +557,20 @@
       "surveyPreviewList",
       "statusText",
       "questionEditor",
+      "quickStartWizardOverlay",
+      "closeQuickStartWizardBtn",
+      "wizardStep1",
+      "wizardStep2",
+      "wizardStep3",
+      "wizardPaneScenario",
+      "wizardPaneTheme",
+      "wizardPaneLaunch",
+      "wizardSurveyTitleInput",
+      "wizardThemeSelect",
+      "wizardSummaryText",
+      "wizardBackBtn",
+      "wizardNextBtn",
+      "wizardApplyBtn",
       "emptyEditor",
       "questionTitleInput",
       "questionDescriptionInput",
@@ -618,6 +648,8 @@
     refs.questionPresetButtons = Array.from(document.querySelectorAll("[data-question-preset]"));
     refs.toolbarLaneButtons = Array.from(document.querySelectorAll("[data-toolbar-lane-btn]"));
     refs.toolbarLaneGroups = Array.from(document.querySelectorAll("[data-toolbar-lane]"));
+    refs.wizardPresetButtons = Array.from(document.querySelectorAll("[data-wizard-preset]"));
+    refs.editorSectionShortcutButtons = Array.from(document.querySelectorAll("[data-editor-section-shortcut]"));
 
     must(refs.pagesList, "pagesList");
     must(refs.questionList, "questionList");
@@ -704,6 +736,9 @@
     editor.querySelectorAll("[data-editor-section-tab]").forEach((node) => {
       node.classList.toggle("is-active", node.dataset.editorSectionTab === normalized);
     });
+    refs.editorSectionShortcutButtons.forEach((node) => {
+      node.classList.toggle("is-active", node.dataset.editorSectionShortcut === normalized);
+    });
   }
 
   function getQuestionTypeHint(type) {
@@ -752,6 +787,7 @@
     refs.removePageBtn?.addEventListener("click", removeSelectedPage);
 
     refs.addQuestionBtn?.addEventListener("click", openQuestionTypeModal);
+    refs.openQuickStartWizardBtn?.addEventListener("click", openQuickStartWizard);
     refs.openTemplateCatalogBtn?.addEventListener("click", openTemplateCatalogModal);
     refs.toggleAdvancedBuilderBtn?.addEventListener("click", () => {
       setAdvancedMode(!state.advancedMode, true);
@@ -770,6 +806,33 @@
       setFocusMode(!state.focusMode, true);
     });
     refs.openCommandPaletteBtn?.addEventListener("click", openCommandPalette);
+    refs.closeQuickStartWizardBtn?.addEventListener("click", closeQuickStartWizard);
+    refs.wizardBackBtn?.addEventListener("click", () => setWizardStep(state.wizard.step - 1));
+    refs.wizardNextBtn?.addEventListener("click", () => setWizardStep(state.wizard.step + 1));
+    refs.wizardApplyBtn?.addEventListener("click", applyQuickStartWizard);
+    refs.wizardSurveyTitleInput?.addEventListener("input", (event) => {
+      state.wizard.title = String(event.target.value || "").trim() || "Новая анкета";
+      updateWizardSummary();
+    });
+    refs.wizardThemeSelect?.addEventListener("change", (event) => {
+      state.wizard.themeId = String(event.target.value || "sea");
+      updateWizardSummary();
+    });
+    refs.wizardPresetButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const preset = String(button.dataset.wizardPreset || "").trim();
+        if (!preset) return;
+        state.wizard.preset = preset;
+        refs.wizardPresetButtons.forEach((node) => node.classList.toggle("is-active", node === button));
+        updateWizardSummary();
+      });
+    });
+    refs.editorSectionShortcutButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const section = String(button.dataset.editorSectionShortcut || "").trim();
+        setEditorSection(section);
+      });
+    });
     refs.questionSearchInput?.addEventListener("input", (event) => {
       state.questionFilter = String(event.target.value || "").trim().toLowerCase();
       state.matchCursor = 0;
@@ -1128,6 +1191,7 @@
     bindModal(refs.templatePreviewOverlay, refs.closeTemplatePreviewBtn, closeTemplatePreviewModal);
     bindModal(refs.themePickerOverlay, refs.closeThemePickerBtn, closeThemePickerModal);
     bindModal(refs.commandPaletteOverlay, refs.closeCommandPaletteBtn, closeCommandPalette);
+    bindModal(refs.quickStartWizardOverlay, refs.closeQuickStartWizardBtn, closeQuickStartWizard);
 
     refs.commandPaletteInput?.addEventListener("input", (event) => {
       state.commandSearch = String(event.target.value || "").trim().toLowerCase();
@@ -2607,6 +2671,62 @@
     cleanupModals();
   }
 
+  function openQuickStartWizard() {
+    if (!refs.quickStartWizardOverlay || !refs.quickStartWizardOverlay.hidden) return;
+    state.wizard.step = 1;
+    state.wizard.preset = state.wizard.preset || "registration";
+    state.wizard.themeId = state.wizard.themeId || state.activeThemeId || "sea";
+    state.wizard.title = String(state.survey.title || "Новая анкета").trim() || "Новая анкета";
+
+    if (refs.wizardSurveyTitleInput) refs.wizardSurveyTitleInput.value = state.wizard.title;
+    if (refs.wizardThemeSelect) refs.wizardThemeSelect.value = state.wizard.themeId;
+    refs.wizardPresetButtons.forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.wizardPreset === state.wizard.preset);
+    });
+
+    refs.quickStartWizardOverlay.hidden = false;
+    document.body.classList.add("modal-open");
+    setWizardStep(1);
+    updateWizardSummary();
+  }
+
+  function closeQuickStartWizard() {
+    if (!refs.quickStartWizardOverlay || refs.quickStartWizardOverlay.hidden) return;
+    refs.quickStartWizardOverlay.hidden = true;
+    cleanupModals();
+  }
+
+  function setWizardStep(step) {
+    const normalized = Math.max(1, Math.min(3, Number(step) || 1));
+    state.wizard.step = normalized;
+
+    if (refs.wizardPaneScenario) refs.wizardPaneScenario.hidden = normalized !== 1;
+    if (refs.wizardPaneTheme) refs.wizardPaneTheme.hidden = normalized !== 2;
+    if (refs.wizardPaneLaunch) refs.wizardPaneLaunch.hidden = normalized !== 3;
+
+    if (refs.wizardStep1) refs.wizardStep1.classList.toggle("is-active", normalized === 1);
+    if (refs.wizardStep2) refs.wizardStep2.classList.toggle("is-active", normalized === 2);
+    if (refs.wizardStep3) refs.wizardStep3.classList.toggle("is-active", normalized === 3);
+
+    if (refs.wizardBackBtn) refs.wizardBackBtn.disabled = normalized <= 1;
+    if (refs.wizardNextBtn) refs.wizardNextBtn.hidden = normalized >= 3;
+    if (refs.wizardApplyBtn) refs.wizardApplyBtn.hidden = normalized < 3;
+    updateWizardSummary();
+  }
+
+  function updateWizardSummary() {
+    if (!refs.wizardSummaryText) return;
+    const presetLabelMap = {
+      registration: "Регистрация",
+      "event-feedback": "Фидбек события",
+      "product-discovery": "Исследование продукта",
+      "hr-pulse": "HR Pulse"
+    };
+    const theme = getThemeById(state.wizard.themeId);
+    const presetLabel = presetLabelMap[state.wizard.preset] || "Свой сценарий";
+    refs.wizardSummaryText.textContent = `Анкета «${state.wizard.title || "Новая анкета"}», сценарий: ${presetLabel}, тема: ${theme.name}.`;
+  }
+
   function renderThemePicker() {
     if (!refs.themeGrid) return;
     refs.themeGrid.innerHTML = "";
@@ -2741,6 +2861,7 @@
     closeTemplatePreviewModal();
     closeThemePickerModal();
     closeCommandPalette();
+    closeQuickStartWizard();
     document.body.classList.remove("modal-open");
   }
 
@@ -2751,7 +2872,8 @@
       isModalVisible(refs.templateCatalogOverlay) ||
       isModalVisible(refs.templatePreviewOverlay) ||
       isModalVisible(refs.themePickerOverlay) ||
-      isModalVisible(refs.commandPaletteOverlay);
+      isModalVisible(refs.commandPaletteOverlay) ||
+      isModalVisible(refs.quickStartWizardOverlay);
     if (!open) document.body.classList.remove("modal-open");
   }
 
@@ -2817,6 +2939,23 @@
     };
   }
 
+  function createQuestionFromPreset(preset) {
+    const normalizedType = normalizeType(preset.type);
+    return {
+      id: createId(),
+      type: normalizedType,
+      title: String(preset.title || "Новый вопрос"),
+      description: String(preset.description || ""),
+      required: Boolean(preset.required),
+      logicEnabled: false,
+      options: CHOICE_TYPES.has(normalizedType)
+        ? normalizeOptions(preset.options || [createOption("Вариант 1"), createOption("Вариант 2")])
+        : [],
+      ratingLabels: normalizedType === "rating" ? { low: "", high: "" } : null,
+      rating: normalizedType === "rating" ? { minLabel: "", maxLabel: "" } : null
+    };
+  }
+
   function addQuestionPresetPack(key) {
     const presetPack = QUESTION_PRESETS[key];
     if (!Array.isArray(presetPack) || !presetPack.length) return;
@@ -2824,20 +2963,7 @@
     const createdIds = [];
 
     presetPack.forEach((preset) => {
-      const normalizedType = normalizeType(preset.type);
-      const question = {
-        id: createId(),
-        type: normalizedType,
-        title: String(preset.title || "Новый вопрос"),
-        description: String(preset.description || ""),
-        required: Boolean(preset.required),
-        logicEnabled: false,
-        options: CHOICE_TYPES.has(normalizedType)
-          ? normalizeOptions(preset.options || [createOption("Вариант 1"), createOption("Вариант 2")])
-          : [],
-        ratingLabels: normalizedType === "rating" ? { low: "", high: "" } : null,
-        rating: normalizedType === "rating" ? { minLabel: "", maxLabel: "" } : null
-      };
+      const question = createQuestionFromPreset(preset);
       page.questions.push(question);
       createdIds.push(question.id);
     });
@@ -2857,6 +2983,38 @@
         block: "center"
       });
     });
+  }
+
+  function applyQuickStartWizard() {
+    const presetPack = QUESTION_PRESETS[state.wizard.preset];
+    if (!Array.isArray(presetPack) || !presetPack.length) {
+      setStatus("Выберите сценарий для быстрого старта", true);
+      return;
+    }
+
+    const theme = getThemeById(state.wizard.themeId);
+    const page = {
+      id: createId(),
+      title: "Страница 1",
+      design: normalizePageDesign({ themeId: theme.id, bgColor: theme.bgColor }),
+      questions: presetPack.map((preset) => createQuestionFromPreset(preset))
+    };
+
+    state.survey.title = state.wizard.title || "Новая анкета";
+    state.survey.description = "";
+    state.survey.pages = [page];
+    state.selectedPageId = page.id;
+    state.selectedQuestionId = page.questions[0]?.id || null;
+    state.selectedQuestionIds = state.selectedQuestionId ? [state.selectedQuestionId] : [];
+    state.activeThemeId = theme.id;
+    state.previewThemeId = theme.id;
+    state.settingsPane = "question";
+
+    closeQuickStartWizard();
+    renderAll();
+    markDirty(`Быстрый старт: ${page.questions.length} вопросов`);
+    toast("Анкета создана за 60 секунд");
+    focusPanelOnMobile("questions");
   }
 
   function addQuestionFromPicker(button) {
