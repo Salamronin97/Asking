@@ -1,4 +1,12 @@
-﻿node_modules
+node_modules
 data
 .env
 npm-debug.log*
+debug.log
+server-local.*.log
+test-results/
+playwright-report/
+snapshots/
+public/uploads/
+.response-hash-salt
+.playwright-server.pid

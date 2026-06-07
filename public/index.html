@@ -7,10 +7,21 @@
     <title>Asking | Сервис анкет и голосований</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260303-2" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+    <script>
+      (function () {
+        try {
+          var preferred = localStorage.getItem("asking_theme") || "light";
+          var resolved = preferred === "system"
+            ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+            : preferred;
+          document.documentElement.setAttribute("data-theme", resolved === "dark" ? "dark" : "light");
+        } catch {}
+      })();
+    </script>
+    <link rel="stylesheet" href="/styles.css?v=20260429-gradient-results-1" />
   </head>
-  <body class="landing-page">
+  <body class="landing-page landing-v2">
     <header class="topbar">
       <div class="container topbar__inner">
         <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
@@ -32,20 +43,52 @@
     </header>
 
     <main>
-      <section class="section" id="hero">
-        <div class="container hero-grid">
-          <div class="hero-main">
-            <span class="hero-tag">Профессиональные анкеты и опросы</span>
+      <section class="section landing-v2-hero" id="hero">
+        <div class="container landing-v2-hero__grid">
+          <div class="landing-v2-hero__content landing-v2-reveal">
+            <span class="hero-tag landing-v2-badge">Профессиональные анкеты и опросы</span>
             <h1>Создавайте опросы за минуты и принимайте решения на данных</h1>
             <p class="lead">Запускайте формы по ссылке, собирайте ответы в реальном времени и выгружайте результаты в CSV/XLSX.</p>
-            <div class="hero-actions">
+            <div class="hero-actions landing-v2-hero__actions">
               <a class="btn btn--primary" href="/create">Создать анкету</a>
               <a class="btn btn--outline" href="/cabinet">Открыть кабинет</a>
             </div>
+            <div class="landing-v2-metrics">
+              <article>
+                <strong>5 типов</strong>
+                <span>вопросов для опросов, тестов и голосований</span>
+              </article>
+              <article>
+                <strong>CSV / XLSX</strong>
+                <span>экспорт без дополнительной обработки</span>
+              </article>
+              <article>
+                <strong>Пароль и лимиты</strong>
+                <span>контроль доступа к форме и ответам</span>
+              </article>
+            </div>
           </div>
 
-          <div class="hero-side">
-            <aside class="card quickstart-card" aria-label="Быстрый старт">
+          <div class="landing-v2-hero__panel landing-v2-reveal" aria-label="Пример формы">
+            <div class="landing-v2-panel__head">
+              <span>Пример формы</span>
+              <strong>Форма мероприятия</strong>
+            </div>
+            <ul class="landing-v2-question-list">
+              <li>
+                <h3>Как вы оцениваете организацию мероприятия?</h3>
+                <div class="landing-v2-options">
+                  <label><input type="radio" name="preview" /> Отлично</label>
+                  <label><input type="radio" name="preview" /> Нормально</label>
+                  <label><input type="radio" name="preview" /> Нужно улучшить</label>
+                </div>
+              </li>
+              <li>
+                <h3>Что сильнее всего повлияло на впечатление?</h3>
+                <textarea rows="3" placeholder="Например, программа, спикеры и организация"></textarea>
+              </li>
+            </ul>
+            <aside class="quickstart-card" aria-label="Быстрый старт">
               <div class="quickstart-head">
                 <h3>Быстрый старт</h3>
                 <span class="quickstart-time">~2 минуты</span>
@@ -56,15 +99,24 @@
                 <li><strong>Шаг 3</strong><span>Опубликуйте ссылку и отслеживайте аналитику.</span></li>
               </ol>
             </aside>
+          </div>
+        </div>
+      </section>
 
-            <article class="card preview-card" aria-label="Превью опроса">
-              <span class="preview-card__tag">Превью</span>
-              <h4>Как вы оцениваете организацию мероприятия?</h4>
-              <div class="preview-options">
-                <label class="preview-option"><input type="radio" name="preview" /> Отлично</label>
-                <label class="preview-option"><input type="radio" name="preview" /> Нормально</label>
-                <label class="preview-option"><input type="radio" name="preview" /> Нужно улучшить</label>
-              </div>
+      <section class="section landing-v2-proof">
+        <div class="container">
+          <div class="landing-v2-proof__grid">
+            <article class="landing-v2-proof-card landing-v2-reveal">
+              <h3>От опроса до отчёта в одном потоке</h3>
+              <p>Создание формы, сбор ответов, просмотр статистики и экспорт доступны без переключения между сервисами.</p>
+            </article>
+            <article class="landing-v2-proof-card landing-v2-reveal">
+              <h3>Подходит для команд и обучения</h3>
+              <p>Одинаково удобно запускать внутренние голосования, оценку мероприятий, учебные опросы и сбор обратной связи.</p>
+            </article>
+            <article class="landing-v2-proof-card landing-v2-reveal">
+              <h3>Управление доступом без костылей</h3>
+              <p>Пароль, лимит ответов и период действия уже встроены, поэтому не нужно дописывать ограничения вручную.</p>
             </article>
           </div>
         </div>
@@ -76,22 +128,21 @@
             <h2>Возможности</h2>
             <p>Функции для образовательных, корпоративных и клиентских опросов.</p>
           </div>
-          <div class="feature-grid">
+          <div class="feature-grid landing-v2-steps">
             <article class="feature-card">
-              <h3>Анонимные ответы</h3>
-              <p>Собирайте честную обратную связь без персональных данных.</p>
+              <span>Шаг 1</span>
+              <h3>Соберите форму под задачу</h3>
+              <p>Добавляйте текстовые, рейтинговые и выборочные вопросы в одном конструкторе.</p>
             </article>
             <article class="feature-card">
-              <h3>Фото в вопросах</h3>
-              <p>Добавляйте URL изображений к вариантам ответа и визуальным задачам.</p>
+              <span>Шаг 2</span>
+              <h3>Настройте правила доступа</h3>
+              <p>Ограничивайте доступ паролем, лимитом ответов и временем публикации.</p>
             </article>
             <article class="feature-card">
-              <h3>Ограничение по времени</h3>
-              <p>Управляйте периодом доступности анкеты через дату начала и завершения.</p>
-            </article>
-            <article class="feature-card">
-              <h3>Экспорт отчетов</h3>
-              <p>Выгружайте данные в CSV и XLSX для отчетности и анализа.</p>
+              <span>Шаг 3</span>
+              <h3>Смотрите ответы диаграммами</h3>
+              <p>Получайте сводку, динамику и экспорт отчётов без отдельной аналитической панели.</p>
             </article>
           </div>
         </div>
@@ -103,13 +154,31 @@
             <h2>Шаблоны</h2>
             <p>Запускайте опросы быстрее с готовыми сценариями под ваши задачи.</p>
           </div>
-          <div class="template-grid">
-            <button class="template-card template-card--action" type="button" data-template-key="education"><h3>Образование</h3><p>Оценка программ и качества обучения.</p></button>
-            <button class="template-card template-card--action" type="button" data-template-key="hr"><h3>HR</h3><p>Вовлеченность сотрудников и внутренний климат.</p></button>
-            <button class="template-card template-card--action" type="button" data-template-key="marketing"><h3>Маркетинг</h3><p>Исследование аудитории и каналов.</p></button>
-            <button class="template-card template-card--action" type="button" data-template-key="service"><h3>Сервис</h3><p>Оценка качества обслуживания клиентов.</p></button>
-            <button class="template-card template-card--action" type="button" data-template-key="events"><h3>События</h3><p>Пост-опросы и обратная связь по мероприятиям.</p></button>
-            <button class="template-card template-card--action" type="button" data-template-key="voting"><h3>Голосования</h3><p>Быстрый выбор приоритетов и решений.</p></button>
+          <div class="template-grid landing-v2-template-grid landing-template-showcase">
+            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--education" type="button" data-template-key="education">
+              <span class="landing-template-card__media"></span>
+              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">12 вопросов</span><h3>Образование</h3><p>Оценка курсов, преподавателей, материалов и качества обучения.</p></span>
+            </button>
+            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--hr" type="button" data-template-key="hr">
+              <span class="landing-template-card__media"></span>
+              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">Pulse</span><h3>HR и команда</h3><p>Вовлеченность сотрудников, адаптация, eNPS и внутренний климат.</p></span>
+            </button>
+            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--marketing" type="button" data-template-key="marketing">
+              <span class="landing-template-card__media"></span>
+              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">Research</span><h3>Маркетинг</h3><p>Сегментация аудитории, проверка гипотез и оценка спроса.</p></span>
+            </button>
+            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--service" type="button" data-template-key="service">
+              <span class="landing-template-card__media"></span>
+              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">CX</span><h3>Сервис</h3><p>Качество обслуживания, клиентский опыт и точки улучшения.</p></span>
+            </button>
+            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--events" type="button" data-template-key="events">
+              <span class="landing-template-card__media"></span>
+              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">Event</span><h3>События</h3><p>Регистрация, пост-опросы, рейтинг сессий и обратная связь.</p></span>
+            </button>
+            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--voting" type="button" data-template-key="voting">
+              <span class="landing-template-card__media"></span>
+              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">Decision</span><h3>Голосования</h3><p>Быстрый выбор приоритетов, решений и командных направлений.</p></span>
+            </button>
           </div>
         </div>
       </section>
@@ -121,23 +190,23 @@
             <p>Короткие ответы на частые вопросы перед запуском анкеты.</p>
           </div>
           <div class="faq-grid">
-            <article class="faq-card">
-              <h3>Можно ли запускать анонимные анкеты?</h3>
-              <p>Да, режим анонимности включается в настройках анкеты.</p>
+            <article class="faq-card landing-v2-reveal">
+              <h3>Можно ли ограничить доступ к анкете?</h3>
+              <p>Да, можно включить пароль на вход и лимит по количеству ответов.</p>
             </article>
-            <article class="faq-card">
+            <article class="faq-card landing-v2-reveal">
               <h3>Работает ли сервис на телефоне?</h3>
               <p>Да, кабинет, конструктор и форма прохождения адаптированы под мобильные экраны.</p>
             </article>
-            <article class="faq-card">
+            <article class="faq-card landing-v2-reveal">
               <h3>Какие типы вопросов доступны?</h3>
               <p>Текст, одиночный выбор, множественный выбор, рейтинг и выпадающий список.</p>
             </article>
-            <article class="faq-card">
+            <article class="faq-card landing-v2-reveal">
               <h3>Можно ли экспортировать результаты?</h3>
               <p>Да, экспорт доступен в форматах CSV и XLSX.</p>
             </article>
-            <article class="faq-card">
+            <article class="faq-card landing-v2-reveal">
               <h3>Нужна регистрация для создания анкет?</h3>
               <p>Да, создание и управление анкетами доступно только авторизованным пользователям.</p>
             </article>
@@ -148,7 +217,6 @@
 
     <footer class="site-footer">
       <div class="container site-footer__inner">
-        <span>© 2026 Asking</span>
         <div class="site-footer__links">
           <a href="/guide">Инструкция</a>
           <a href="/author">Контакты</a>
@@ -157,6 +225,8 @@
       </div>
     </footer>
 
+    <script src="/theme.js?v=20260315-theme-public-1"></script>
+    <script src="/lang.js?v=20260429-1"></script>
     <script>
       const LANG_KEY = "asking-pro-lang";
       const languageSelect = document.getElementById("languageSelect");
@@ -178,6 +248,9 @@
           const response = await fetch("/api/auth/me");
           const data = await response.json();
           if (data.user) {
+            if (window.AskingTheme && data.user.theme) {
+              window.AskingTheme.applyTheme(data.user.theme);
+            }
             authBtn.textContent = data.user.email || "Кабинет";
             authBtn.href = "/cabinet";
           }
@@ -191,6 +264,35 @@
           window.location.href = `/create?template=${encodeURIComponent(key)}`;
         });
       });
+
+      const revealObserver = "IntersectionObserver" in window
+        ? new IntersectionObserver((entries, observer) => {
+            entries.forEach((entry) => {
+              if (!entry.isIntersecting) return;
+              entry.target.classList.add("is-visible");
+              observer.unobserve(entry.target);
+            });
+          }, { threshold: 0.18 })
+        : null;
+
+      document.querySelectorAll(".landing-v2-reveal").forEach((node) => {
+        if (!revealObserver) {
+          node.classList.add("is-visible");
+          return;
+        }
+        revealObserver.observe(node);
+      });
+
+      const panel = document.querySelector(".landing-v2-hero__panel");
+      if (panel && window.matchMedia("(prefers-reduced-motion: reduce)").matches === false) {
+        window.addEventListener("pointermove", (event) => {
+          const rect = panel.getBoundingClientRect();
+          const offsetX = ((event.clientX - (rect.left + rect.width / 2)) / rect.width) * 10;
+          const offsetY = ((event.clientY - (rect.top + rect.height / 2)) / rect.height) * 10;
+          panel.style.setProperty("--parallax-x", `${Math.max(-8, Math.min(8, offsetX))}px`);
+          panel.style.setProperty("--parallax-y", `${Math.max(-8, Math.min(8, offsetY))}px`);
+        });
+      }
     </script>
   </body>
 </html>

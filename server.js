@@ -4,9 +4,10 @@ const express = require("express");
 const path = require("path");
 const multer = require("multer");
 const nodemailer = require("nodemailer");
+const QRCode = require("qrcode");
 const XLSX = require("xlsx");
 const { OAuth2Client } = require("google-auth-library");
-const { init, run, all, get, DB_PATH } = require("./db");
+const { init, run, all, get, close, DB_PATH } = require("./db");
 const QUICK_TEMPLATES_RU = require("./public/templates");
 
 const app = express();
@@ -44,7 +45,7 @@ function sendHtmlUtf8(res, filePath) {
   res.sendFile(filePath);
 }
 
-const QUESTION_TYPES = new Set(["text", "single", "multi", "rating", "dropdown"]);
+const QUESTION_TYPES = new Set(["text", "single", "multi", "multiple", "rating", "dropdown", "select"]);
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const SESSION_COOKIE = "asking_sid";
 const SESSION_TTL_DAYS = 30;
@@ -56,11 +57,40 @@ const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 const SMTP_USER = process.env.SMTP_USER || "";
 const SMTP_PASS = process.env.SMTP_PASS || "";
 const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || "noreply@asking.local";
+const AUTHOR_CONTACT_EMAIL = process.env.AUTHOR_CONTACT_EMAIL || process.env.SUPPORT_EMAIL || "arabragduani@gmail.com";
 const GOOGLE_CLIENT = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
-const UPLOAD_DIR = path.join(__dirname, "public", "uploads");
-const RESPONSE_HASH_SALT = process.env.RESPONSE_HASH_SALT || crypto.randomBytes(24).toString("hex");
+const VOLUME_ROOT =
+  process.env.RAILWAY_VOLUME_MOUNT_PATH ||
+  (process.env.DB_PATH ? path.dirname(process.env.DB_PATH) : "");
+const UPLOAD_DIR = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : VOLUME_ROOT
+    ? path.join(VOLUME_ROOT, "uploads")
+    : path.join(__dirname, "public", "uploads");
+
+function loadResponseHashSalt() {
+  if (process.env.RESPONSE_HASH_SALT) return process.env.RESPONSE_HASH_SALT;
+
+  const saltDir = VOLUME_ROOT || path.dirname(DB_PATH);
+  const saltPath = path.join(saltDir, ".response-hash-salt");
+  try {
+    fs.mkdirSync(saltDir, { recursive: true });
+    const existing = fs.existsSync(saltPath) ? fs.readFileSync(saltPath, "utf8").trim() : "";
+    if (existing) return existing;
+
+    const generated = crypto.randomBytes(32).toString("hex");
+    fs.writeFileSync(saltPath, `${generated}\n`, { mode: 0o600 });
+    return generated;
+  } catch (error) {
+    console.warn("Could not persist RESPONSE_HASH_SALT. Repeat-response protection will reset after restart.", error);
+    return crypto.randomBytes(32).toString("hex");
+  }
+}
+
+const RESPONSE_HASH_SALT = loadResponseHashSalt();
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+app.use("/uploads", express.static(UPLOAD_DIR));
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -83,17 +113,31 @@ const upload = multer({
   }
 });
 const AUTH_RATE_BUCKETS = new Map();
+const PUBLIC_SUBMISSION_CACHE = new Map();
+const PUBLIC_SUBMISSION_TTL_MS = 10 * 60 * 1000;
 const AUTH_LIMITS = {
   login: { limit: 12, windowMs: 15 * 60 * 1000 },
   register: { limit: 6, windowMs: 20 * 60 * 1000 },
   forgot: { limit: 5, windowMs: 20 * 60 * 1000 },
   reset: { limit: 7, windowMs: 20 * 60 * 1000 },
   verify: { limit: 10, windowMs: 20 * 60 * 1000 },
-  resend: { limit: 6, windowMs: 20 * 60 * 1000 }
+  resend: { limit: 6, windowMs: 20 * 60 * 1000 },
+  contact: { limit: 8, windowMs: 60 * 60 * 1000 }
 };
+const SUPPORT_STATUSES = new Set(["new", "in_progress", "closed"]);
+const SUPPORT_PRIORITIES = new Set(["low", "normal", "high", "urgent"]);
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function safeJsonParse(value, fallback) {
@@ -124,21 +168,53 @@ function parseBool(value, fallback = false) {
   return fallback;
 }
 
+function parseResponseLimit(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) return null;
+  return Math.min(parsed, 1000000);
+}
+
+function normalizeStoredQuestionType(type) {
+  const value = String(type || "").trim().toLowerCase();
+  if (value === "multiple") return "multi";
+  if (value === "select") return "dropdown";
+  return value;
+}
+
+function isAllowedMediaPath(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return false;
+  if (/^https?:\/\//i.test(raw)) return true;
+  return raw.startsWith("/uploads/");
+}
+
 function normalizePageDesign(raw) {
   const obj = raw && typeof raw === "object" ? raw : {};
   const allowedLayouts = new Set(["full", "split-right-image", "split-left-image", "cover-top-image", "center-card"]);
+  const allowedWelcomeLayouts = new Set(["image-right", "image-left", "image-top", "background", "typographic"]);
   const bgColorRaw = String(obj.bgColor || "").trim();
   const bgImageRaw = String(obj.bgImage || "").trim();
   const layoutRaw = String(obj.layout || "").trim();
   const themeIdRaw = String(obj.themeId || "").trim();
   const overlayRaw = Number(obj.overlay);
+  const welcomeRaw = obj.welcome && typeof obj.welcome === "object" ? obj.welcome : {};
+  const welcomeCoverRaw = String(welcomeRaw.coverImage || "").trim();
+  const welcomeOpacityRaw = Number(welcomeRaw.imageOpacity);
+  const welcomeLayoutRaw = String(welcomeRaw.layout || "").trim();
 
   return {
     themeId: themeIdRaw ? themeIdRaw.slice(0, 80) : "",
     bgColor: /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(bgColorRaw) ? bgColorRaw : "#eaf3fb",
-    bgImage: /^https?:\/\//i.test(bgImageRaw) ? bgImageRaw.slice(0, 1200) : "",
+    bgImage: isAllowedMediaPath(bgImageRaw) ? bgImageRaw.slice(0, 1200) : "",
     layout: allowedLayouts.has(layoutRaw) ? layoutRaw : "full",
-    overlay: Number.isFinite(overlayRaw) ? Math.max(0, Math.min(90, Math.round(overlayRaw))) : 0
+    overlay: Number.isFinite(overlayRaw) ? Math.max(0, Math.min(90, Math.round(overlayRaw))) : 0,
+    welcome: {
+      coverImage: isAllowedMediaPath(welcomeCoverRaw) ? welcomeCoverRaw.slice(0, 1200) : "",
+      layout: allowedWelcomeLayouts.has(welcomeLayoutRaw) ? welcomeLayoutRaw : "image-right",
+      imageOpacity: Number.isFinite(welcomeOpacityRaw) ? Math.max(20, Math.min(100, Math.round(welcomeOpacityRaw))) : 86,
+      imageEnabled: welcomeRaw.imageEnabled !== false
+    }
   };
 }
 
@@ -324,33 +400,43 @@ function hashParticipant(req) {
 
 function normalizeQuestion(question, index) {
   const text = String(question?.text || question?.title || "").trim();
-  const type = String(question?.type || "").trim();
+  const type = normalizeStoredQuestionType(question?.type);
   const logicEnabled = Boolean(question?.logicEnabled || question?.logic_enabled);
   const rawOptions = Array.isArray(question?.options) ? question.options : [];
   const options = rawOptions
     .map((item) => {
       if (typeof item === "string") {
         const cleaned = item.trim();
-        return cleaned ? { text: cleaned, imageUrl: "", jumpToPageId: "", jumpToPageIndex: null } : null;
+        return cleaned ? { id: "", text: cleaned, imageUrl: "", imageFit: "cover", imageScale: 100, jumpToPageId: "", jumpToPageIndex: null } : null;
       }
       if (item && typeof item === "object") {
+        const id = String(item.id || "").trim();
         const cleanedText = String(item.text || "").trim();
         const imageUrl = String(item.imageUrl || "").trim();
         const jumpToPageId = String(item.jumpToPageId || item.targetPageId || "").trim();
         const jumpToPageIndexRaw = Number(item.jumpToPageIndex);
         const jumpToPageIndex = Number.isInteger(jumpToPageIndexRaw) ? jumpToPageIndexRaw : null;
+        const imageFitRaw = String(item.imageFit || "cover").trim().toLowerCase();
+        const imageScaleRaw = Number(item.imageScale);
+        const imageFit = imageFitRaw === "contain" ? "contain" : "cover";
+        const imageScale = Number.isFinite(imageScaleRaw) ? Math.max(60, Math.min(130, Math.round(imageScaleRaw))) : 100;
         if (!cleanedText && !imageUrl) return null;
-        return { text: cleanedText || "Option", imageUrl, jumpToPageId, jumpToPageIndex };
+        return { id, text: cleanedText || "Option", imageUrl, imageFit, imageScale, jumpToPageId, jumpToPageIndex };
       }
       return null;
     })
     .filter(Boolean);
   const required = question?.required === false ? 0 : 1;
   const helpText = String(question?.helpText || question?.hint || question?.description || "").trim();
+  const imageUrl = String(question?.imageUrl || question?.image_url || "").trim();
+  const panelOpacityRaw = Number(question?.panelOpacity || question?.panel_opacity);
+  const panelOpacity = Number.isFinite(panelOpacityRaw) ? Math.max(28, Math.min(100, Math.round(panelOpacityRaw))) : 72;
 
   return {
     text,
     helpText,
+    imageUrl,
+    panelOpacity,
     type,
     logicEnabled,
     options,
@@ -386,7 +472,7 @@ async function getSurveyPages(surveyId) {
 
 async function getSurveyQuestionsDetailed(surveyId) {
   const questions = await all(
-    `SELECT q.id, q.survey_id, q.page_id, q.question_text, q.help_text, q.type, q.options_json, q.required, q.question_order
+    `SELECT q.id, q.survey_id, q.page_id, q.question_text, q.help_text, q.image_url, q.panel_opacity, q.type, q.options_json, q.required, q.question_order
      FROM questions q
      WHERE q.survey_id = ?
      ORDER BY q.question_order ASC, q.id ASC`,
@@ -415,7 +501,7 @@ async function getSurveyQuestionsDetailed(surveyId) {
   const optionsByQuestion = new Map();
   optionRows.forEach((row) => {
     const list = optionsByQuestion.get(row.question_id) || [];
-    list.push({ text: row.text, imageUrl: "", jumpToPageId: "", jumpToPageIndex: null });
+    list.push({ id: "", text: row.text, imageUrl: "", imageFit: "cover", imageScale: 100, jumpToPageId: "", jumpToPageIndex: null });
     optionsByQuestion.set(row.question_id, list);
   });
 
@@ -438,17 +524,25 @@ async function getSurveyQuestionsDetailed(surveyId) {
           .map((item) => {
             if (typeof item === "string") {
               const cleaned = item.trim();
-              return cleaned ? { text: cleaned, imageUrl: "", jumpToPageId: "", jumpToPageIndex: null } : null;
+              return cleaned ? { id: "", text: cleaned, imageUrl: "", imageFit: "cover", imageScale: 100, jumpToPageId: "", jumpToPageIndex: null } : null;
             }
             if (item && typeof item === "object") {
+              const id = String(item.id || "").trim();
               const cleanedText = String(item.text || "").trim();
               const imageUrl = String(item.imageUrl || "").trim();
               const jumpToPageIndexRaw = Number(item.jumpToPageIndex);
               const jumpToPageIndex = Number.isInteger(jumpToPageIndexRaw) ? jumpToPageIndexRaw : null;
+              const imageFitRaw = String(item.imageFit || "cover").trim().toLowerCase();
+              const imageScaleRaw = Number(item.imageScale);
+              const imageFit = imageFitRaw === "contain" ? "contain" : "cover";
+              const imageScale = Number.isFinite(imageScaleRaw) ? Math.max(60, Math.min(130, Math.round(imageScaleRaw))) : 100;
               if (!cleanedText && !imageUrl) return null;
               return {
+                id,
                 text: cleanedText || "Option",
                 imageUrl,
+                imageFit,
+                imageScale,
                 jumpToPageId: String(item.jumpToPageId || item.targetPageId || "").trim(),
                 jumpToPageIndex
               };
@@ -468,7 +562,9 @@ async function getSurveyQuestionsDetailed(surveyId) {
       pageId: q.page_id,
       text: q.question_text,
       helpText: q.help_text || "",
-      type: q.type,
+      imageUrl: q.image_url || "",
+      panelOpacity: Number.isFinite(Number(q.panel_opacity)) ? Math.max(28, Math.min(100, Math.round(Number(q.panel_opacity)))) : 72,
+      type: normalizeStoredQuestionType(q.type),
       logicEnabled: Boolean(
         safeJsonParse(q.options_json, [])?.some?.(
           (item) => item && typeof item === "object" && (item.jumpToPageId || Number.isInteger(Number(item.jumpToPageIndex)))
@@ -480,6 +576,169 @@ async function getSurveyQuestionsDetailed(surveyId) {
       media: mediaByQuestion.get(q.id) || []
     };
   });
+}
+
+function isRenderableSurveyFlowPage(page) {
+  return Boolean(page && Array.isArray(page.questions) && page.questions.length);
+}
+
+function parseLegacySurveyPageIndex(value, pagesLength) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed)) return null;
+  if (parsed >= 0 && parsed < pagesLength) return parsed;
+  if (parsed > 0 && parsed <= pagesLength) return parsed - 1;
+  return null;
+}
+
+function findRenderableSurveyFlowPageIndex(pages, startIndex, direction = 1) {
+  if (!Array.isArray(pages) || !pages.length) return null;
+  const step = direction < 0 ? -1 : 1;
+  let index = Number.isInteger(startIndex) ? startIndex : step > 0 ? 0 : pages.length - 1;
+  while (index >= 0 && index < pages.length) {
+    if (isRenderableSurveyFlowPage(pages[index])) return index;
+    index += step;
+  }
+  return null;
+}
+
+function normalizeRenderableSurveyFlowTargetIndex(targetIndex, pages, currentIndex) {
+  if (!Number.isInteger(targetIndex)) return currentIndex;
+  const direction = targetIndex < currentIndex ? -1 : 1;
+  const resolved = findRenderableSurveyFlowPageIndex(pages, targetIndex, direction);
+  return Number.isInteger(resolved) ? resolved : currentIndex;
+}
+
+function buildSurveyFlowPages(pagesRaw, questions) {
+  const pages = Array.isArray(pagesRaw)
+    ? pagesRaw
+        .map((page, index) => ({
+          id: String(page?.id || `page_${index}`),
+          orderIndex: Number.isFinite(Number(page?.order_index)) ? Number(page.order_index) : index,
+          questions: []
+        }))
+        .sort((a, b) => a.orderIndex - b.orderIndex)
+    : [];
+
+  if (!pages.length) {
+    return [{ id: "page_1", orderIndex: 0, questions: Array.isArray(questions) ? [...questions] : [] }];
+  }
+
+  const pageMap = new Map(pages.map((page) => [page.id, page]));
+  const orphans = [];
+  (Array.isArray(questions) ? questions : []).forEach((question) => {
+    const key = String(question?.pageId || question?.page_id || "").trim();
+    if (pageMap.has(key)) {
+      pageMap.get(key).questions.push(question);
+      return;
+    }
+    const legacyIndex = parseLegacySurveyPageIndex(key, pages.length);
+    if (Number.isInteger(legacyIndex) && pages[legacyIndex]) {
+      pages[legacyIndex].questions.push(question);
+      return;
+    }
+    orphans.push(question);
+  });
+
+  if (!pages.some((page) => isRenderableSurveyFlowPage(page))) {
+    pages[0].questions = Array.isArray(questions) ? [...questions] : [];
+    return pages;
+  }
+
+  if (orphans.length) {
+    const fallbackIndex = findRenderableSurveyFlowPageIndex(pages, pages.length - 1, -1);
+    const fallbackPage = Number.isInteger(fallbackIndex) ? pages[fallbackIndex] : pages[0];
+    fallbackPage.questions.push(...orphans);
+  }
+
+  pages.forEach((page) => {
+    page.questions.sort((left, right) => Number(left?.order || 0) - Number(right?.order || 0));
+  });
+
+  return pages;
+}
+
+function answerMatchesSurveyOption(value, option, optionIndex) {
+  const optionText = String(option?.text || "").trim();
+  const optionOrder = String(optionIndex + 1);
+  if (Array.isArray(value)) {
+    return value.some((item) => {
+      const normalized = String(item ?? "").trim();
+      return normalized && (normalized === optionText || normalized === optionOrder);
+    });
+  }
+  const normalized = String(value ?? "").trim();
+  return Boolean(normalized) && (normalized === optionText || normalized === optionOrder);
+}
+
+function resolveSurveyFlowJumpIndex(option, pages) {
+  if (!option || typeof option !== "object") return null;
+  if (Number.isInteger(option.jumpToPageIndex) && option.jumpToPageIndex >= 0 && option.jumpToPageIndex < pages.length) {
+    return option.jumpToPageIndex;
+  }
+  const legacyIndex = parseLegacySurveyPageIndex(option.jumpToPageIndex, pages.length);
+  if (Number.isInteger(legacyIndex)) return legacyIndex;
+  const targetId = String(option.jumpToPageId || option.targetPageId || "").trim();
+  if (!targetId) return null;
+  const index = pages.findIndex((page) => String(page.id) === targetId);
+  return index >= 0 ? index : null;
+}
+
+function isLegacyNoopSurveyFlowJump(option, currentIndex) {
+  if (!option || typeof option !== "object") return false;
+  const hasTargetId = Boolean(String(option.jumpToPageId || option.targetPageId || "").trim());
+  return !hasTargetId && Number(option.jumpToPageIndex) === 0 && currentIndex > 0;
+}
+
+function resolveSurveyFlowNextPageIndex(currentIndex, pages, answersByQuestion) {
+  const page = pages[currentIndex];
+  if (!page) return currentIndex;
+
+  for (const question of page.questions) {
+    if (!question?.logicEnabled) continue;
+    const answer = answersByQuestion.get(question.id);
+    const isEmpty =
+      answer === undefined ||
+      answer === null ||
+      answer === "" ||
+      (Array.isArray(answer) && answer.length === 0);
+    if (isEmpty) continue;
+    const options = Array.isArray(question.options) ? question.options : [];
+    for (let index = 0; index < options.length; index += 1) {
+      const option = options[index];
+      if (!answerMatchesSurveyOption(answer, option, index)) continue;
+      if (isLegacyNoopSurveyFlowJump(option, currentIndex)) continue;
+      const jumpIndex = resolveSurveyFlowJumpIndex(option, pages);
+      if (Number.isInteger(jumpIndex) && jumpIndex !== currentIndex) return jumpIndex;
+    }
+  }
+
+  const linearNext = findRenderableSurveyFlowPageIndex(pages, currentIndex + 1, 1);
+  return Number.isInteger(linearNext) ? linearNext : currentIndex;
+}
+
+function collectReachableSurveyQuestionIds(pages, answersByQuestion) {
+  const reachable = new Set();
+  if (!Array.isArray(pages) || !pages.length) return reachable;
+  let currentIndex = findRenderableSurveyFlowPageIndex(pages, 0, 1);
+  if (!Number.isInteger(currentIndex)) return reachable;
+  const visitedPages = new Set();
+
+  while (Number.isInteger(currentIndex) && !visitedPages.has(currentIndex)) {
+    visitedPages.add(currentIndex);
+    const page = pages[currentIndex];
+    (Array.isArray(page?.questions) ? page.questions : []).forEach((question) => reachable.add(question.id));
+    const nextIndex = normalizeRenderableSurveyFlowTargetIndex(
+      resolveSurveyFlowNextPageIndex(currentIndex, pages, answersByQuestion),
+      pages,
+      currentIndex
+    );
+    if (nextIndex === currentIndex) break;
+    currentIndex = nextIndex;
+  }
+
+  return reachable;
 }
 
 async function ensureSurveyPage(surveyId, title = "Страница 1") {
@@ -541,7 +800,8 @@ function validateSurveyPayload(payload) {
   questions.forEach((question, idx) => {
     if (question.text.length < 3) fields.push(`questions[${idx}].text`);
     if (!QUESTION_TYPES.has(question.type)) fields.push(`questions[${idx}].type`);
-    if ((question.type === "single" || question.type === "multi" || question.type === "dropdown") && question.options.length < 2) {
+    const normalizedType = normalizeStoredQuestionType(question.type);
+    if ((normalizedType === "single" || normalizedType === "multi" || normalizedType === "dropdown") && question.options.length < 2) {
       fields.push(`questions[${idx}].options`);
     }
   });
@@ -640,7 +900,7 @@ async function seedDemoSurvey() {
     {
       text: "Какую функцию нужно внедрить в первую очередь?",
       type: "single",
-      options: ["Расширенная аналитика", "AI-помощник", "Мобильное приложение", "Гибкие роли"],
+      options: ["Расширенная аналитика", "Автоматизация отчётов", "Мобильное приложение", "Гибкие роли"],
       required: 1,
       order: 1
     },
@@ -668,7 +928,7 @@ async function seedDemoSurvey() {
   const responses = [
     {
       "Как вы оцениваете общий UX платформы?": 5,
-      "Какую функцию нужно внедрить в первую очередь?": "AI-помощник",
+      "Какую функцию нужно внедрить в первую очередь?": "Автоматизация отчётов",
       "Какие каналы вы используете для привлечения респондентов?": ["Email", "Соцсети"],
       "Ваше главное предложение по улучшению": "Добавить фильтры и сегменты в отчётах."
     },
@@ -707,7 +967,8 @@ app.get("/api/health", (_req, res) => {
     ok: true,
     timestamp: nowIso(),
     dbPath: DB_PATH,
-    railwayVolumeMountPath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null
+    railwayVolumeMountPath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null,
+    uploadDir: UPLOAD_DIR
   });
 });
 
@@ -735,6 +996,152 @@ app.get("/account", (_req, res) => {
   sendHtmlUtf8(res, path.join(__dirname, "public", "account.html"));
 });
 
+app.post("/api/support/contact-author", rateLimitAuth("contact"), antiBotPayload, async (req, res, next) => {
+  try {
+    const fallbackName = String(req.user?.name || "").trim();
+    const fallbackEmail = String(req.user?.email || "").trim().toLowerCase();
+    const name = String(req.body?.name || fallbackName || "").trim();
+    const email = String(req.body?.email || fallbackEmail || "")
+      .trim()
+      .toLowerCase();
+    const topic = String(req.body?.topic || "").trim().slice(0, 120);
+    const priorityRaw = String(req.body?.priority || "normal")
+      .trim()
+      .toLowerCase();
+    const priority = SUPPORT_PRIORITIES.has(priorityRaw) ? priorityRaw : "normal";
+    const status = "new";
+    const message = String(req.body?.message || "").trim();
+    const pageUrlRaw = String(req.body?.pageUrl || "").trim();
+    const pageUrl = pageUrlRaw && pageUrlRaw.length <= 800 ? pageUrlRaw : "";
+
+    if (!name || name.length < 2 || name.length > 80) {
+      return res.status(400).json({ error: "Name must be 2-80 characters" });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: "Invalid email" });
+    }
+    if (message.length < 10 || message.length > 5000) {
+      return res.status(400).json({ error: "Message must be 10-5000 characters" });
+    }
+    if (pageUrl && !/^https?:\/\/|^\//i.test(pageUrl)) {
+      return res.status(400).json({ error: "Invalid page url" });
+    }
+
+    const createdAt = nowIso();
+    const userAgent = String(req.headers["user-agent"] || "").slice(0, 400);
+    const ipAddress = getClientIp(req).slice(0, 120);
+    await run(
+      `INSERT INTO support_messages (user_id, name, email, topic, status, priority, message, page_url, user_agent, ip_address, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        req.user?.id || null,
+        name,
+        email,
+        topic || null,
+        status,
+        priority,
+        message,
+        pageUrl || null,
+        userAgent || null,
+        ipAddress || null,
+        createdAt
+      ]
+    );
+
+    const subject = topic ? `[Asking] ${topic}` : "[Asking] Сообщение через форму связи";
+    const safeTopic = topic || "Без темы";
+    let mailDelivered = false;
+    try {
+      mailDelivered = await sendEmail({
+        to: AUTHOR_CONTACT_EMAIL,
+        subject,
+        text: [
+          `Дата: ${createdAt}`,
+          `Пользователь ID: ${req.user?.id || "-"}`,
+          `Имя: ${name}`,
+          `Email: ${email}`,
+          `Тема: ${safeTopic}`,
+          `Страница: ${pageUrl || "-"}`,
+          "",
+          message
+        ].join("\n"),
+        html: `
+          <p><strong>Дата:</strong> ${escapeHtml(createdAt)}</p>
+          <p><strong>Пользователь ID:</strong> ${escapeHtml(req.user?.id || "-")}</p>
+          <p><strong>Имя:</strong> ${escapeHtml(name)}</p>
+          <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+          <p><strong>Тема:</strong> ${escapeHtml(safeTopic)}</p>
+          <p><strong>Страница:</strong> ${escapeHtml(pageUrl || "-")}</p>
+          <hr />
+          <p>${escapeHtml(message).replaceAll("\n", "<br />")}</p>
+        `
+      });
+    } catch (mailError) {
+      console.error("Author contact mail delivery failed", {
+        to: AUTHOR_CONTACT_EMAIL,
+        subject,
+        error: mailError?.message || mailError
+      });
+    }
+
+    res.status(201).json({ ok: true, queuedAt: createdAt, mailDelivered });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/support/messages", requireAuth, async (req, res, next) => {
+  try {
+    const limitRaw = Number.parseInt(String(req.query?.limit || "20"), 10);
+    const limit = Number.isInteger(limitRaw) ? Math.max(1, Math.min(limitRaw, 50)) : 20;
+    const rows = await all(
+      `SELECT id, name, email, topic, status, priority, message, page_url, created_at
+       FROM support_messages
+       WHERE user_id = ?
+       ORDER BY datetime(created_at) DESC
+       LIMIT ?`,
+      [req.user.id, limit]
+    );
+    res.json({
+      messages: rows.map((row) => ({
+        id: row.id,
+        name: row.name || "",
+        email: row.email || "",
+        topic: row.topic || "",
+        status: row.status || "new",
+        priority: row.priority || "normal",
+        message: row.message || "",
+        pageUrl: row.page_url || "",
+        createdAt: row.created_at || null
+      }))
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/api/support/messages/:id/status", requireAuth, async (req, res, next) => {
+  try {
+    const messageId = Number.parseInt(String(req.params.id || ""), 10);
+    if (!Number.isInteger(messageId) || messageId <= 0) return res.status(400).json({ error: "Invalid message id" });
+
+    const statusRaw = String(req.body?.status || "")
+      .trim()
+      .toLowerCase();
+    if (!SUPPORT_STATUSES.has(statusRaw)) return res.status(400).json({ error: "Unsupported status" });
+
+    const message = await get("SELECT id, user_id FROM support_messages WHERE id = ?", [messageId]);
+    if (!message || Number(message.user_id) !== Number(req.user.id)) {
+      return res.status(404).json({ error: "Message not found" });
+    }
+
+    await run("UPDATE support_messages SET status = ? WHERE id = ?", [statusRaw, messageId]);
+    res.json({ ok: true, status: statusRaw });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/survey/:id", (_req, res) => {
   sendHtmlUtf8(res, path.join(__dirname, "public", "survey.html"));
 });
@@ -745,6 +1152,31 @@ app.get("/s/:surveyId", (_req, res) => {
 
 app.get("/survey/:id/settings", (_req, res) => {
   sendHtmlUtf8(res, path.join(__dirname, "public", "survey-settings.html"));
+});
+
+app.get("/api/qr.png", async (req, res) => {
+  try {
+    const rawData = String(req.query?.data || "").trim();
+    if (!rawData) return res.status(400).json({ error: "Missing data" });
+    const data = rawData.slice(0, 2000);
+    const imageBuffer = await QRCode.toBuffer(data, {
+      type: "png",
+      width: 900,
+      margin: 2,
+      errorCorrectionLevel: "M"
+    });
+
+    const asDownload = String(req.query?.download || "") === "1";
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    if (asDownload) {
+      res.setHeader("Content-Disposition", 'attachment; filename="survey-qr.png"');
+    }
+    res.send(imageBuffer);
+  } catch (error) {
+    console.error("QR proxy error", error);
+    res.status(500).json({ error: "Failed to generate QR" });
+  }
 });
 
 app.get("/api/auth/google-config", (_req, res) => {
@@ -771,9 +1203,18 @@ app.post("/api/auth/register", rateLimitAuth("register"), antiBotPayload, async 
 
     const createdAt = nowIso();
     const result = await run(
-      "INSERT INTO users (name, username, email, email_verified, password_hash, created_at, updated_at, locale) VALUES (?, NULL, ?, 1, ?, ?, ?, ?)",
+      "INSERT INTO users (name, username, email, email_verified, password_hash, created_at, updated_at, locale) VALUES (?, NULL, ?, 0, ?, ?, ?, ?)",
       [name, email, hashPassword(password), createdAt, createdAt, "ru"]
     );
+
+    const verificationToken = await issueVerificationToken(result.lastID);
+    const verifyLink = `${baseUrl(req)}/auth?verify=${verificationToken}`;
+    await sendEmail({
+      to: email,
+      subject: "Verify your Asking account",
+      text: `Verify your Asking account: ${verifyLink}`,
+      html: `<p>Verify your Asking account:</p><p><a href="${verifyLink}">${verifyLink}</a></p>`
+    });
 
     const session = await createSession(result.lastID, req);
     setSessionCookie(req, res, session.token, session.expiresAt);
@@ -782,7 +1223,7 @@ app.post("/api/auth/register", rateLimitAuth("register"), antiBotPayload, async 
         id: result.lastID,
         name,
         email,
-        emailVerified: true,
+        emailVerified: false,
         company: "",
         position: "",
         locale: "ru"
@@ -1078,6 +1519,8 @@ app.get("/api/account", requireAuth, async (req, res, next) => {
 app.put("/api/account", requireAuth, antiBotPayload, async (req, res, next) => {
   try {
     const name = String(req.body?.displayName || req.body?.name || "").trim();
+    const company = String(req.body?.company || "").trim();
+    const position = String(req.body?.position || "").trim();
     const locale = String(req.body?.locale || "ru")
       .trim()
       .toLowerCase();
@@ -1091,14 +1534,18 @@ app.put("/api/account", requireAuth, antiBotPayload, async (req, res, next) => {
     if (!name || name.length < 2 || name.length > 80) {
       return res.status(400).json({ error: "Name must be 2-80 characters" });
     }
+    if (company.length > 120) return res.status(400).json({ error: "Company is too long" });
+    if (position.length > 120) return res.status(400).json({ error: "Position is too long" });
     if (!["en", "ru", "kz"].includes(locale)) return res.status(400).json({ error: "Unsupported language" });
     if (!["light", "dark", "system"].includes(theme)) return res.status(400).json({ error: "Unsupported theme" });
     if (!["dd.mm.yyyy", "yyyy-mm-dd", "mm/dd/yyyy"].includes(dateFormat)) {
       return res.status(400).json({ error: "Unsupported date format" });
     }
 
-    await run("UPDATE users SET name = ?, locale = ?, theme = ?, date_format = ?, updated_at = ? WHERE id = ?", [
+    await run("UPDATE users SET name = ?, company = ?, position = ?, locale = ?, theme = ?, date_format = ?, updated_at = ? WHERE id = ?", [
       name,
+      company || null,
+      position || null,
       locale,
       theme,
       dateFormat,
@@ -1220,11 +1667,13 @@ app.post("/api/auth/logout_all", requireAuth, async (req, res, next) => {
 app.delete("/api/account", requireAuth, antiBotPayload, async (req, res, next) => {
   try {
     const password = String(req.body?.password || "");
-    if (!password) return res.status(400).json({ error: "Password is required" });
-
     const user = await get("SELECT id, password_hash FROM users WHERE id = ?", [req.user.id]);
-    if (!user || !verifyPassword(password, user.password_hash)) {
-      return res.status(401).json({ error: "Invalid password" });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    if (user.password_hash) {
+      if (!password) return res.status(400).json({ error: "Password is required" });
+      if (!verifyPassword(password, user.password_hash)) {
+        return res.status(401).json({ error: "Invalid password" });
+      }
     }
 
     await run("DELETE FROM users WHERE id = ?", [req.user.id]);
@@ -1271,7 +1720,13 @@ app.get("/api/dashboard", async (_req, res, next) => {
 });
 
 app.get("/api/templates", (_req, res) => {
-  const templates = Object.entries(QUICK_TEMPLATES_RU).map(([key, template]) => ({
+  const seenTemplates = new Set();
+  const templates = Object.entries(QUICK_TEMPLATES_RU).filter(([, template]) => {
+    const fingerprint = `${String(template?.title || "")}|${String(template?.description || "")}|${Array.isArray(template?.pages) ? template.pages.length : 0}`;
+    if (!template || seenTemplates.has(fingerprint)) return false;
+    seenTemplates.add(fingerprint);
+    return true;
+  }).map(([key, template]) => ({
     key,
     id: template.id || key,
     title: template.title,
@@ -1323,9 +1778,9 @@ app.post("/api/surveys/from-template", requireAuth, async (req, res, next) => {
         const q = normalizeQuestion(pageQuestions[i], order);
         if (!q.text || !QUESTION_TYPES.has(q.type)) continue;
         const inserted = await run(
-          `INSERT INTO questions (survey_id, page_id, question_text, help_text, type, options_json, required, question_order)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [surveyId, pageCreated.lastID, q.text, q.helpText, q.type, JSON.stringify(q.options), q.required, order]
+          `INSERT INTO questions (survey_id, page_id, question_text, help_text, image_url, panel_opacity, type, options_json, required, question_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [surveyId, pageCreated.lastID, q.text, q.helpText, q.imageUrl, q.panelOpacity, q.type, JSON.stringify(q.options), q.required, order]
         );
         await syncQuestionOptions(inserted.lastID, q.options);
         order += 1;
@@ -1336,9 +1791,9 @@ app.post("/api/surveys/from-template", requireAuth, async (req, res, next) => {
       const fallbackPage = await ensureSurveyPage(surveyId, "Страница 1");
       const question = normalizeQuestion({ text: "Новый вопрос", type: "text", required: true, options: [] }, 0);
       const inserted = await run(
-        `INSERT INTO questions (survey_id, page_id, question_text, help_text, type, options_json, required, question_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [surveyId, fallbackPage.id, question.text, question.helpText, question.type, JSON.stringify(question.options), question.required, 0]
+        `INSERT INTO questions (survey_id, page_id, question_text, help_text, image_url, panel_opacity, type, options_json, required, question_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [surveyId, fallbackPage.id, question.text, question.helpText, question.imageUrl, question.panelOpacity, question.type, JSON.stringify(question.options), question.required, 0]
       );
       await syncQuestionOptions(inserted.lastID, question.options);
     }
@@ -1402,7 +1857,7 @@ app.get("/api/public/surveys/:id", async (req, res, next) => {
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
-      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at
+      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, access_password_hash, response_limit
        FROM surveys
        WHERE id = ?`,
       [surveyId]
@@ -1422,8 +1877,22 @@ app.get("/api/public/surveys/:id", async (req, res, next) => {
     const [pages, questions] = await Promise.all([getSurveyPages(surveyId), getSurveyQuestionsDetailed(surveyId)]);
     const publicOpen = survey.status === "published" && !beforeStart && !afterEnd;
 
+    const publicSurvey = {
+      id: survey.id,
+      owner_user_id: survey.owner_user_id,
+      title: survey.title,
+      description: survey.description,
+      audience: survey.audience,
+      status: survey.status,
+      allow_multiple_responses: survey.allow_multiple_responses,
+      starts_at: survey.starts_at,
+      ends_at: survey.ends_at,
+      response_limit: Number.isInteger(Number(survey.response_limit)) ? Number(survey.response_limit) : null,
+      has_access_password: Boolean(survey.access_password_hash)
+    };
+
     res.json({
-      survey,
+      survey: publicSurvey,
       active: publicOpen || (isOwnerPreview && survey.status !== "published"),
       preview: isOwnerPreview && survey.status !== "published",
       blockedByWindow: beforeStart || afterEnd,
@@ -1495,13 +1964,15 @@ app.post("/api/surveys/:id/duplicate", requireAuth, async (req, res, next) => {
       const sourcePageId = String(question.pageId ?? question.page_id ?? "");
       const targetPageId = createdPageIds.get(sourcePageId) || fallbackPage.id;
       const inserted = await run(
-        `INSERT INTO questions (survey_id, page_id, question_text, help_text, type, options_json, required, question_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO questions (survey_id, page_id, question_text, help_text, image_url, panel_opacity, type, options_json, required, question_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           clone.lastID,
           targetPageId,
           question.text,
           question.helpText || "",
+          question.imageUrl || "",
+          question.panelOpacity || 72,
           question.type,
           JSON.stringify(question.options || []),
           question.required ? 1 : 0,
@@ -1523,7 +1994,7 @@ app.get("/api/surveys/:id", async (req, res, next) => {
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
-      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at
+      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, access_password_hash, response_limit, created_at, updated_at
        FROM surveys
        WHERE id = ?`,
       [surveyId]
@@ -1537,7 +2008,11 @@ app.get("/api/surveys/:id", async (req, res, next) => {
     const [pages, questions] = await Promise.all([getSurveyPages(surveyId), getSurveyQuestionsDetailed(surveyId)]);
 
     res.json({
-      survey,
+      survey: {
+        ...survey,
+        has_access_password: Boolean(survey.access_password_hash),
+        access_password_hash: undefined
+      },
       pages,
       questions
     });
@@ -1580,13 +2055,15 @@ app.post("/api/surveys", requireAuth, async (req, res, next) => {
 
       for (const question of pagePayload.questions) {
         const inserted = await run(
-          `INSERT INTO questions (survey_id, page_id, question_text, help_text, type, options_json, required, question_order)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO questions (survey_id, page_id, question_text, help_text, image_url, panel_opacity, type, options_json, required, question_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             created.lastID,
             page.lastID,
             question.text,
             question.helpText || "",
+            question.imageUrl || "",
+            question.panelOpacity || 72,
             question.type,
             JSON.stringify(question.options),
             question.required,
@@ -1647,13 +2124,15 @@ app.put("/api/surveys/:id", requireAuth, async (req, res, next) => {
 
       for (const question of pagePayload.questions) {
         const inserted = await run(
-          `INSERT INTO questions (survey_id, page_id, question_text, help_text, type, options_json, required, question_order)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO questions (survey_id, page_id, question_text, help_text, image_url, panel_opacity, type, options_json, required, question_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             surveyId,
             page.lastID,
             question.text,
             question.helpText || "",
+            question.imageUrl || "",
+            question.panelOpacity || 72,
             question.type,
             JSON.stringify(question.options),
             question.required,
@@ -1714,13 +2193,15 @@ app.patch("/api/surveys/:id", requireAuth, async (req, res, next) => {
 
       for (const question of pagePayload.questions) {
         const inserted = await run(
-          `INSERT INTO questions (survey_id, page_id, question_text, help_text, type, options_json, required, question_order)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO questions (survey_id, page_id, question_text, help_text, image_url, panel_opacity, type, options_json, required, question_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             surveyId,
             page.lastID,
             question.text,
             question.helpText || "",
+            question.imageUrl || "",
+            question.panelOpacity || 72,
             question.type,
             JSON.stringify(question.options),
             question.required,
@@ -1733,6 +2214,48 @@ app.patch("/api/surveys/:id", requireAuth, async (req, res, next) => {
     }
 
     res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put("/api/surveys/:id/access", requireAuth, async (req, res, next) => {
+  try {
+    const surveyId = Number(req.params.id);
+    if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
+    const survey = await get("SELECT id, access_password_hash FROM surveys WHERE id = ? AND owner_user_id = ?", [surveyId, req.user.id]);
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+
+    const passwordEnabled = parseBool(req.body?.passwordEnabled, false);
+    const passwordRaw = String(req.body?.password || "");
+    const responseLimit = parseResponseLimit(req.body?.responseLimit);
+    let accessPasswordHash = null;
+    if (passwordEnabled) {
+      const password = passwordRaw.trim();
+      if (!password) {
+        accessPasswordHash = survey.access_password_hash || null;
+      } else {
+        if (password.length < 3) {
+          return res.status(400).json({ error: "Password must be at least 3 characters" });
+        }
+        accessPasswordHash = hashPassword(password);
+      }
+    }
+
+    await run(
+      `UPDATE surveys
+       SET access_password_hash = ?, response_limit = ?, updated_at = ?
+       WHERE id = ?`,
+      [accessPasswordHash, responseLimit, nowIso(), surveyId]
+    );
+
+    res.json({
+      ok: true,
+      access: {
+        passwordEnabled: Boolean(accessPasswordHash),
+        responseLimit
+      }
+    });
   } catch (error) {
     next(error);
   }
@@ -1824,7 +2347,7 @@ async function handleSurveySubmit(req, res, next, surveyIdRaw) {
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
-      `SELECT id, status, allow_multiple_responses, starts_at, ends_at
+      `SELECT id, status, allow_multiple_responses, starts_at, ends_at, access_password_hash, response_limit
        FROM surveys WHERE id = ?`,
       [surveyId]
     );
@@ -1837,51 +2360,89 @@ async function handleSurveySubmit(req, res, next, surveyIdRaw) {
     if (survey.ends_at && Date.parse(survey.ends_at) < Date.now()) {
       return res.status(403).json({ error: "Survey is already closed" });
     }
-
-    const questions = await getSurveyQuestionsDetailed(surveyId);
+    if (survey.access_password_hash) {
+      const accessPassword = String(req.body?.password || "");
+      if (!accessPassword || !verifyPassword(accessPassword, survey.access_password_hash)) {
+        return res.status(403).json({ error: "Invalid access password" });
+      }
+    }
+    const [pagesRaw, questions] = await Promise.all([getSurveyPages(surveyId), getSurveyQuestionsDetailed(surveyId)]);
 
     const answersInput = Array.isArray(req.body?.answers) ? req.body.answers : [];
     const answersByQuestion = new Map();
+    const normalizeAnswerValue = (value) => {
+      if (Array.isArray(value)) {
+        return value
+          .map((item) => String(item ?? "").trim())
+          .filter(Boolean);
+      }
+      if (value == null) return value;
+      if (typeof value === "string") return value.trim();
+      return value;
+    };
     answersInput.forEach((answer) => {
       if (!Number.isInteger(Number(answer?.questionId))) return;
-      answersByQuestion.set(Number(answer.questionId), answer.value);
+      answersByQuestion.set(Number(answer.questionId), normalizeAnswerValue(answer.value));
     });
 
+    const flowPages = buildSurveyFlowPages(pagesRaw, questions);
+    const reachableQuestionIds = collectReachableSurveyQuestionIds(flowPages, answersByQuestion);
     const invalidQuestions = [];
 
     for (const q of questions) {
       const value = answersByQuestion.get(q.id);
+      const normalizedType = normalizeStoredQuestionType(q.type);
       const required = q.required === 1 || q.required === true;
+      const isReachable = reachableQuestionIds.size ? reachableQuestionIds.has(q.id) : true;
 
-      if (required && (value === undefined || value === null || value === "")) {
+      const isProvided = answersByQuestion.has(q.id);
+      const isEmptyValue =
+        value === undefined ||
+        value === null ||
+        value === "" ||
+        (Array.isArray(value) && value.length === 0);
+
+      if (required && isReachable && (!isProvided || isEmptyValue)) {
         invalidQuestions.push(q.id);
         continue;
       }
 
-      if (value === undefined || value === null || value === "") continue;
+      if (!isProvided || isEmptyValue) continue;
 
       const options = Array.isArray(q.options) ? q.options : [];
       const optionTexts = options.map((item) => String(item?.text || "").trim()).filter(Boolean);
+      const optionIndexes = new Set(options.map((_, idx) => String(idx + 1)));
 
-      if (q.type === "single") {
-        if (!optionTexts.includes(String(value))) invalidQuestions.push(q.id);
+      if (normalizedType === "single") {
+        const normalizedValue = String(value ?? "").trim();
+        const matchesText = optionTexts.includes(normalizedValue);
+        const matchesIndex = optionIndexes.has(normalizedValue);
+        if (!matchesText && !matchesIndex) invalidQuestions.push(q.id);
       }
 
-      if (q.type === "multi") {
-        const values = Array.isArray(value) ? value.map((item) => String(item)) : [];
-        if (values.length === 0 || values.some((item) => !optionTexts.includes(item))) invalidQuestions.push(q.id);
+      if (normalizedType === "multi") {
+        const values = Array.isArray(value) ? value.map((item) => String(item ?? "").trim()).filter(Boolean) : [];
+        if (
+          values.length === 0 ||
+          values.some((item) => !optionTexts.includes(item) && !optionIndexes.has(item))
+        ) {
+          invalidQuestions.push(q.id);
+        }
       }
 
-      if (q.type === "dropdown") {
-        if (!optionTexts.includes(String(value))) invalidQuestions.push(q.id);
+      if (normalizedType === "dropdown") {
+        const normalizedValue = String(value ?? "").trim();
+        const matchesText = optionTexts.includes(normalizedValue);
+        const matchesIndex = optionIndexes.has(normalizedValue);
+        if (!matchesText && !matchesIndex) invalidQuestions.push(q.id);
       }
 
-      if (q.type === "rating") {
+      if (normalizedType === "rating") {
         const numeric = Number(value);
         if (!Number.isFinite(numeric) || numeric < 1 || numeric > 5) invalidQuestions.push(q.id);
       }
 
-      if (q.type === "text" && String(value).trim().length > 2000) {
+      if (normalizedType === "text" && String(value).trim().length > 2000) {
         invalidQuestions.push(q.id);
       }
     }
@@ -1892,26 +2453,65 @@ async function handleSurveySubmit(req, res, next, surveyIdRaw) {
 
     const participantHash = hashParticipant(req);
     const respondentHash = participantHash;
-
-    if (!survey.allow_multiple_responses) {
-      const previous = await get(
-        "SELECT id FROM responses WHERE survey_id = ? AND participant_hash = ? LIMIT 1",
-        [surveyId, participantHash]
-      );
-      if (previous) return res.status(409).json({ error: "Only one response is allowed" });
+    const responseLimit = parseResponseLimit(survey.response_limit);
+    const submissionId = String(req.body?.submissionId || req.headers["x-asking-submission-id"] || "")
+      .trim()
+      .slice(0, 140);
+    const submissionCacheKey = submissionId ? `${surveyId}:${participantHash}:${submissionId}` : "";
+    const nowMs = Date.now();
+    for (const [key, value] of PUBLIC_SUBMISSION_CACHE.entries()) {
+      if (!value || nowMs - Number(value.createdAt || 0) > PUBLIC_SUBMISSION_TTL_MS) {
+        PUBLIC_SUBMISSION_CACHE.delete(key);
+      }
+    }
+    if (submissionCacheKey && PUBLIC_SUBMISSION_CACHE.has(submissionCacheKey)) {
+      return res.status(200).json({ ok: true, duplicate: true });
     }
 
-    const response = await run(
-      "INSERT INTO responses (survey_id, participant_hash, respondent_hash, created_at) VALUES (?, ?, ?, ?)",
-      [surveyId, participantHash, respondentHash, nowIso()]
-    );
+    await run("BEGIN IMMEDIATE");
+    try {
+      if (responseLimit) {
+        const total = await get("SELECT COUNT(*) as count FROM responses WHERE survey_id = ?", [surveyId]);
+        if (Number(total?.count || 0) >= responseLimit) {
+          await run("ROLLBACK");
+          return res.status(403).json({ error: "Response limit reached" });
+        }
+      }
 
-    for (const q of questions) {
-      if (!answersByQuestion.has(q.id)) continue;
-      await run(
-        "INSERT INTO answers (response_id, question_id, answer_json) VALUES (?, ?, ?)",
-        [response.lastID, q.id, JSON.stringify(answersByQuestion.get(q.id))]
+      if (!survey.allow_multiple_responses) {
+        const previous = await get(
+          "SELECT id FROM responses WHERE survey_id = ? AND participant_hash = ? LIMIT 1",
+          [surveyId, participantHash]
+        );
+        if (previous) {
+          await run("ROLLBACK");
+          if (submissionCacheKey && PUBLIC_SUBMISSION_CACHE.has(submissionCacheKey)) {
+            return res.status(200).json({ ok: true, duplicate: true });
+          }
+          return res.status(409).json({ error: "Only one response is allowed" });
+        }
+      }
+
+      const response = await run(
+        "INSERT INTO responses (survey_id, participant_hash, respondent_hash, created_at) VALUES (?, ?, ?, ?)",
+        [surveyId, participantHash, respondentHash, nowIso()]
       );
+
+      for (const q of questions) {
+        if (!answersByQuestion.has(q.id)) continue;
+        await run(
+          "INSERT INTO answers (response_id, question_id, answer_json) VALUES (?, ?, ?)",
+          [response.lastID, q.id, JSON.stringify(answersByQuestion.get(q.id))]
+        );
+      }
+
+      await run("COMMIT");
+      if (submissionCacheKey) {
+        PUBLIC_SUBMISSION_CACHE.set(submissionCacheKey, { createdAt: Date.now() });
+      }
+    } catch (error) {
+      await run("ROLLBACK").catch(() => {});
+      throw error;
     }
 
     res.status(201).json({ ok: true });
@@ -2033,9 +2633,20 @@ app.post("/api/pages/:pageId/questions", requireAuth, async (req, res, next) => 
     const maxOrder = await get("SELECT COALESCE(MAX(question_order), -1) as max_order FROM questions WHERE survey_id = ?", [page.survey_id]);
     const order = Number.isFinite(Number(req.body?.order)) ? Number(req.body.order) : Number(maxOrder?.max_order || -1) + 1;
     const inserted = await run(
-      `INSERT INTO questions (survey_id, page_id, question_text, help_text, type, options_json, required, question_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [page.survey_id, pageId, parsed.text, parsed.helpText, parsed.type, JSON.stringify(parsed.options), parsed.required, order]
+      `INSERT INTO questions (survey_id, page_id, question_text, help_text, image_url, panel_opacity, type, options_json, required, question_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        page.survey_id,
+        pageId,
+        parsed.text,
+        parsed.helpText,
+        parsed.imageUrl,
+        parsed.panelOpacity,
+        parsed.type,
+        JSON.stringify(parsed.options),
+        parsed.required,
+        order
+      ]
     );
     await syncQuestionOptions(inserted.lastID, parsed.options || []);
     res.status(201).json({ id: inserted.lastID });
@@ -2066,11 +2677,23 @@ app.put("/api/questions/:questionId", requireAuth, async (req, res, next) => {
        SET page_id = COALESCE(?, page_id),
            question_text = ?,
            help_text = ?,
+           image_url = ?,
+           panel_opacity = ?,
            type = ?,
            required = ?,
            question_order = ?
        WHERE id = ?`,
-      [resolvedPageId, payload.text, payload.helpText, payload.type, payload.required, payload.order, questionId]
+      [
+        resolvedPageId,
+        payload.text,
+        payload.helpText,
+        payload.imageUrl,
+        payload.panelOpacity,
+        payload.type,
+        payload.required,
+        payload.order,
+        questionId
+      ]
     );
     await syncQuestionOptions(questionId, payload.options || []);
     res.json({ ok: true });
@@ -2115,13 +2738,21 @@ app.post("/api/questions/:questionId/options", requireAuth, async (req, res, nex
           .map((item) => {
             if (typeof item === "string") {
               const text = item.trim();
-              return text ? { text, imageUrl: "" } : null;
+              return text ? { id: "", text, imageUrl: "", imageFit: "cover", imageScale: 100, jumpToPageId: "", jumpToPageIndex: null } : null;
             }
             if (item && typeof item === "object") {
+              const id = String(item.id || "").trim();
               const text = String(item.text || "").trim();
               const imageUrl = String(item.imageUrl || "").trim();
+              const jumpToPageId = String(item.jumpToPageId || item.targetPageId || "").trim();
+              const jumpToPageIndexRaw = Number(item.jumpToPageIndex);
+              const jumpToPageIndex = Number.isInteger(jumpToPageIndexRaw) ? jumpToPageIndexRaw : null;
+              const imageFitRaw = String(item.imageFit || "cover").trim().toLowerCase();
+              const imageScaleRaw = Number(item.imageScale);
+              const imageFit = imageFitRaw === "contain" ? "contain" : "cover";
+              const imageScale = Number.isFinite(imageScaleRaw) ? Math.max(60, Math.min(130, Math.round(imageScaleRaw))) : 100;
               if (!text && !imageUrl) return null;
-              return { text: text || "Option", imageUrl };
+              return { id, text: text || "Option", imageUrl, imageFit, imageScale, jumpToPageId, jumpToPageIndex };
             }
             return null;
           })
@@ -2154,6 +2785,21 @@ app.post("/api/questions/:questionId/media", requireAuth, upload.single("file"),
        VALUES (?, ?, ?, ?, ?, ?)`,
       [questionId, publicPath, req.file.originalname || "", req.file.mimetype || "", Number(req.file.size || 0), nowIso()]
     );
+    res.status(201).json({
+      path: publicPath,
+      originalName: req.file.originalname || "",
+      mime: req.file.mimetype || "",
+      size: Number(req.file.size || 0)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/uploads/image", requireAuth, upload.single("file"), async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "File is required" });
+    const publicPath = `/uploads/${req.file.filename}`;
     res.status(201).json({
       path: publicPath,
       originalName: req.file.originalname || "",
@@ -2494,14 +3140,62 @@ app.use((error, _req, res, _next) => {
   res.status(500).json({ error: "Internal server error" });
 });
 
+let httpServer = null;
+let isShuttingDown = false;
+
+async function shutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  try {
+    if (httpServer) {
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          if (typeof httpServer.closeAllConnections === "function") {
+            httpServer.closeAllConnections();
+          }
+          resolve();
+        }, 3000);
+        httpServer.close((error) => {
+          clearTimeout(timer);
+          if (error) return reject(error);
+          resolve();
+        });
+        if (typeof httpServer.closeIdleConnections === "function") {
+          httpServer.closeIdleConnections();
+        }
+        if (typeof httpServer.closeAllConnections === "function") {
+          httpServer.closeAllConnections();
+        }
+      });
+    }
+    await close();
+    process.exit(0);
+  } catch (error) {
+    console.error(`Failed to shut down after ${signal}`, error);
+    process.exit(1);
+  }
+}
+
+process.once("SIGTERM", () => {
+  void shutdown("SIGTERM");
+});
+process.once("SIGINT", () => {
+  void shutdown("SIGINT");
+});
+
 init()
   .then(async () => {
     await seedDemoSurvey();
-    app.listen(PORT, () => {
+    httpServer = app.listen(PORT, () => {
       console.log(`Server listening on http://localhost:${PORT}`);
       console.log(`DB path: ${DB_PATH}`);
+      console.log(`Upload dir: ${UPLOAD_DIR}`);
       if (process.env.RAILWAY_ENVIRONMENT && !process.env.RAILWAY_VOLUME_MOUNT_PATH && !process.env.DB_PATH) {
         console.warn("No Railway volume mount detected. Database may be ephemeral between deploys.");
+      }
+      if (process.env.RAILWAY_ENVIRONMENT && !process.env.RAILWAY_VOLUME_MOUNT_PATH && !process.env.UPLOAD_DIR) {
+        console.warn("No persistent upload directory configured. Uploaded images may be lost after deploy.");
       }
     });
   })

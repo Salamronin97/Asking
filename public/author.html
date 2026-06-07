@@ -1,16 +1,27 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Контакты | Asking</title>
+    <title>Связь с автором | Asking</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260304-author-utf8" />
+    <script>
+      (function () {
+        try {
+          var preferred = localStorage.getItem("asking_theme") || "light";
+          var resolved = preferred === "system"
+            ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+            : preferred;
+          document.documentElement.setAttribute("data-theme", resolved === "dark" ? "dark" : "light");
+        } catch {}
+      })();
+    </script>
+    <link rel="stylesheet" href="/styles.css?v=20260429-gradient-results-1" />
   </head>
-  <body class="workspace-page">
+  <body class="workspace-page author-page">
     <header class="topbar">
       <div class="container topbar__inner">
         <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
@@ -24,26 +35,124 @@
     </header>
 
     <main class="section">
-      <div class="container">
-        <div class="card contact-card">
-          <h1>Контакты</h1>
-          <p>По вопросам доработок и сотрудничества.</p>
+      <div class="container author-layout author-layout--refined">
+        <section class="card author-hero author-hero--refined">
+          <span class="author-kicker">Обратная связь</span>
+          <h1>Напишите по проекту</h1>
+          <p>
+            Сообщите о проблеме, предложите улучшение или задайте вопрос по работе Asking.
+            Чем точнее описание, тем быстрее получится разобраться.
+          </p>
 
-          <div class="contact-item"><strong>Email:</strong> arabragduani@gmail.com</div>
-          <div class="contact-item"><strong>GitHub:</strong> github.com/salamronin97</div>
+          <div class="author-topic-grid" aria-label="Быстрые темы обращения">
+            <button class="author-topic" type="button" data-topic-preset="Проблема в конструкторе">
+              <strong>Проблема</strong>
+              <span>Что не работает или выглядит неправильно</span>
+            </button>
+            <button class="author-topic" type="button" data-topic-preset="Идея для улучшения">
+              <strong>Идея</strong>
+              <span>Что стоит добавить или упростить</span>
+            </button>
+            <button class="author-topic" type="button" data-topic-preset="Вопрос по использованию">
+              <strong>Вопрос</strong>
+              <span>Помощь по настройке или сценарию</span>
+            </button>
+          </div>
 
-          <button class="btn-primary" id="contactWriteBtn" type="button">Написать</button>
-        </div>
+          <div class="author-channels">
+            <a class="author-channel" href="mailto:arabragduani@gmail.com">
+              <strong>Email</strong>
+              <span>arabragduani@gmail.com</span>
+            </a>
+            <a class="author-channel" href="https://github.com/salamronin97" target="_blank" rel="noreferrer">
+              <strong>GitHub</strong>
+              <span>github.com/salamronin97</span>
+            </a>
+            <a class="author-channel" href="/guide">
+              <strong>Инструкция</strong>
+              <span>Ответы на частые вопросы и сценарии работы</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="card author-form-card author-form-card--refined">
+          <div class="author-form-head">
+            <div>
+              <span class="author-kicker">Сообщение</span>
+              <h2>Форма обращения</h2>
+            </div>
+          </div>
+
+          <form id="contactAuthorForm" class="author-form" novalidate>
+            <div class="author-form-grid">
+              <label class="form-row">
+                <span>Имя</span>
+                <input id="contactNameInput" type="text" maxlength="80" placeholder="Ваше имя" required />
+              </label>
+
+              <label class="form-row">
+                <span>Email для ответа</span>
+                <input id="contactEmailInput" type="email" maxlength="160" placeholder="you@example.com" required />
+              </label>
+            </div>
+
+            <div class="author-form-grid">
+              <label class="form-row">
+                <span>Тема</span>
+                <input id="contactTopicInput" type="text" maxlength="120" placeholder="Например, проблема в конструкторе" />
+              </label>
+
+              <label class="form-row">
+                <span>Тип обращения</span>
+                <select id="contactTypeInput">
+                  <option value="bug">Ошибка</option>
+                  <option value="idea">Предложение</option>
+                  <option value="question">Вопрос</option>
+                  <option value="account">Доступ или аккаунт</option>
+                  <option value="other">Другое</option>
+                </select>
+              </label>
+            </div>
+
+            <label class="form-row">
+              <span>Сообщение</span>
+              <textarea id="contactMessageInput" rows="7" maxlength="5000" placeholder="Что произошло, где это видно, как повторить и какой результат вы ожидали" required></textarea>
+            </label>
+            <div class="author-message-meta">
+              <span>Если речь о баге, добавьте шаги воспроизведения.</span>
+              <span id="contactMessageCounter">0 / 5000</span>
+            </div>
+
+            <label class="author-checkbox">
+              <input id="contactPageUrlCheck" type="checkbox" checked />
+              <span>Добавить ссылку на текущую страницу для контекста</span>
+            </label>
+
+            <aside class="author-checklist" aria-label="Что приложить к обращению">
+              <strong>Что помогает быстрее разобраться</strong>
+              <ul>
+                <li>ссылка на анкету или страницу;</li>
+                <li>шаги, после которых появилась проблема;</li>
+                <li>что ожидали увидеть вместо текущего результата;</li>
+                <li>название браузера или устройства, если проблема повторяется только там.</li>
+              </ul>
+            </aside>
+
+            <input id="contactWebsiteTrap" type="text" class="auth-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+            <div class="settings-actions">
+              <button id="contactSubmitBtn" class="btn btn--primary" type="submit">Отправить сообщение</button>
+              <a id="contactMailtoBtn" class="btn btn--outline" href="mailto:arabragduani@gmail.com">Открыть почту</a>
+            </div>
+
+            <p id="contactStatus" class="status"></p>
+          </form>
+        </section>
       </div>
     </main>
 
-    <script>
-      const contactWriteBtn = document.getElementById("contactWriteBtn");
-      if (contactWriteBtn) {
-        contactWriteBtn.addEventListener("click", () => {
-          window.location.href = "mailto:arabragduani@gmail.com?subject=Asking%20Contact";
-        });
-      }
-    </script>
+    <script src="/theme.js?v=20260315-theme-public-1"></script>
+    <script src="/lang.js?v=20260429-1"></script>
+    <script src="/author.js?v=20260605-author-refresh-1"></script>
   </body>
 </html>

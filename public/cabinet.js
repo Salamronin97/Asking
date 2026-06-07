@@ -8,6 +8,17 @@ const bulkSelectionCount = document.getElementById("bulkSelectionCount") || docu
 const bulkPublishBtn = document.getElementById("bulkPublishBtn");
 const bulkArchiveBtn = document.getElementById("bulkArchiveBtn");
 const bulkDeleteBtn = document.getElementById("bulkDeleteBtn");
+const supportTemplates = document.getElementById("supportTemplates");
+const supportForm = document.getElementById("supportForm");
+const supportTopicInput = document.getElementById("supportTopicInput");
+const supportPrioritySelect = document.getElementById("supportPrioritySelect");
+const supportMessageInput = document.getElementById("supportMessageInput");
+const supportAttachPageInput = document.getElementById("supportAttachPageInput");
+const supportSendBtn = document.getElementById("supportSendBtn");
+const supportRefreshHistoryBtn = document.getElementById("supportRefreshHistoryBtn");
+const supportStatus = document.getElementById("supportStatus");
+const supportHistoryList = document.getElementById("supportHistoryList");
+const supportHistorySearchInput = document.getElementById("supportHistorySearchInput");
 
 const searchInput = document.getElementById("searchInput");
 const statusFilter = document.getElementById("statusFilter");
@@ -40,15 +51,37 @@ const confirmSubmit = document.getElementById("confirmSubmit");
 const VALID_STATUS = new Set(["all", "published", "draft", "archived"]);
 const VIEW_KEY = "asking_cabinet_view";
 const STATUS_TIMEOUT_MS = 3200;
+const THEME_STORAGE_KEY = "asking_theme";
 
 const state = {
+  user: null,
   surveys: [],
   filtered: [],
   trends: new Map(),
+  supportMessages: [],
+  supportMessagesFiltered: [],
   loading: false,
   selectedSurveyIds: [],
   viewMode: localStorage.getItem(VIEW_KEY) === "compact" ? "compact" : "grid"
 };
+
+const SUPPORT_TEMPLATES = [
+  {
+    topic: "Баг в конструкторе",
+    message:
+      "Описание проблемы:\nШаги для повторения:\n1) ...\n2) ...\nОжидал(а): ...\nФактически: ..."
+  },
+  {
+    topic: "Улучшение кабинета",
+    message:
+      "Идея улучшения:\nКак сейчас:\nКак хочется:\nПочему это важно:"
+  },
+  {
+    topic: "Проблема с публикацией",
+    message:
+      "ID опроса (если есть):\nЧто делал(а) перед ошибкой:\nТекст ошибки/симптом:"
+  }
+];
 
 const api = {
   async request(url, options) {
@@ -58,6 +91,19 @@ const api = {
     return data;
   }
 };
+
+function applyTheme(theme) {
+  const preferred = theme || localStorage.getItem(THEME_STORAGE_KEY) || "light";
+  const resolved = preferred === "system"
+    ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+    : preferred;
+  document.documentElement.setAttribute("data-theme", resolved);
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, preferred);
+  } catch {}
+}
+
+applyTheme();
 
 function applyStaticCabinetTextFixes() {
   const setText = (selector, value) => {
@@ -151,16 +197,151 @@ function formatDate(value) {
   });
 }
 
+function setSupportStatus(message, isError = false) {
+  if (!supportStatus) return;
+  supportStatus.textContent = String(message || "");
+  supportStatus.style.color = isError ? "#b91c1c" : "#0f766e";
+}
+
+function supportStatusLabel(status) {
+  if (status === "in_progress") return "В работе";
+  if (status === "closed") return "Закрыто";
+  return "Новое";
+}
+
+function supportPriorityLabel(priority) {
+  if (priority === "low") return "Низкий";
+  if (priority === "high") return "Высокий";
+  if (priority === "urgent") return "Критичный";
+  return "Обычный";
+}
+
 function getPublicLink(id) {
-  return `${window.location.origin}/survey/${id}`;
+  return `${window.location.origin}/s/${id}`;
 }
 
 function getBuilderLink(id) {
   return `/create?surveyId=${encodeURIComponent(id)}`;
 }
 
+function renderSupportTemplates() {
+  if (!supportTemplates) return;
+  supportTemplates.innerHTML = SUPPORT_TEMPLATES.map(
+    (template, index) =>
+      `<button class="btn btn--ghost btn--xs" type="button" data-support-template="${index}">${escapeHtml(template.topic)}</button>`
+  ).join("");
+}
+
+function renderSupportHistory(messages) {
+  if (!supportHistoryList) return;
+  if (!Array.isArray(messages) || !messages.length) {
+    supportHistoryList.innerHTML = "<div class='svdash-support__empty'>Пока нет обращений.</div>";
+    return;
+  }
+  supportHistoryList.innerHTML = messages
+    .map((item) => {
+      const messageText = String(item.message || "");
+      const preview = messageText.length > 220 ? `${messageText.slice(0, 217)}...` : messageText;
+      const status = String(item.status || "new");
+      const priority = String(item.priority || "normal");
+      return `
+        <article class="svdash-support-item" data-support-history-item="${Number(item.id)}">
+          <div class="svdash-support-item__head">
+            <strong>${escapeHtml(item.topic || "Без темы")}</strong>
+            <span>${escapeHtml(formatDate(item.createdAt))}</span>
+          </div>
+          <div class="svdash-support-item__badges">
+            <span class="svdash-support-badge is-status-${escapeHtml(status)}">${escapeHtml(supportStatusLabel(status))}</span>
+            <span class="svdash-support-badge is-priority-${escapeHtml(priority)}">${escapeHtml(supportPriorityLabel(priority))}</span>
+          </div>
+          <p>${escapeHtml(preview)}</p>
+          <div class="svdash-support-item__actions">
+            <button class="btn btn--ghost btn--xs" type="button" data-support-reuse="${Number(item.id)}">Использовать как шаблон</button>
+            ${
+              status === "closed"
+                ? `<button class="btn btn--outline btn--xs" type="button" data-support-status="${Number(item.id)}" data-next-status="new">Переоткрыть</button>`
+                : `<button class="btn btn--outline btn--xs" type="button" data-support-status="${Number(item.id)}" data-next-status="closed">Закрыть</button>`
+            }
+            ${item.pageUrl ? `<a href="${escapeHtml(item.pageUrl)}" target="_blank" rel="noreferrer">Контекст страницы</a>` : ""}
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function applySupportHistoryFilter() {
+  const query = String(supportHistorySearchInput?.value || "")
+    .trim()
+    .toLowerCase();
+  if (!query) {
+    state.supportMessagesFiltered = [...state.supportMessages];
+    renderSupportHistory(state.supportMessagesFiltered);
+    return;
+  }
+  state.supportMessagesFiltered = state.supportMessages.filter((item) => {
+    const topic = String(item.topic || "").toLowerCase();
+    const message = String(item.message || "").toLowerCase();
+    return topic.includes(query) || message.includes(query);
+  });
+  renderSupportHistory(state.supportMessagesFiltered);
+}
+
+async function loadSupportHistory(silent = false) {
+  try {
+    if (!silent) setSupportStatus("Загружаем историю...");
+    const payload = await api.request("/api/support/messages?limit=12");
+    state.supportMessages = Array.isArray(payload.messages) ? payload.messages : [];
+    applySupportHistoryFilter();
+    if (!silent) setSupportStatus("История обращений обновлена.");
+  } catch (error) {
+    if (!silent) setSupportStatus(error.message || "Не удалось загрузить историю.", true);
+  }
+}
+
+async function submitSupportForm(event) {
+  event.preventDefault();
+  const topic = String(supportTopicInput?.value || "").trim();
+  const priority = String(supportPrioritySelect?.value || "normal");
+  const message = String(supportMessageInput?.value || "").trim();
+  const pageUrl = supportAttachPageInput?.checked ? window.location.href : "";
+
+  if (topic.length < 3) {
+    setSupportStatus("Тема должна быть не короче 3 символов.", true);
+    return;
+  }
+  if (message.length < 10) {
+    setSupportStatus("Сообщение должно быть не короче 10 символов.", true);
+    return;
+  }
+
+  try {
+    if (supportSendBtn) supportSendBtn.disabled = true;
+    setSupportStatus("Отправляем сообщение...");
+    await api.request("/api/support/contact-author", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: String(state.user?.name || "").trim() || "User",
+        email: String(state.user?.email || "").trim(),
+        topic,
+        priority,
+        message,
+        pageUrl
+      })
+    });
+    setSupportStatus("Сообщение отправлено.");
+    if (supportMessageInput) supportMessageInput.value = "";
+    await loadSupportHistory(true);
+  } catch (error) {
+    setSupportStatus(error.message || "Не удалось отправить сообщение.", true);
+  } finally {
+    if (supportSendBtn) supportSendBtn.disabled = false;
+  }
+}
+
 function getResultsLink(id) {
-  return `/survey.html?id=${encodeURIComponent(id)}&tab=results`;
+  return `/survey/${encodeURIComponent(id)}?tab=results`;
 }
 
 function highlightMatch(text, query) {
@@ -406,15 +587,19 @@ function renderTrendSparkline(surveyId) {
 
 function renderCards() {
   const query = String(searchInput?.value || "").trim();
+  const hasItems = state.filtered.length > 0;
 
-  if (!state.filtered.length) {
+  if (emptyState) {
+    emptyState.hidden = hasItems;
+    emptyState.style.display = hasItems ? "none" : "block";
+  }
+
+  if (!hasItems) {
     if (surveysGrid) surveysGrid.innerHTML = "";
-    if (emptyState) emptyState.hidden = false;
     updateBulkControls();
     return;
   }
 
-  if (emptyState) emptyState.hidden = true;
   const maxResponses = Math.max(1, ...state.filtered.map((s) => Number(s.responses_count || 0)));
 
   if (surveysGrid) {
@@ -451,7 +636,6 @@ function renderCards() {
               <a class="btn btn--ghost btn--xs" href="${getResultsLink(survey.id)}">Результаты</a>
               <button class="btn btn--ghost btn--xs" type="button" data-copy="${survey.id}">Ссылка</button>
               <button class="btn btn--ghost btn--xs" type="button" data-qr="${survey.id}">QR</button>
-              <button class="btn btn--ghost btn--xs" type="button" data-duplicate="${survey.id}">Дублировать</button>
               <button class="btn btn--ghost btn--xs" type="button" data-archive="${survey.id}">${archiveLabel}</button>
               <button class="btn btn--danger btn--xs" type="button" data-delete="${survey.id}">Удалить</button>
             </div>
@@ -488,11 +672,17 @@ async function loadTrendsForSurveys(surveys) {
 function openQrModal(link) {
   if (!qrModal || !qrImage || !qrLinkText || !qrOpenLink || !qrDownloadLink) return;
   const encoded = encodeURIComponent(link);
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encoded}`;
-  qrImage.src = qrSrc;
+  const qrPreviewSrc = `/api/qr.png?data=${encoded}`;
+  const qrDownloadSrc = `/api/qr.png?data=${encoded}&download=1`;
+  qrImage.onerror = () => {
+    showToast("Не удалось загрузить QR. Скопируйте ссылку вручную.", true);
+    qrImage.onerror = null;
+  };
+  qrImage.src = qrPreviewSrc;
   qrLinkText.textContent = link;
   qrOpenLink.href = link;
-  qrDownloadLink.href = qrSrc;
+  qrDownloadLink.href = qrDownloadSrc;
+  qrDownloadLink.setAttribute("download", "survey-qr.png");
   qrModal.hidden = false;
 }
 
@@ -556,11 +746,17 @@ async function runBulkAction({ title, text, action, successLabel }) {
 }
 
 async function loadSurveys({ silent = false } = {}) {
+  const hasRenderedCards = Boolean(surveysGrid && surveysGrid.children.length > 0);
+  const shouldShowSkeleton = !silent && !hasRenderedCards && state.surveys.length === 0;
+
   if (!silent) {
     state.loading = true;
-    if (cardsSkeleton) cardsSkeleton.hidden = false;
-    if (surveysGrid) surveysGrid.innerHTML = "";
-    if (emptyState) emptyState.hidden = true;
+    if (cardsSkeleton) cardsSkeleton.hidden = !shouldShowSkeleton;
+    if (surveysGrid && shouldShowSkeleton) surveysGrid.innerHTML = "";
+    if (emptyState) {
+      emptyState.hidden = true;
+      emptyState.style.display = "none";
+    }
     if (refreshBtn) refreshBtn.disabled = true;
     setStatusLine("Обновляем список опросов...");
   }
@@ -677,16 +873,6 @@ function bindEvents() {
       return;
     }
 
-    const dupBtn = event.target.closest("[data-duplicate]");
-    if (dupBtn) {
-      const id = Number(dupBtn.dataset.duplicate);
-      api.request(`/api/surveys/${id}/duplicate`, { method: "POST" })
-        .then(() => loadSurveys())
-        .then(() => showToast("Опрос продублирован"))
-        .catch((error) => showToast(error.message || "Ошибка", true));
-      return;
-    }
-
     const arcBtn = event.target.closest("[data-archive]");
     if (arcBtn) {
       const id = Number(arcBtn.dataset.archive);
@@ -788,6 +974,57 @@ function bindEvents() {
       renderCards();
     }
   });
+
+  supportTemplates?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-support-template]");
+    if (!button) return;
+    const index = Number(button.getAttribute("data-support-template"));
+    const template = SUPPORT_TEMPLATES[index];
+    if (!template) return;
+    if (supportTopicInput) supportTopicInput.value = template.topic;
+    if (supportPrioritySelect) supportPrioritySelect.value = "high";
+    if (supportMessageInput) supportMessageInput.value = template.message;
+    supportMessageInput?.focus();
+    setSupportStatus("Шаблон применен.");
+  });
+
+  supportForm?.addEventListener("submit", (event) => {
+    submitSupportForm(event).catch(() => {});
+  });
+  supportRefreshHistoryBtn?.addEventListener("click", () => {
+    loadSupportHistory().catch(() => {});
+  });
+  supportHistorySearchInput?.addEventListener("input", applySupportHistoryFilter);
+  supportHistoryList?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-support-reuse]");
+    if (button) {
+      const id = Number(button.getAttribute("data-support-reuse"));
+      const item = state.supportMessages.find((entry) => Number(entry.id) === id);
+      if (!item) return;
+      if (supportTopicInput) supportTopicInput.value = String(item.topic || "").trim();
+      if (supportPrioritySelect) supportPrioritySelect.value = String(item.priority || "normal");
+      if (supportMessageInput) supportMessageInput.value = String(item.message || "").trim();
+      supportMessageInput?.focus();
+      setSupportStatus("Шаблон из истории применен.");
+      return;
+    }
+
+    const statusBtn = event.target.closest("[data-support-status]");
+    if (statusBtn) {
+      const id = Number(statusBtn.getAttribute("data-support-status"));
+      const nextStatus = String(statusBtn.getAttribute("data-next-status") || "").trim().toLowerCase();
+      if (!id || !nextStatus) return;
+      api
+        .request(`/api/support/messages/${id}/status`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: nextStatus })
+        })
+        .then(() => loadSupportHistory(true))
+        .then(() => setSupportStatus("Статус обращения обновлен."))
+        .catch((error) => setSupportStatus(error.message || "Не удалось изменить статус.", true));
+    }
+  });
 }
 
 (async function bootstrap() {
@@ -798,9 +1035,15 @@ function bindEvents() {
       location.href = "/auth?next=/cabinet";
       return;
     }
+    applyTheme(me.user.theme || "light");
     applyInitialFiltersFromUrl();
     updateFolderChips();
     setViewMode(state.viewMode, false);
+    state.user = me.user;
+    if (supportTemplates || supportHistoryList) {
+      renderSupportTemplates();
+      loadSupportHistory(true).catch(() => {});
+    }
     bindEvents();
     updateBulkControls();
     await loadSurveys();

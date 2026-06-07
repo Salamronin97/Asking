@@ -45,6 +45,15 @@ function get(sql, params = []) {
   });
 }
 
+function close() {
+  return new Promise((resolve, reject) => {
+    db.close((err) => {
+      if (err) return reject(err);
+      resolve();
+    });
+  });
+}
+
 async function init() {
   await run(`
     CREATE TABLE IF NOT EXISTS users (
@@ -102,6 +111,8 @@ async function init() {
       page_id INTEGER,
       question_text TEXT NOT NULL,
       help_text TEXT,
+      image_url TEXT,
+      panel_opacity INTEGER NOT NULL DEFAULT 72,
       type TEXT NOT NULL,
       options_json TEXT,
       required INTEGER NOT NULL DEFAULT 1,
@@ -185,10 +196,33 @@ async function init() {
       FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
+  await run(`
+    CREATE TABLE IF NOT EXISTS support_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      topic TEXT,
+      status TEXT NOT NULL DEFAULT 'new',
+      priority TEXT NOT NULL DEFAULT 'normal',
+      message TEXT NOT NULL,
+      page_url TEXT,
+      user_agent TEXT,
+      ip_address TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+    )
+  `);
 
   const surveyColumns = await all("PRAGMA table_info(surveys)");
   if (!surveyColumns.some((column) => column.name === "owner_user_id")) {
     await run("ALTER TABLE surveys ADD COLUMN owner_user_id INTEGER");
+  }
+  if (!surveyColumns.some((column) => column.name === "access_password_hash")) {
+    await run("ALTER TABLE surveys ADD COLUMN access_password_hash TEXT");
+  }
+  if (!surveyColumns.some((column) => column.name === "response_limit")) {
+    await run("ALTER TABLE surveys ADD COLUMN response_limit INTEGER");
   }
   const userColumns = await all("PRAGMA table_info(users)");
   if (!userColumns.some((column) => column.name === "username")) {
@@ -226,6 +260,12 @@ async function init() {
   if (!questionColumns.some((column) => column.name === "help_text")) {
     await run("ALTER TABLE questions ADD COLUMN help_text TEXT");
   }
+  if (!questionColumns.some((column) => column.name === "image_url")) {
+    await run("ALTER TABLE questions ADD COLUMN image_url TEXT");
+  }
+  if (!questionColumns.some((column) => column.name === "panel_opacity")) {
+    await run("ALTER TABLE questions ADD COLUMN panel_opacity INTEGER NOT NULL DEFAULT 72");
+  }
   const responseColumns = await all("PRAGMA table_info(responses)");
   if (!responseColumns.some((column) => column.name === "respondent_hash")) {
     await run("ALTER TABLE responses ADD COLUMN respondent_hash TEXT");
@@ -236,6 +276,13 @@ async function init() {
   }
   if (!sessionColumns.some((column) => column.name === "ip_address")) {
     await run("ALTER TABLE auth_sessions ADD COLUMN ip_address TEXT");
+  }
+  const supportColumns = await all("PRAGMA table_info(support_messages)");
+  if (!supportColumns.some((column) => column.name === "status")) {
+    await run("ALTER TABLE support_messages ADD COLUMN status TEXT NOT NULL DEFAULT 'new'");
+  }
+  if (!supportColumns.some((column) => column.name === "priority")) {
+    await run("ALTER TABLE support_messages ADD COLUMN priority TEXT NOT NULL DEFAULT 'normal'");
   }
 
   const now = new Date().toISOString();
@@ -298,6 +345,8 @@ async function init() {
     "CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_expires ON email_verification_tokens(expires_at)"
   );
   await run("CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires ON password_reset_tokens(expires_at)");
+  await run("CREATE INDEX IF NOT EXISTS idx_support_messages_created ON support_messages(created_at)");
+  await run("CREATE INDEX IF NOT EXISTS idx_support_messages_user ON support_messages(user_id)");
 }
 
 module.exports = {
@@ -306,5 +355,6 @@ module.exports = {
   init,
   run,
   all,
-  get
+  get,
+  close
 };

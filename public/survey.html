@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260314-utf8-hotfix" />
+    <link rel="stylesheet" href="/styles.css?v=20260607-public-runner-1" />
   </head>
   <body class="survey-page">
     <header class="topbar">
@@ -79,20 +79,21 @@
           <article class="survey-pane" data-pane="access">
             <div class="survey-pane-head"><h2>Доступ</h2></div>
             <div class="settings-grid">
-              <label class="toggle-row"><input id="accessPublicLink" type="checkbox" checked /><span>Публичная ссылка</span></label>
               <label class="toggle-row"><input id="accessPasswordEnabled" type="checkbox" /><span>Пароль на доступ</span></label>
               <label class="form-row" id="accessPasswordWrap" hidden><span>Пароль</span><input id="accessPassword" type="text" placeholder="Введите пароль" /></label>
               <label class="form-row"><span>Ограничение по количеству ответов</span><input id="accessLimit" type="number" min="0" placeholder="0 = без ограничения" /></label>
-              <label class="toggle-row"><input id="accessAnonymous" type="checkbox" /><span>Анонимность</span></label>
             </div>
-            <div class="settings-actions"><button id="saveAccessBtn" class="btn btn--outline" type="button">Сохранить доступ (локально)</button></div>
+            <div class="settings-actions"><button id="saveAccessBtn" class="btn btn--outline" type="button">Сохранить доступ</button></div>
           </article>
 
           <article class="survey-pane" data-pane="results">
             <div class="survey-pane-head"><h2>Результаты</h2><button id="refreshResultsBtn" class="btn btn--outline" type="button">Обновить</button></div>
             <div id="resultsSummary" class="cabinet-stats"></div>
             <div id="resultsStats" class="results-cards"></div>
-            <div class="cabinet-table-wrap">
+            <div class="settings-actions">
+              <button id="toggleResponsesBtn" class="btn btn--ghost" type="button">Показать детальные ответы</button>
+            </div>
+            <div id="responsesTableWrap" class="cabinet-table-wrap" hidden>
               <table class="table cabinet-table">
                 <thead id="responsesHead"></thead>
                 <tbody id="responsesBody"></tbody>
@@ -130,6 +131,7 @@
 
     <div id="surveyToast" class="toast" hidden></div>
 
-    <script src="/survey.js?v=20260314-utf8-hotfix"></script>
+    <script src="/lang.js?v=20260429-1"></script>
+    <script src="/survey.js?v=20260607-public-runner-1"></script>
   </body>
 </html>

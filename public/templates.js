@@ -5,319 +5,383 @@
   }
   root.ASKING_TEMPLATES = templates;
 })(typeof globalThis !== "undefined" ? globalThis : window, function () {
-  function q(type, title, required, options = [], description = "") {
-    return { type, title, required, options, description };
+  "use strict";
+
+  function opt(text, extra = {}) {
+    return { text, ...extra };
+  }
+
+  function q(type, title, required, options = [], description = "", extra = {}) {
+    return { type, title, required, options, description, ...extra };
+  }
+
+  const photos = {
+    event: "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1600&q=78",
+    product: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1600&q=78",
+    team: "https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&w=1600&q=78",
+    education: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1600&q=78",
+    clinic: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=1600&q=78",
+    restaurant: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1600&q=78",
+    support: "https://images.unsplash.com/photo-1556745757-8d76bdb6984b?auto=format&fit=crop&w=1600&q=78",
+    volunteer: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=1600&q=78",
+    sales: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1600&q=78",
+    retail: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1600&q=78",
+    hotel: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=78",
+    city: "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1600&q=78"
+  };
+
+  function design(bgImage, bgColor = "#eef6ff", layout = "full", overlay = 20, welcome = {}) {
+    return {
+      bgImage,
+      bgColor,
+      layout,
+      overlay,
+      welcome: {
+        coverImage: welcome.coverImage || bgImage,
+        layout: welcome.layout || "image-right",
+        imageOpacity: welcome.imageOpacity || 86,
+        imageEnabled: welcome.imageEnabled !== false
+      }
+    };
+  }
+
+  function imageOptions(items) {
+    return items.map((item, index) =>
+      opt(item.text, {
+        imageUrl: item.imageUrl || `https://picsum.photos/seed/asking-template-${index + 1}/900/560`,
+        imageFit: item.imageFit || "cover",
+        imageScale: item.imageScale || 100
+      })
+    );
+  }
+
+  function attachWelcome(template) {
+    const pages = Array.isArray(template.pages) ? template.pages : [];
+    if (pages[0]) {
+      pages[0].design = {
+        ...design(photos.product),
+        ...(pages[0].design || {}),
+        welcome: {
+          ...design(pages[0].design?.bgImage || photos.product).welcome,
+          ...(pages[0].design?.welcome || {})
+        }
+      };
+    }
+    return template;
+  }
+
+  const fullTemplates = {
+    product_beta_feedback: attachWelcome({
+      title: "Beta feedback продукта",
+      description: "Оценка первого опыта, ценности функций, барьеров и готовности продолжить использование.",
+      audience: "beta_users",
+      pages: [
+        {
+          title: "Первое впечатление",
+          design: design(photos.product, "#eef2ff", "split-right-image", 18, {
+            layout: "image-right",
+            imageOpacity: 88
+          }),
+          questions: [
+            q("rating", "Насколько понятен продукт после первого запуска?", true, [], "1 - совсем непонятно, 5 - всё ясно.", { panelOpacity: 88 }),
+            q("single", "Что лучше всего описывает ваш первый опыт?", true, [
+              opt("Быстро понял ценность"),
+              opt("Понял после изучения"),
+              opt("Пока не понял, зачем это нужно"),
+              opt("Столкнулся с техническими проблемами")
+            ]),
+            q("text", "Что вызвало первое сомнение или вопрос?", false, [], "Коротко опишите момент, где пришлось остановиться.")
+          ]
+        },
+        {
+          title: "Функции",
+          design: design(photos.product, "#f8fbff", "cover-top-image", 22),
+          questions: [
+            q("multiple", "Какие функции кажутся наиболее ценными?", true, [
+              opt("Быстрый конструктор"),
+              opt("Шаблоны"),
+              opt("Аналитика"),
+              opt("Брендирование"),
+              opt("Логика переходов"),
+              opt("Экспорт")
+            ]),
+            q("single", "Какой функции не хватает для регулярного использования?", true, [
+              opt("Интеграции"),
+              opt("Командная работа"),
+              opt("Больше дизайнов"),
+              opt("Автоматизация рассылок"),
+              opt("Пока не знаю")
+            ]),
+            q("single", "Выберите визуальный стиль, который ближе продукту", false, imageOptions([
+              { text: "Корпоративный", imageUrl: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=76" },
+              { text: "Продуктовый", imageUrl: photos.product },
+              { text: "Минималистичный", imageUrl: "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=900&q=76" },
+              { text: "Креативный", imageUrl: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=900&q=76" }
+            ]), "Фото-вопрос проверяет, какой визуальный язык ближе аудитории.")
+          ]
+        },
+        {
+          title: "Готовность",
+          design: design(photos.sales, "#eef6ff", "split-left-image", 18),
+          questions: [
+            q("single", "Готовы продолжить пользоваться продуктом в течение месяца?", true, [
+              opt("Да, точно"),
+              opt("Скорее да"),
+              opt("Пока сомневаюсь"),
+              opt("Нет")
+            ]),
+            q("select", "Какая цена кажется оправданной?", false, [
+              opt("Бесплатно / trial"),
+              opt("до 1 000 ₽ в месяц"),
+              opt("1 000 - 5 000 ₽ в месяц"),
+              opt("5 000+ ₽ в месяц"),
+              opt("Нужен корпоративный тариф")
+            ]),
+            q("text", "Что нужно изменить, чтобы вы рекомендовали продукт?", false)
+          ]
+        }
+      ]
+    }),
+
+    customer_satisfaction_pro: attachWelcome({
+      title: "Customer Satisfaction Pro",
+      description: "Профессиональная анкета для оценки сервиса, NPS, причин недовольства и точек роста.",
+      audience: "customers",
+      pages: [
+        {
+          title: "Общая оценка",
+          design: design(photos.support, "#eef6ff", "split-right-image", 16, {
+            layout: "background",
+            imageOpacity: 72
+          }),
+          questions: [
+            q("single", "Порекомендуете нас коллегам или знакомым?", true, ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"].map(opt), "0 - точно нет, 10 - точно да."),
+            q("rating", "Оцените качество сервиса", true),
+            q("single", "Ваша основная роль", false, [
+              opt("Покупатель"),
+              opt("Партнёр"),
+              opt("Руководитель"),
+              opt("Специалист"),
+              opt("Другое")
+            ])
+          ]
+        },
+        {
+          title: "Детали опыта",
+          design: design(photos.support, "#f8fafc", "cover-top-image", 18),
+          questions: [
+            q("multiple", "Что сработало хорошо?", false, [
+              opt("Скорость ответа"),
+              opt("Понятное объяснение"),
+              opt("Вежливость"),
+              opt("Решение проблемы"),
+              opt("Цена"),
+              opt("Удобный интерфейс")
+            ]),
+            q("multiple", "Что требует улучшения?", false, [
+              opt("Время ожидания"),
+              opt("Качество консультации"),
+              opt("Прозрачность условий"),
+              opt("Функциональность"),
+              opt("Документы"),
+              opt("Коммуникация")
+            ]),
+            q("text", "Опишите ситуацию, если оценка ниже ожиданий", false)
+          ]
+        },
+        {
+          title: "Следующий шаг",
+          design: design(photos.sales, "#eff6ff", "center-card", 20),
+          questions: [
+            q("single", "Хотите, чтобы мы связались с вами по результатам ответа?", false, [
+              opt("Да"),
+              opt("Нет"),
+              opt("Только если нужен уточняющий вопрос")
+            ]),
+            q("text", "Контакт для связи", false, [], "Email, телефон или удобный канал."),
+            q("text", "Что одно нам стоит исправить в первую очередь?", false)
+          ]
+        }
+      ]
+    }),
+
+    event_registration_premium: attachWelcome({
+      title: "Премиальная регистрация на мероприятие",
+      description: "Регистрация с профилем участника, интересами, согласием и визуальной обложкой.",
+      audience: "event_attendees",
+      pages: [
+        {
+          title: "Контакты участника",
+          design: design(photos.event, "#fff7ed", "split-right-image", 18, {
+            layout: "image-right",
+            imageOpacity: 90
+          }),
+          questions: [
+            q("text", "Как к вам обращаться?", true, [], "Имя и фамилия для бейджа.", { panelOpacity: 90 }),
+            q("text", "Рабочий email", true, [], "На него отправим подтверждение."),
+            q("select", "Город участия", true, [
+              opt("Москва"),
+              opt("Санкт-Петербург"),
+              opt("Екатеринбург"),
+              opt("Казань"),
+              opt("Онлайн")
+            ])
+          ]
+        },
+        {
+          title: "Интересы",
+          design: design(photos.event, "#eef6ff", "cover-top-image", 24),
+          questions: [
+            q("single", "Формат участия", true, [
+              opt("Очно"),
+              opt("Онлайн"),
+              opt("Еще выбираю")
+            ]),
+            q("multiple", "Какие треки вам интересны?", true, [
+              opt("Продукт"),
+              opt("Маркетинг"),
+              opt("Продажи"),
+              opt("AI"),
+              opt("Операции"),
+              opt("HR")
+            ]),
+            q("single", "Выберите атмосферу, которую ждете", false, imageOptions([
+              { text: "Нетворкинг", imageUrl: "https://images.unsplash.com/photo-1515169067865-5387ec356754?auto=format&fit=crop&w=900&q=76" },
+              { text: "Сцена и доклады", imageUrl: photos.event },
+              { text: "Практические воркшопы", imageUrl: "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=900&q=76" },
+              { text: "Закрытая встреча", imageUrl: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=900&q=76" }
+            ]))
+          ]
+        },
+        {
+          title: "Подтверждение",
+          design: design(photos.event, "#f8fbff", "center-card", 18),
+          questions: [
+            q("single", "Согласны с правилами участия?", true, [
+              opt("Да, согласен"),
+              opt("Нет")
+            ]),
+            q("text", "Комментарий организаторам", false, [], "Особые условия, питание, вопросы по доступности.")
+          ]
+        }
+      ]
+    })
+  };
+
+  const blueprintTemplates = [
+    ["employee_engagement_pulse", "Пульс вовлеченности команды", "Короткая регулярная диагностика настроения, нагрузки и коммуникации.", "employees", photos.team, "#ecfdf5", ["Атмосфера", "Рабочий процесс", "Идеи улучшения"]],
+    ["onboarding_30_60_90", "Onboarding 30-60-90", "Оценка адаптации сотрудника на ключевых этапах испытательного срока.", "employees", photos.team, "#f5f3ff", ["Первые недели", "Команда", "Следующий этап"]],
+    ["course_evaluation_pro", "Оценка курса", "Понятность материала, преподаватель, практика и следующий шаг обучения.", "students", photos.education, "#f0f9ff", ["Учебный опыт", "Материалы", "Итог"]],
+    ["clinic_patient_experience", "Опыт пациента в клинике", "Запись, ожидание, коммуникация врача и готовность вернуться.", "patients", photos.clinic, "#ecfeff", ["Визит", "Коммуникация", "Рекомендации"]],
+    ["restaurant_guest_experience", "Опыт гостя ресторана", "Атмосфера, блюда, сервис, скорость и вероятность возвращения.", "guests", photos.restaurant, "#fff7ed", ["Визит", "Еда и сервис", "Комментарий"]],
+    ["support_quality_audit", "Аудит качества поддержки", "Внутренняя проверка обращений: SLA, тон, полнота решения.", "support_operations", photos.support, "#f8fafc", ["Обращение", "Ответ", "Коучинг"]],
+    ["lead_qualification", "Квалификация лида", "Потребность, бюджет, сроки, роль в решении и следующий контакт.", "leads", photos.sales, "#eef6ff", ["Профиль", "Потребность", "Контакт"]],
+    ["market_segmentation", "Сегментация рынка", "Профиль аудитории, сценарии покупки, критерии выбора и каналы.", "market", photos.sales, "#f8fbff", ["Профиль", "Поведение", "Сегмент"]],
+    ["brand_perception", "Восприятие бренда", "Ассоциации, доверие, визуальный стиль и позиционирование.", "customers", photos.retail, "#fff1f2", ["Знание", "Ассоциации", "Визуальный выбор"]],
+    ["ecommerce_checkout_audit", "Аудит checkout e-commerce", "Барьеры покупки, доверие, оплата, доставка и причины отказа.", "customers", photos.retail, "#fff7ed", ["Покупка", "Барьеры", "Оплата"]],
+    ["hotel_guest_stay", "Опыт гостя отеля", "Бронирование, заселение, номер, сервис и готовность вернуться.", "guests", photos.hotel, "#f8fafc", ["Бронирование", "Проживание", "Сервис"]],
+    ["nonprofit_volunteer_feedback", "Фидбек волонтеров", "Мотивация, координация, задачи и готовность участвовать снова.", "volunteers", photos.volunteer, "#eff6ff", ["Участие", "Координация", "Идеи"]],
+    ["public_service_feedback", "Оценка госуслуги", "Понятность процесса, скорость, доступность и качество коммуникации.", "citizens", photos.city, "#eef2ff", ["Процесс", "Сервис", "Итог"]],
+    ["training_needs_assessment", "Оценка потребности в обучении", "Навыки, пробелы, формат обучения и приоритеты развития.", "employees", photos.education, "#f0f9ff", ["Навыки", "Формат", "Приоритет"]],
+    ["internal_tools_audit", "Аудит внутренних инструментов", "Удобство, скорость, барьеры и востребованные улучшения.", "employees", photos.product, "#eef6ff", ["Использование", "Проблемы", "Улучшения"]],
+    ["community_event_feedback", "Фидбек community event", "Контент, нетворкинг, атмосфера и темы будущих встреч.", "community", photos.event, "#fff7ed", ["Впечатление", "Темы", "Будущее"]],
+    ["pricing_research", "Исследование цены", "Восприятие ценности, willingness to pay и тарифные ограничения.", "prospects", photos.sales, "#f8fbff", ["Ценность", "Цена", "Тариф"]]
+  ];
+
+  function makeBlueprintTemplate([key, title, description, audience, photo, color, pageTitles]) {
+    return attachWelcome({
+      id: key,
+      title,
+      description,
+      audience,
+      pages: [
+        {
+          title: pageTitles[0],
+          design: design(photo, color, "split-right-image", 18),
+          questions: [
+            q("rating", "Оцените текущий опыт в целом", true, [], "1 - плохо, 5 - отлично.", { panelOpacity: 86 }),
+            q("single", "Какое утверждение ближе всего?", true, [
+              opt("Опыт полностью соответствует ожиданиям"),
+              opt("В целом хорошо, есть небольшие проблемы"),
+              opt("Есть заметные барьеры"),
+              opt("Опыт требует серьезной доработки")
+            ]),
+            q("text", "Что больше всего повлияло на вашу оценку?", false)
+          ]
+        },
+        {
+          title: pageTitles[1],
+          design: design(photo, color, "cover-top-image", 22),
+          questions: [
+            q("multiple", "Какие факторы важнее всего?", true, [
+              opt("Скорость"),
+              opt("Понятность"),
+              opt("Цена"),
+              opt("Качество"),
+              opt("Коммуникация"),
+              opt("Надежность")
+            ]),
+            q("single", "Где сейчас главный риск?", true, [
+              opt("Процесс"),
+              opt("Интерфейс"),
+              opt("Команда"),
+              opt("Стоимость"),
+              opt("Нет критичного риска")
+            ])
+          ]
+        },
+        {
+          title: pageTitles[2],
+          design: design(photo, color, "center-card", 18),
+          questions: [
+            q("single", "Какой следующий шаг для вас наиболее уместен?", true, [
+              opt("Продолжить как есть"),
+              opt("Получить консультацию"),
+              opt("Дождаться улучшений"),
+              opt("Рассмотреть альтернативы")
+            ]),
+            q("text", "Какое одно улучшение даст максимальный эффект?", false)
+          ]
+        }
+      ]
+    });
   }
 
   const templates = {
-    feedback: {
-      title: "Оценка сервиса",
-      description: "Базовый шаблон для сбора отзывов о качестве обслуживания.",
-      pages: [
-        {
-          title: "Оценка опыта",
-          questions: [
-            q("rating", "Оцените общее качество сервиса", true),
-            q("single", "Насколько быстро вы получили решение?", true, [{ text: "Очень быстро" }, { text: "В разумные сроки" }, { text: "Дольше ожиданий" }]),
-            q("text", "Что понравилось больше всего?", false)
-          ]
-        },
-        {
-          title: "Улучшения",
-          questions: [
-            q("multiple", "Что стоит улучшить?", false, [{ text: "Скорость ответа" }, { text: "Качество консультации" }, { text: "Удобство интерфейса" }, { text: "Другое" }]),
-            q("text", "Комментарий", false)
-          ]
-        }
-      ]
-    },
-    education: {
-      title: "Обратная связь по обучению",
-      description: "Шаблон для школ, вузов и онлайн-курсов.",
-      pages: [
-        {
-          title: "Учебный процесс",
-          questions: [
-            q("rating", "Оцените качество программы", true),
-            q("single", "Насколько понятна подача материала?", true, [{ text: "Полностью понятна" }, { text: "В целом понятна" }, { text: "Есть сложные темы" }, { text: "Нужны доработки" }]),
-            q("multiple", "Какие форматы занятий полезнее?", false, [{ text: "Лекции" }, { text: "Практика" }, { text: "Домашние задания" }, { text: "Разбор кейсов" }])
-          ]
-        },
-        {
-          title: "Результаты",
-          questions: [
-            q("select", "Сколько времени вы тратите на учебу в неделю?", true, [{ text: "До 2 часов" }, { text: "2-5 часов" }, { text: "5-10 часов" }, { text: "Более 10 часов" }]),
-            q("text", "Что стоит улучшить в курсе?", false)
-          ]
-        }
-      ]
-    },
-    hr: {
-      title: "Вовлеченность команды",
-      description: "Опрос сотрудников о процессах, атмосфере и мотивации.",
-      pages: [
-        {
-          title: "Рабочая среда",
-          questions: [
-            q("rating", "Оцените уровень взаимодействия в команде", true),
-            q("single", "Понимаете ли вы цели команды на квартал?", true, [{ text: "Да, полностью" }, { text: "Частично" }, { text: "Нет" }]),
-            q("multiple", "Что сильнее всего влияет на мотивацию?", true, [{ text: "Интересные задачи" }, { text: "Рост и обучение" }, { text: "Командная культура" }, { text: "Компенсация" }])
-          ]
-        },
-        {
-          title: "Развитие",
-          questions: [
-            q("select", "Как часто вы получаете обратную связь от руководителя?", true, [{ text: "Еженедельно" }, { text: "Раз в месяц" }, { text: "Реже" }]),
-            q("text", "Какие изменения вы предлагаете?", false)
-          ]
-        }
-      ]
-    },
-    marketing: {
-      title: "Маркетинговый опрос",
-      description: "Шаблон для проверки каналов привлечения и потребностей аудитории.",
-      pages: [
-        {
-          title: "Источники и выбор",
-          questions: [
-            q("single", "Как вы узнали о нас?", true, [{ text: "Поиск" }, { text: "Соцсети" }, { text: "Рекомендация" }, { text: "Реклама" }]),
-            q("select", "Какой формат продукта интереснее?", true, [{ text: "Базовый" }, { text: "Профессиональный" }, { text: "Корпоративный" }]),
-            q("rating", "Насколько вероятно, что вы порекомендуете нас коллегам?", true)
-          ]
-        },
-        {
-          title: "Пожелания",
-          questions: [
-            q("multiple", "Какие каналы коммуникации вам удобны?", false, [{ text: "Email" }, { text: "Telegram" }, { text: "Звонок" }, { text: "Личный кабинет" }]),
-            q("text", "Чего вам не хватает в текущем решении?", false)
-          ]
-        }
-      ]
-    },
-    service: {
-      title: "Оценка клиентского сервиса",
-      description: "Анализ качества поддержки и клиентского опыта после обращения.",
-      pages: [
-        {
-          title: "Контакт с поддержкой",
-          questions: [
-            q("rating", "Оцените скорость обработки обращения", true),
-            q("single", "Решили ли вашу задачу?", true, [{ text: "Да, полностью" }, { text: "Частично" }, { text: "Нет" }]),
-            q("single", "Насколько вежлив был специалист?", true, [{ text: "Отлично" }, { text: "Хорошо" }, { text: "Нейтрально" }, { text: "Плохо" }])
-          ]
-        },
-        {
-          title: "Комментарий",
-          questions: [
-            q("text", "Что нам улучшить в работе сервиса?", false),
-            q("text", "Если хотите, оставьте контакты для обратной связи", false)
-          ]
-        }
-      ]
-    },
-    events: {
-      title: "Обратная связь по мероприятию",
-      description: "Шаблон для оценки деловых и образовательных мероприятий.",
-      pages: [
-        {
-          title: "Впечатление",
-          questions: [
-            q("rating", "Как вы оцениваете мероприятие в целом?", true),
-            q("multiple", "Что понравилось больше всего?", false, [{ text: "Программа" }, { text: "Спикеры" }, { text: "Организация" }, { text: "Нетворкинг" }]),
-            q("single", "Насколько удобна была площадка?", true, [{ text: "Очень удобно" }, { text: "Нормально" }, { text: "Нужно улучшить" }])
-          ]
-        },
-        {
-          title: "Итоги",
-          questions: [
-            q("single", "Придёте ли вы на следующее мероприятие?", true, [{ text: "Да" }, { text: "Скорее да" }, { text: "Скорее нет" }, { text: "Нет" }]),
-            q("text", "Ваши пожелания к следующему событию", false)
-          ]
-        }
-      ]
-    },
-    voting: {
-      title: "Голосование по инициативам",
-      description: "Выбор приоритетной инициативы с фиксацией комментариев.",
-      pages: [
-        {
-          title: "Голосование",
-          questions: [
-            q("single", "Выберите приоритетную инициативу", true, [{ text: "Инициатива A" }, { text: "Инициатива B" }, { text: "Инициатива C" }]),
-            q("select", "Срок реализации приоритета", true, [{ text: "Срочно (1-2 недели)" }, { text: "Среднесрочно (1-2 месяца)" }, { text: "Долгосрочно (квартал)" }])
-          ]
-        },
-        {
-          title: "Аргументация",
-          questions: [q("text", "Комментарий к вашему выбору", false)]
-        }
-      ]
-    },
-    ecommerce: {
-      title: "Оценка интернет-магазина",
-      description: "Опрос клиентов после покупки в онлайн-магазине.",
-      pages: [
-        {
-          title: "Покупка",
-          questions: [
-            q("rating", "Оцените удобство оформления заказа", true),
-            q("single", "Как вы оцениваете скорость доставки?", true, [{ text: "Очень быстро" }, { text: "Нормально" }, { text: "Медленно" }]),
-            q("single", "Соответствовал ли товар ожиданиям?", true, [{ text: "Да" }, { text: "Частично" }, { text: "Нет" }])
-          ]
-        },
-        {
-          title: "Лояльность",
-          questions: [
-            q("rating", "Вероятность повторной покупки", true),
-            q("text", "Что стоит улучшить в магазине?", false)
-          ]
-        }
-      ]
-    },
-    healthcare: {
-      title: "Оценка медицинского сервиса",
-      description: "Сбор обратной связи после посещения клиники.",
-      pages: [
-        {
-          title: "Прием",
-          questions: [
-            q("rating", "Оцените качество приема", true),
-            q("single", "Была ли запись удобной?", true, [{ text: "Да" }, { text: "Частично" }, { text: "Нет" }]),
-            q("single", "Насколько понятны рекомендации врача?", true, [{ text: "Полностью понятны" }, { text: "В целом понятны" }, { text: "Есть вопросы" }])
-          ]
-        },
-        {
-          title: "Дополнительно",
-          questions: [
-            q("multiple", "Что важно улучшить?", false, [{ text: "Время ожидания" }, { text: "Коммуникация" }, { text: "Навигация по клинике" }, { text: "Работа регистратуры" }]),
-            q("text", "Комментарий", false)
-          ]
-        }
-      ]
-    },
-    onboarding: {
-      title: "Onboarding нового сотрудника",
-      description: "Оценка адаптации сотрудника в первые недели.",
-      pages: [
-        {
-          title: "Первые впечатления",
-          questions: [
-            q("rating", "Оцените процесс адаптации", true),
-            q("single", "Насколько понятны ваши задачи?", true, [{ text: "Полностью" }, { text: "Частично" }, { text: "Слабо" }]),
-            q("multiple", "Что помогло быстрее адаптироваться?", false, [{ text: "Наставник" }, { text: "Документация" }, { text: "Команда" }, { text: "Вводное обучение" }])
-          ]
-        },
-        {
-          title: "Риски",
-          questions: [
-            q("single", "Есть ли блокеры в работе?", true, [{ text: "Нет" }, { text: "Есть, но решаемые" }, { text: "Есть серьёзные" }]),
-            q("text", "Какая поддержка нужна дополнительно?", false)
-          ]
-        }
-      ]
-    },
-    conference: {
-      title: "Оценка конференции",
-      description: "Шаблон для B2B-конференций и профессиональных форумов.",
-      pages: [
-        {
-          title: "Контент",
-          questions: [
-            q("rating", "Оцените актуальность докладов", true),
-            q("multiple", "Какие темы были наиболее полезны?", false, [{ text: "Продукт" }, { text: "Маркетинг" }, { text: "Продажи" }, { text: "Технологии" }]),
-            q("single", "Удобен ли формат расписания?", true, [{ text: "Да" }, { text: "Частично" }, { text: "Нет" }])
-          ]
-        },
-        {
-          title: "Ценность",
-          questions: [
-            q("single", "Планируете ли участвовать в следующий раз?", true, [{ text: "Да" }, { text: "Скорее да" }, { text: "Скорее нет" }, { text: "Нет" }]),
-            q("text", "Что нужно улучшить в следующей конференции?", false)
-          ]
-        }
-      ]
-    },
-    nps: {
-      title: "NPS-опрос клиентов",
-      description: "Классический формат оценки лояльности и причин оценки.",
-      pages: [
-        {
-          title: "Оценка лояльности",
-          questions: [
-            q("rating", "Насколько вероятно, что вы порекомендуете нас друзьям/коллегам?", true),
-            q("single", "Почему вы поставили именно такую оценку?", true, [{ text: "Продукт удобен" }, { text: "Хороший сервис" }, { text: "Цена/ценность" }, { text: "Есть проблемы" }]),
-            q("text", "Что сильнее всего повлияло на ваш выбор?", false)
-          ]
-        }
-      ]
-    }
+    ...fullTemplates
   };
 
-  function cloneDeep(value) {
-    return JSON.parse(JSON.stringify(value));
-  }
-
-  const MASS_TEMPLATE_BASE_KEYS = [
-    "feedback",
-    "education",
-    "hr",
-    "marketing",
-    "service",
-    "events",
-    "voting",
-    "ecommerce",
-    "healthcare",
-    "onboarding",
-    "conference",
-    "nps"
-  ];
-  const MASS_TEMPLATE_DOMAINS = [
-    { key: "retail", label: "Retail" },
-    { key: "saas", label: "SaaS" },
-    { key: "agency", label: "Agency" },
-    { key: "restaurant", label: "Restaurant" },
-    { key: "realestate", label: "Real Estate" },
-    { key: "educationplus", label: "Academy" }
-  ];
-  const MASS_TEMPLATE_MODES = [
-    { key: "quick", label: "Quick check" },
-    { key: "deep", label: "Deep dive" },
-    { key: "pulse", label: "Pulse survey" },
-    { key: "quarterly", label: "Quarterly review" }
-  ];
-
-  MASS_TEMPLATE_BASE_KEYS.forEach((baseKey) => {
-    const base = templates[baseKey];
-    if (!base) return;
-    MASS_TEMPLATE_DOMAINS.forEach((domain) => {
-      MASS_TEMPLATE_MODES.forEach((mode) => {
-        const key = `${baseKey}_${domain.key}_${mode.key}`;
-        const variant = cloneDeep(base);
-        variant.title = `${mode.label}: ${domain.label} - ${base.title || baseKey}`;
-        variant.description = `${base.description || "Template"} (industry: ${domain.label}, format: ${mode.label.toLowerCase()}).`;
-        variant.pages = Array.isArray(variant.pages)
-          ? variant.pages.map((page, pageIndex) => ({
-              ...page,
-              title: pageIndex === 0 ? `${page.title || "Page"} (${domain.label})` : page.title || `Page ${pageIndex + 1}`,
-              questions: Array.isArray(page.questions)
-                ? page.questions.map((question, questionIndex) =>
-                    questionIndex === 0
-                      ? {
-                          ...question,
-                          description: `${question.description || ""} ${mode.label}. ${domain.label}.`.trim()
-                        }
-                      : question
-                  )
-                : []
-            }))
-          : [];
-        templates[key] = variant;
-      });
-    });
+  blueprintTemplates.forEach((blueprint) => {
+    templates[blueprint[0]] = makeBlueprintTemplate(blueprint);
   });
 
-  templates.event = templates.events;
-  templates.vote = templates.voting;
+  templates.registration = fullTemplates.event_registration_premium;
+  templates.event_feedback = templates.community_event_feedback;
+  templates.product_discovery = fullTemplates.product_beta_feedback;
+  templates.hr_pulse = templates.employee_engagement_pulse;
+  templates.product_beta_feedback = fullTemplates.product_beta_feedback;
+  templates.customer_satisfaction = fullTemplates.customer_satisfaction_pro;
+  templates.customer_satisfaction_pro = fullTemplates.customer_satisfaction_pro;
+  templates.event_registration_premium = fullTemplates.event_registration_premium;
+  templates.education = templates.course_evaluation_pro;
+  templates.hr = templates.employee_engagement_pulse;
+  templates.marketing = templates.market_segmentation;
+  templates.service = templates.customer_satisfaction_pro;
+  templates.events = fullTemplates.event_registration_premium;
+  templates.event = templates.community_event_feedback;
+  templates.voting = templates.public_service_feedback;
+  templates.vote = templates.public_service_feedback;
+  templates.ecommerce = templates.ecommerce_checkout_audit;
+  templates.healthcare = templates.clinic_patient_experience;
+  templates.nps = templates.customer_satisfaction_pro;
+  templates.onboarding = templates.onboarding_30_60_90;
+  templates.conference = fullTemplates.event_registration_premium;
+  templates.training = templates.training_needs_assessment;
+  templates.course = templates.course_evaluation_pro;
+  templates.support = templates.support_quality_audit;
+  templates.government = templates.public_service_feedback;
+  templates.nonprofit = templates.nonprofit_volunteer_feedback;
+  templates.feedback = templates.customer_satisfaction_pro;
 
   return templates;
 });

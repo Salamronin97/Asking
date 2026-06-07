@@ -4,76 +4,88 @@
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ Р°РЅРєРµС‚С‹ | Asking</title>
+    <title>Конструктор анкеты | Asking</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260314-utf8-hotfix" />
+    <link rel="stylesheet" href="/styles.css?v=20260607-public-runner-1" />
+    <style>
+      body.create-new {
+        visibility: hidden;
+      }
+    </style>
   </head>
   <body class="workspace-page create-new">
     <header class="topbar">
       <div class="container topbar__inner">
-        <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
+        <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span><span class="brand__context">Конструктор</span></a>
         <div class="topbar__actions">
-          <a class="btn btn--ghost" href="/guide">РРЅСЃС‚СЂСѓРєС†РёСЏ</a>
-          <a class="btn btn--ghost" href="/cabinet">РљР°Р±РёРЅРµС‚</a>
-          <a class="btn btn--ghost" href="/account">РђРєРєР°СѓРЅС‚</a>
-          <button id="logoutBtn" class="btn btn--outline" type="button">Р’С‹Р№С‚Рё</button>
+          <a class="btn btn--ghost" href="/guide">Инструкция</a>
+          <a class="btn btn--ghost" href="/cabinet">Кабинет</a>
+          <a class="btn btn--ghost" href="/account">Аккаунт</a>
+          <button id="logoutBtn" class="btn btn--outline" type="button">Выйти</button>
         </div>
       </div>
     </header>
 
-    <section id="draftBanner" class="draft-banner" hidden>
-      <span>РќР°Р№РґРµРЅ С‡РµСЂРЅРѕРІРёРє. Р’РѕСЃСЃС‚Р°РЅРѕРІРёС‚СЊ РёР·РјРµРЅРµРЅРёСЏ?</span>
-      <div class="draft-banner__actions">
-        <button id="restoreDraftBtn" type="button" class="btn btn--primary btn--xs">Р’РѕСЃСЃС‚Р°РЅРѕРІРёС‚СЊ</button>
-        <button id="resetDraftBtn" type="button" class="btn btn--outline btn--xs">РЎР±СЂРѕСЃРёС‚СЊ</button>
-      </div>
-    </section>
-
-    <div class="constructor-mobile-tabs" aria-label="РџР°РЅРµР»Рё РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР°">
-      <button class="constructor-mobile-tab is-active" type="button" data-panel-tab="pages">РЎС‚СЂР°РЅРёС†С‹</button>
-      <button class="constructor-mobile-tab" type="button" data-panel-tab="questions">Р’РѕРїСЂРѕСЃС‹</button>
-      <button class="constructor-mobile-tab" type="button" data-panel-tab="settings">РќР°СЃС‚СЂРѕР№РєРё</button>
+    <div class="constructor-worknav" aria-label="Разделы конструктора">
+      <button class="constructor-worknav__item is-active" type="button" data-builder-section="questions" data-panel-tab="questions">
+        <strong>Вопросы</strong>
+        <span>Состав анкеты</span>
+      </button>
+      <button class="constructor-worknav__item" type="button" data-builder-section="survey" data-panel-tab="questions">
+        <strong>Настройки</strong>
+        <span>Доступ и описание</span>
+      </button>
+      <button class="constructor-worknav__item" type="button" data-builder-section="publish" data-panel-tab="questions">
+        <strong>Публикация</strong>
+        <span>Ссылка и QR</span>
+      </button>
     </div>
 
-    <main class="constructor-wrap workspace-shell" aria-label="РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ Р°РЅРєРµС‚С‹">
-      <aside id="pagesPanel" class="constructor-pages workspace-side card constructor-panel is-active" data-panel="pages" aria-label="РЎС‚СЂР°РЅРёС†С‹ Р°РЅРєРµС‚С‹">
+    <main class="constructor-wrap workspace-shell" aria-label="Конструктор анкеты">
+      <aside id="pagesPanel" class="constructor-pages workspace-side card constructor-panel is-active" data-panel="pages" aria-label="Страницы анкеты">
         <div class="constructor-head-sm">
-          <h3>РЎС‚СЂР°РЅРёС†С‹</h3>
+          <h3>Страницы</h3>
+          <span id="pagesPanelMeta" class="constructor-pages-meta">1 стр. · 1 вопрос</span>
         </div>
         <div id="pagesList" class="constructor-pages-list"></div>
         <div class="constructor-pages-actions">
-          <button id="renamePageBtn" class="btn btn--ghost btn--xs" type="button">РџРµСЂРµРёРјРµРЅРѕРІР°С‚СЊ</button>
-          <button id="duplicatePageBtn" class="btn btn--ghost btn--xs" type="button">Р”СѓР±Р»РёСЂРѕРІР°С‚СЊ</button>
-          <button id="removePageBtn" class="btn btn--ghost btn--xs" type="button">РЈРґР°Р»РёС‚СЊ</button>
+          <button id="renamePageBtn" class="btn btn--ghost btn--xs" type="button">Переименовать</button>
+          <button id="duplicatePageBtn" class="btn btn--ghost btn--xs" type="button">Дублировать</button>
+          <button id="removePageBtn" class="btn btn--ghost btn--xs" type="button">Удалить</button>
         </div>
-        <button id="addPageBtn" class="btn btn--outline" type="button">+ Р”РѕР±Р°РІРёС‚СЊ СЃС‚СЂР°РЅРёС†Сѓ</button>
+        <button id="addPageBtn" class="btn btn--outline" type="button">+ Страница</button>
 
         <section class="constructor-bank">
           <div class="constructor-bank__head">
-            <h4>Р‘Р°РЅРє РІРѕРїСЂРѕСЃРѕРІ</h4>
+            <h4>Банк вопросов</h4>
           </div>
           <div class="constructor-bank__list">
             <button class="constructor-bank__item" type="button" data-quick-question-type="single">
-              <strong>РћРґРёРЅ РІС‹Р±РѕСЂ</strong>
-              <span>Р Р°РґРёРѕ-РєРЅРѕРїРєРё</span>
+              <strong>Один выбор</strong>
+              <span>Радио-кнопки</span>
             </button>
             <button class="constructor-bank__item" type="button" data-quick-question-type="multiple">
-              <strong>РњРЅРѕР¶РµСЃС‚РІРµРЅРЅС‹Р№</strong>
-              <span>Р§РµРєР±РѕРєСЃС‹</span>
+              <strong>Множественный</strong>
+              <span>Чекбоксы</span>
             </button>
             <button class="constructor-bank__item" type="button" data-quick-question-type="select">
-              <strong>РЎРїРёСЃРѕРє</strong>
-              <span>Р’С‹РїР°РґР°СЋС‰РёР№ select</span>
+              <strong>Список</strong>
+              <span>Выпадающий select</span>
             </button>
             <button class="constructor-bank__item" type="button" data-quick-question-type="rating">
-              <strong>Р РµР№С‚РёРЅРі</strong>
-              <span>РЁРєР°Р»Р° 1-5</span>
+              <strong>Рейтинг</strong>
+              <span>Шкала 1-5</span>
+            </button>
+            <button class="constructor-bank__item" type="button" data-quick-question-type="image">
+              <strong>Опрос с изображениями</strong>
+              <span>Карточки с фото</span>
             </button>
             <button class="constructor-bank__item" type="button" data-quick-question-type="text">
-              <strong>РўРµРєСЃС‚</strong>
-              <span>РЎРІРѕР±РѕРґРЅС‹Р№ РѕС‚РІРµС‚</span>
+              <strong>Текст</strong>
+              <span>Свободный ответ</span>
             </button>
           </div>
         </section>
@@ -95,58 +107,43 @@
               <span>Проблема, приоритет, барьеры</span>
             </button>
             <button class="constructor-kitbank__item" type="button" data-question-preset="hr-pulse">
-              <strong>HR Pulse</strong>
-              <span>Атмосфера, нагрузка, eNPS</span>
+              <strong>Опрос команды</strong>
+              <span>Атмосфера, нагрузка, обратная связь</span>
             </button>
           </div>
         </section>
       </aside>
 
-      <section id="questionsPanel" class="constructor-canvas workspace-main card constructor-panel is-active" data-panel="questions" aria-label="Р’РѕРїСЂРѕСЃС‹">
+      <section id="questionsPanel" class="constructor-canvas workspace-main card constructor-panel is-active" data-panel="questions" aria-label="Вопросы">
         <div class="constructor-worktop">
           <div class="constructor-worktop__crumbs">
-            <strong id="worktopSurveyTitle">РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ Р°РЅРєРµС‚С‹</strong>
+            <strong id="worktopSurveyTitle">Конструктор анкеты</strong>
           </div>
           <div class="constructor-worktop__meta">
-            <span id="builderMetaPages" class="constructor-worktop__pill">0 СЃС‚СЂ.</span>
-            <span id="builderMetaQuestions" class="constructor-worktop__pill">0 РІРѕРїСЂРѕСЃРѕРІ</span>
-            <span id="builderMetaLogic" class="constructor-worktop__pill">0 РїРµСЂРµС…РѕРґРѕРІ</span>
+            <span id="builderMetaLogic" class="constructor-worktop__pill">0 переходов</span>
             <span id="builderMetaTime" class="constructor-worktop__pill">~0 мин</span>
             <span id="builderMetaDifficulty" class="constructor-worktop__pill">Лёгкая</span>
           </div>
           <div class="constructor-worktop__actions">
-            <button id="toggleSimpleModeBtn" class="btn btn--ghost btn--xs" type="button" aria-pressed="true">PRO</button>
-            <button id="publishBtn" class="btn btn--primary btn--xs" type="button">Опубликовать</button>
+            <div id="saveState" class="save-indicator is-saved" aria-live="polite">
+              <span class="save-indicator__dot"></span>
+              <span id="saveStateText">Сохранено</span>
+            </div>
+            <button id="publishBtn" class="btn btn--primary btn--xs" type="button">Далее</button>
           </div>
         </div>
 
-        <div class="constructor-sheet">
-          <header class="constructor-header">
-            <div class="constructor-title-block">
-              <input id="surveyTitle" class="constructor-title-input" type="text" placeholder="РќР°Р·РІР°РЅРёРµ Р°РЅРєРµС‚С‹" />
-              <textarea id="surveyDescription" class="constructor-description-input" placeholder="РљСЂР°С‚РєРѕРµ РѕРїРёСЃР°РЅРёРµ Р°РЅРєРµС‚С‹"></textarea>
-            </div>
-            <div class="constructor-header-actions">
-              <div id="saveState" class="save-indicator is-saved" aria-live="polite">
-                <span class="save-indicator__dot"></span>
-                <span id="saveStateText">РЎРѕС…СЂР°РЅРµРЅРѕ</span>
-              </div>
-            </div>
-          </header>
-
-
+        <div id="questionsStep" class="constructor-sheet constructor-step-pane" data-step-pane="questions">
           <div class="constructor-toolbar">
             <div class="constructor-toolbar-lanes" aria-label="Режимы конструктора">
               <button id="toolbarLaneComposeBtn" class="constructor-toolbar-lane is-active" type="button" data-toolbar-lane-btn="compose" aria-pressed="true">Конструктор</button>
               <button id="toolbarLaneOrganizeBtn" class="constructor-toolbar-lane" type="button" data-toolbar-lane-btn="organize" aria-pressed="false">Структура</button>
-              <button id="toolbarLaneAdvancedBtn" class="constructor-toolbar-lane" type="button" data-toolbar-lane-btn="advanced" aria-pressed="false">Продвинутое</button>
             </div>
             <div class="constructor-toolbar__group constructor-toolbar__group--core" data-toolbar-lane="compose" aria-label="Основные действия">
               <span class="constructor-toolbar__group-title">Основное</span>
               <button id="addQuestionBtn" class="btn btn--outline" type="button">+ Добавить вопрос</button>
-              <button id="openQuickStartWizardBtn" class="btn btn--ghost" type="button">Опрос за 60 сек</button>
+              <button id="openQuickStartWizardBtn" class="btn btn--ghost" type="button">Быстрый старт</button>
               <button id="openTemplateCatalogBtn" class="btn btn--ghost" type="button">Шаблоны</button>
-              <button id="toggleAdvancedBuilderBtn" class="btn btn--ghost btn--xs" type="button" aria-pressed="false">Расширенный режим</button>
             </div>
             <div class="constructor-toolbar__group constructor-toolbar__group--search" data-toolbar-lane="compose organize" aria-label="Поиск и выделение">
               <span class="constructor-toolbar__group-title">Поиск</span>
@@ -157,7 +154,7 @@
                 <span id="questionMatchCount" class="constructor-match-count">0/0</span>
                 <button id="clearQuestionSearchBtn" class="btn btn--ghost btn--xs" type="button">Очистить поиск</button>
                 <button id="moveSelectedToPageBtn" class="btn btn--ghost btn--xs" type="button">Перенести на стр.</button>
-                <div class="constructor-advanced constructor-toolbar__bulk">
+                <div class="constructor-toolbar__bulk">
                   <button id="selectAllVisibleQuestionsBtn" class="btn btn--ghost btn--xs" type="button">Выделить видимые</button>
                   <button id="clearQuestionSelectionBtn" class="btn btn--ghost btn--xs" type="button">Снять выделение</button>
                   <button id="duplicateSelectedQuestionBtn" class="btn btn--ghost btn--xs" type="button">Дублировать</button>
@@ -165,7 +162,7 @@
                 </div>
               </div>
             </div>
-            <div class="constructor-toolbar__group constructor-toolbar__group--history constructor-advanced" data-toolbar-lane="advanced" aria-label="Инструменты">
+            <div class="constructor-toolbar__group constructor-toolbar__group--history" data-toolbar-lane="organize" aria-label="Инструменты">
               <span class="constructor-toolbar__group-title">Инструменты</span>
               <div class="constructor-toolbar__history">
                 <button id="undoBtn" class="btn btn--ghost btn--xs" type="button" title="Ctrl+Z">Отменить</button>
@@ -181,6 +178,7 @@
               <div class="constructor-toolbar__quick">
                 <button class="btn btn--ghost btn--xs" type="button" data-quick-add-type="single">+ Один выбор</button>
                 <button class="btn btn--ghost btn--xs" type="button" data-quick-add-type="multiple">+ Несколько</button>
+                <button class="btn btn--ghost btn--xs" type="button" data-quick-add-type="image">+ Фото-опрос</button>
                 <button class="btn btn--ghost btn--xs" type="button" data-quick-add-type="text">+ Текст</button>
               </div>
             </div>
@@ -190,15 +188,12 @@
             <button class="constructor-type-pill" type="button" draggable="true" data-drag-add-type="multiple"><span>☑</span><strong>Несколько</strong></button>
             <button class="constructor-type-pill" type="button" draggable="true" data-drag-add-type="select"><span>▾</span><strong>Список</strong></button>
             <button class="constructor-type-pill" type="button" draggable="true" data-drag-add-type="rating"><span>★</span><strong>Рейтинг</strong></button>
+            <button class="constructor-type-pill" type="button" draggable="true" data-drag-add-type="image"><span>[]</span><strong>Фото-опрос</strong></button>
             <button class="constructor-type-pill" type="button" draggable="true" data-drag-add-type="text"><span>✎</span><strong>Текст</strong></button>
           </div>
           <div id="questionList" class="constructor-question-list"></div>
           <p id="statusText" class="status"></p>
           <p id="hotkeysHint" class="constructor-hotkeys-hint">Ctrl+S сохранить | Ctrl+F поиск | Alt+стрелки страницы</p>
-          <div class="constructor-inline-draft-actions">
-            <button id="restoreDraftInlineBtn" class="btn btn--ghost btn--xs" type="button">Восстановить черновик</button>
-            <button id="clearDraftInlineBtn" class="btn btn--ghost btn--xs" type="button">Очистить черновик</button>
-          </div>
           <div id="questionBulkDock" class="constructor-bulk-dock" hidden>
             <div class="constructor-bulk-dock__left">
               <strong id="bulkDockCount">0 выбрано</strong>
@@ -212,217 +207,291 @@
             </div>
           </div>
         </div>
+
+        <section id="surveySettingsStep" class="constructor-step-pane constructor-step-card" data-step-pane="survey" hidden>
+          <div class="constructor-step-card__head">
+            <div>
+              <h3>Настройки анкеты</h3>
+              <p>Название, описание и доступ перед публикацией.</p>
+            </div>
+            <div class="constructor-step-card__actions">
+              <button id="openDesignSettingsBtn" class="btn btn--outline btn--xs" type="button">Дизайн</button>
+            </div>
+          </div>
+          <div class="constructor-settings-grid">
+            <label class="form-row">
+              <span>Название анкеты</span>
+              <input id="surveyTitle" class="constructor-title-input" type="text" placeholder="Название анкеты" />
+            </label>
+            <label class="form-row">
+              <span>Описание</span>
+              <textarea id="surveyDescription" class="constructor-description-input" placeholder="Краткое описание анкеты"></textarea>
+            </label>
+            <section class="constructor-welcome-settings">
+              <div class="constructor-welcome-settings__head">
+                <div>
+                  <span>Страница 0</span>
+                  <h4>Заглавная страница</h4>
+                </div>
+                <strong>Не удаляется</strong>
+              </div>
+              <div id="welcomePreviewCard" class="constructor-welcome-preview" aria-hidden="true"></div>
+              <label class="inline-check">
+                <input id="welcomeImageEnabledInput" type="checkbox" checked />
+                <span>Показывать изображение на вступительной странице</span>
+              </label>
+              <label class="form-row">
+                <span>Обложка вступления</span>
+                <input id="welcomeCoverImageInput" type="url" placeholder="https://..." />
+                <div class="constructor-option-actions">
+                  <button id="welcomeCoverUploadBtn" class="btn btn--ghost btn--xs" type="button">Загрузить обложку</button>
+                  <input id="welcomeCoverUploadInput" type="file" accept="image/*" hidden />
+                </div>
+              </label>
+              <label class="form-row">
+                <span>Перспектива макета</span>
+                <select id="welcomeLayoutInput">
+                  <option value="image-right">Фото справа</option>
+                  <option value="image-left">Фото слева</option>
+                  <option value="image-top">Фото сверху</option>
+                  <option value="background">Фото на фоне</option>
+                  <option value="typographic">Только текст</option>
+                </select>
+              </label>
+              <label class="form-row">
+                <span>Прозрачность изображения: <strong id="welcomeImageOpacityValue">86%</strong></span>
+                <input id="welcomeImageOpacityInput" type="range" min="20" max="100" step="5" value="86" />
+              </label>
+            </section>
+            <label class="inline-check constructor-access-toggle">
+              <input id="accessPasswordEnabledInput" type="checkbox" />
+              <span>Закрыть анкету паролем</span>
+            </label>
+            <label class="form-row">
+              <span>Пароль для участников</span>
+              <input id="accessPasswordInput" type="text" placeholder="Оставьте пустым, чтобы не менять пароль" />
+            </label>
+            <label class="form-row">
+              <span>Лимит ответов</span>
+              <input id="responseLimitInput" type="number" min="0" step="1" placeholder="Без ограничения" />
+            </label>
+          </div>
+          <div class="constructor-step-actions">
+            <button id="backToQuestionsBtn" class="btn btn--ghost" type="button">Назад к вопросам</button>
+            <button id="confirmSettingsBtn" class="btn btn--primary" type="button">Продолжить</button>
+          </div>
+        </section>
+
+        <section id="publishStep" class="constructor-step-pane constructor-step-card" data-step-pane="publish" hidden>
+          <div class="constructor-step-card__head">
+            <div>
+              <h3>Публикация</h3>
+              <p>Откройте доступ к анкете и поделитесь ссылкой.</p>
+            </div>
+          </div>
+          <div class="constructor-share-panel">
+            <label class="form-row">
+              <span>Ссылка</span>
+              <input id="shareLinkInput" type="text" readonly placeholder="Ссылка появится после сохранения" />
+            </label>
+            <div class="constructor-share-actions">
+              <button id="shareSurveyBtn" class="btn btn--outline" type="button">Скопировать ссылку</button>
+              <a id="openPublishedSurveyLink" class="btn btn--ghost" href="#" target="_blank" rel="noopener noreferrer">Открыть</a>
+            </div>
+            <div class="constructor-qr-card">
+              <img id="shareQrImage" alt="QR-код анкеты" />
+              <a id="downloadQrLink" class="btn btn--ghost btn--xs" href="#" download="survey-qr.png">Скачать QR</a>
+            </div>
+          </div>
+          <div class="constructor-step-actions">
+            <button id="backToSettingsBtn" class="btn btn--ghost" type="button">Назад к настройкам</button>
+          </div>
+        </section>
       </section>
 
-      <aside id="settingsPanel" class="constructor-editor workspace-side card constructor-panel is-active" data-panel="settings" aria-label="Р РµРґР°РєС‚РѕСЂ РІРѕРїСЂРѕСЃР°">
-        <div class="constructor-head-sm">
-          <h3>РќР°СЃС‚СЂРѕР№РєРё РІРѕРїСЂРѕСЃР°</h3>
+      <aside id="settingsPanel" class="constructor-editor workspace-side card constructor-panel is-active" data-panel="settings" aria-label="Редактор вопроса">
+        <div class="constructor-editor-top">
+          <div>
+            <span>Редактор</span>
+            <h3>Вопрос и страница</h3>
+          </div>
+          <button id="closeInspectorBtn" class="constructor-modal-close constructor-inspector-close" type="button" aria-label="Закрыть">×</button>
         </div>
-        <div class="constructor-settings-tabs" role="tablist" aria-label="РЎРµРєС†РёРё РЅР°СЃС‚СЂРѕРµРє">
-          <button id="settingsTabQuestion" class="constructor-settings-tab is-active" type="button" role="tab" aria-selected="true">Р’РѕРїСЂРѕСЃ</button>
-          <button id="settingsTabDesign" class="constructor-settings-tab" type="button" role="tab" aria-selected="false">Р”РёР·Р°Р№РЅ</button>
+        <div class="constructor-settings-tabs constructor-settings-tabs--steps" role="tablist" aria-label="Секции настроек">
+          <button id="settingsTabQuestion" class="constructor-settings-tab is-active" type="button" role="tab" aria-selected="true">Вопрос</button>
         </div>
 
         <div id="settingsQuestionPane">
           <div class="constructor-editor-shortcuts" aria-label="Навигатор секций">
-            <button class="constructor-editor-shortcut is-active" type="button" data-editor-section-shortcut="content">Текст</button>
-            <button class="constructor-editor-shortcut" type="button" data-editor-section-shortcut="options">Варианты</button>
-            <button class="constructor-editor-shortcut" type="button" data-editor-section-shortcut="logic">Логика</button>
-            <button class="constructor-editor-shortcut" type="button" data-editor-section-shortcut="actions">Удаление</button>
+            <button class="constructor-editor-shortcut is-active" type="button" data-editor-section-shortcut="content">1. Вопрос</button>
+            <button class="constructor-editor-shortcut" type="button" data-editor-section-shortcut="options">2. Варианты</button>
+            <button class="constructor-editor-shortcut" type="button" data-editor-section-shortcut="logic">3. Логика</button>
           </div>
           <div id="emptyEditor" class="constructor-empty-editor">
-            <p>Р’С‹Р±РµСЂРёС‚Рµ РІРѕРїСЂРѕСЃ РІ С†РµРЅС‚СЂРµ, С‡С‚РѕР±С‹ РёР·РјРµРЅРёС‚СЊ РµРіРѕ РїР°СЂР°РјРµС‚СЂС‹.</p>
+            <p>Выберите вопрос в центре, чтобы изменить его параметры.</p>
           </div>
 
           <div id="questionEditor" class="constructor-editor-form" hidden>
             <label class="form-row">
-              <span>РўРµРєСЃС‚ РІРѕРїСЂРѕСЃР°</span>
+              <span>Текст вопроса</span>
               <input id="questionTitleInput" type="text" />
             </label>
 
             <label class="form-row">
-              <span>РћРїРёСЃР°РЅРёРµ / РїРѕРґСЃРєР°Р·РєР°</span>
-              <textarea id="questionDescriptionInput" placeholder="Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Р№ С‚РµРєСЃС‚ РїРѕРґ РІРѕРїСЂРѕСЃРѕРј"></textarea>
+              <span>Описание / подсказка</span>
+              <textarea id="questionDescriptionInput" placeholder="Дополнительный текст под вопросом"></textarea>
+            </label>
+
+            <label class="form-row">
+              <span>Прозрачность панели: <strong id="questionPanelOpacityValue">72%</strong></span>
+              <input id="questionPanelOpacityInput" type="range" min="28" max="100" step="4" value="72" />
             </label>
 
             <label class="inline-check">
               <input id="questionRequiredInput" type="checkbox" />
-              <span>РћР±СЏР·Р°С‚РµР»СЊРЅС‹Р№ РІРѕРїСЂРѕСЃ</span>
+              <span>Обязательный вопрос</span>
             </label>
+            <button id="questionRequiredQuickBtn" class="btn btn--outline btn--xs constructor-required-quick" type="button">Сделать обязательным</button>
 
             <label class="form-row">
-              <span>РўРёРї РІРѕРїСЂРѕСЃР°</span>
+              <span>Тип вопроса</span>
               <select id="questionTypeInput">
-                <option value="text">РўРµРєСЃС‚</option>
-                <option value="single">РћРґРёРЅ РІС‹Р±РѕСЂ</option>
-                <option value="multiple">РњРЅРѕР¶РµСЃС‚РІРµРЅРЅС‹Р№</option>
-                <option value="rating">Р РµР№С‚РёРЅРі</option>
-                <option value="select">РЎРїРёСЃРѕРє</option>
+                <option value="text">Текст</option>
+                <option value="single">Один выбор</option>
+                <option value="multiple">Множественный</option>
+                <option value="image">Опрос с изображениями</option>
+                <option value="rating">Рейтинг</option>
+                <option value="select">Список</option>
               </select>
             </label>
 
             <section id="ratingEditor" class="constructor-rating" hidden>
-              <h4>РЁРєР°Р»Р° СЂРµР№С‚РёРЅРіР°</h4>
+              <h4>Шкала рейтинга</h4>
               <div class="constructor-rating-row">
                 <label class="form-row">
-                  <span>РџРѕРґРїРёСЃСЊ 1</span>
-                  <input id="ratingLabelMin" type="text" placeholder="РќР°РїСЂРёРјРµСЂ: РџР»РѕС…Рѕ" />
+                  <span>Подпись 1</span>
+                  <input id="ratingLabelMin" type="text" placeholder="Например: Плохо" />
                 </label>
                 <label class="form-row">
-                  <span>РџРѕРґРїРёСЃСЊ 5</span>
-                  <input id="ratingLabelMax" type="text" placeholder="РќР°РїСЂРёРјРµСЂ: РћС‚Р»РёС‡РЅРѕ" />
+                  <span>Подпись 5</span>
+                  <input id="ratingLabelMax" type="text" placeholder="Например: Отлично" />
                 </label>
               </div>
             </section>
 
             <section id="optionsEditor" class="constructor-options" hidden>
-              <h4>Р’Р°СЂРёР°РЅС‚С‹ РѕС‚РІРµС‚Р°</h4>
+              <h4>Варианты ответа</h4>
               <label class="inline-check">
                 <input id="questionLogicEnabledInput" type="checkbox" />
-                <span>Р›РѕРіРёРєР° РїРµСЂРµС…РѕРґРѕРІ РїРѕ РѕС‚РІРµС‚Р°Рј</span>
+                <span>Логика переходов по ответам</span>
               </label>
               <p id="questionLogicHint" class="constructor-logic-hint" hidden>
-                Р’С‹Р±РµСЂРёС‚Рµ, РЅР° РєР°РєСѓСЋ СЃС‚СЂР°РЅРёС†Сѓ РїРµСЂРµР№РґС‘С‚ СѓС‡Р°СЃС‚РЅРёРє РїРѕСЃР»Рµ РєР°Р¶РґРѕРіРѕ РІР°СЂРёР°РЅС‚Р°.
+                Выберите, на какую страницу перейдёт участник после каждого варианта.
               </p>
-              <div class="constructor-option-presets" aria-label="Option presets">
-                <span class="constructor-option-presets__label">Готовые варианты:</span>
-                <button class="btn btn--ghost btn--xs" type="button" data-option-preset="yes-no">Да / Нет</button>
-                <button class="btn btn--ghost btn--xs" type="button" data-option-preset="agree">Степень согласия</button>
-                <button class="btn btn--ghost btn--xs" type="button" data-option-preset="satisfaction">Оценка 1-5</button>
-                <button class="btn btn--ghost btn--xs" type="button" data-option-preset="nps">NPS 0-10</button>
-              </div>
-
               <div id="optionsList" class="constructor-options-list"></div>
               <div class="constructor-options-tools">
                 <button id="addOptionBtn" class="btn btn--outline btn--xs" type="button">+ Добавить вариант</button>
-                <button id="normalizeOptionsBtn" class="btn btn--ghost btn--xs" type="button">Нормализовать</button>
-                <button id="bulkOptionsToggleBtn" class="btn btn--ghost btn--xs" type="button">Массовый ввод</button>
-              </div>
-              <div id="bulkOptionsWrap" class="constructor-bulk-options" hidden>
-                <label class="form-row">
-                  <span>Один вариант на строку</span>
-                  <textarea id="bulkOptionsInput" placeholder="Вариант 1&#10;Вариант 2&#10;Вариант 3"></textarea>
-                </label>
-                <button id="applyBulkOptionsBtn" class="btn btn--primary btn--xs" type="button">Применить список</button>
               </div>
             </section>
 
-            <button id="removeQuestionBtn" class="btn btn--danger" type="button">РЈРґР°Р»РёС‚СЊ РІРѕРїСЂРѕСЃ</button>
+            <button id="removeQuestionBtn" class="btn btn--danger" type="button">Удалить вопрос</button>
           </div>
         </div>
 
-        <section id="settingsDesignPane" class="constructor-design card" hidden>
-          <div class="constructor-design__head">
-            <h4>Р”РёР·Р°Р№РЅ СЃС‚СЂР°РЅРёС†С‹</h4>
-            <button id="openThemePickerBtn" class="btn btn--ghost btn--xs" type="button">Р’С‹Р±СЂР°С‚СЊ С‚РµРјСѓ</button>
-          </div>
-          <div class="constructor-design__theme">
-            <span id="activeThemeBadge" class="constructor-design__badge">Sea</span>
-          </div>
-
-          <label class="form-row">
-            <span>Р¦РІРµС‚ С„РѕРЅР°</span>
-            <input id="pageBgColorInput" type="color" value="#eaf3fb" />
-          </label>
-
-          <label class="form-row">
-            <span>Р¤РѕРЅРѕРІРѕРµ РёР·РѕР±СЂР°Р¶РµРЅРёРµ (URL)</span>
-            <input id="pageBgImageInput" type="url" placeholder="https://..." />
-          </label>
-
-          <label class="form-row">
-            <span>РњР°РєРµС‚</span>
-            <select id="pageLayoutInput">
-              <option value="full">Р¦РµР»СЊРЅС‹Р№ С„РѕРЅ</option>
-              <option value="split-right-image">Р¤РѕС‚Рѕ СЃРїСЂР°РІР°</option>
-              <option value="split-left-image">Р¤РѕС‚Рѕ СЃР»РµРІР°</option>
-              <option value="cover-top-image">РћР±Р»РѕР¶РєР° СЃРІРµСЂС…Сѓ</option>
-              <option value="center-card">РљР°СЂС‚РѕС‡РєР° РїРѕ С†РµРЅС‚СЂСѓ</option>
-            </select>
-          </label>
-
-          <label class="form-row">
-            <span>РќР°РєР»Р°РґРєР°: <strong id="pageOverlayValue">0%</strong></span>
-            <input id="pageOverlayInput" type="range" min="0" max="90" step="5" value="0" />
-          </label>
-
-          <div class="constructor-design__actions">
-            <button id="applyDesignAllBtn" class="btn btn--outline btn--xs" type="button">РџСЂРёРјРµРЅРёС‚СЊ РєРѕ РІСЃРµРј</button>
-            <button id="resetDesignBtn" class="btn btn--ghost btn--xs" type="button">РЎР±СЂРѕСЃ</button>
-          </div>
-        </section>
-
-        <details class="constructor-health card" open>
+        <details class="constructor-logic-map card" open>
           <summary class="constructor-fold__summary">
-            <span>Качество анкеты</span>
-            <strong id="builderHealthPercent">0%</strong>
+            <span>Переходы</span>
+            <strong id="logicMapCount">0</strong>
           </summary>
-          <div class="constructor-health__bar">
-            <span id="builderHealthBarFill" style="width: 0%"></span>
-          </div>
-          <ul class="constructor-health__list">
-            <li id="builderCheckTitle">Качество названия</li>
-            <li id="builderCheckQuestions">Минимум 4 вопроса</li>
-            <li id="builderCheckPages">Хотя бы 1 страница</li>
-            <li id="builderCheckLogic">Хотя бы 1 логический переход</li>
-            <li id="builderCheckRequired">Хотя бы 1 обязательный вопрос</li>
-            <li id="builderCheckOptions">В вопросах с выбором 2+ варианта</li>
-          </ul>
-          <div class="constructor-health-reco">
-            <h4>Что улучшить</h4>
-            <ul id="builderHealthRecommendations" class="constructor-health-reco__list"></ul>
-          </div>
+          <div id="logicMapList" class="constructor-logic-map__list"></div>
         </details>
       </aside>
     </main>
 
     <button id="mobileAddQuestionFab" class="constructor-fab" type="button" aria-label="Добавить вопрос">+ Вопрос</button>
 
+    <div id="designSettingsOverlay" class="constructor-modal-overlay constructor-modal-overlay--soft" hidden>
+      <section id="designSettingsPanel" class="constructor-modal constructor-modal--design constructor-design" role="dialog" aria-modal="true" aria-labelledby="designSettingsTitle">
+        <div class="constructor-modal-head">
+          <div>
+            <h3 id="designSettingsTitle">Дизайн страницы</h3>
+            <p class="constructor-modal-lead">Цвет, фон и макет выбранной страницы.</p>
+          </div>
+          <button id="closeDesignSettingsBtn" class="constructor-modal-close" type="button" aria-label="Закрыть">×</button>
+        </div>
+        <div class="constructor-design__head">
+          <h4>Тема</h4>
+          <button id="openThemePickerBtn" class="btn btn--ghost btn--xs" type="button">Выбрать тему</button>
+        </div>
+        <div class="constructor-design__theme">
+          <span id="activeThemeBadge" class="constructor-design__badge">Sea</span>
+        </div>
+
+        <label class="form-row">
+          <span>Цвет фона</span>
+          <input id="pageBgColorInput" type="color" value="#eaf3fb" />
+        </label>
+
+        <label class="form-row">
+          <span>Фоновое изображение (URL)</span>
+          <input id="pageBgImageInput" type="url" placeholder="https://..." />
+          <div class="constructor-option-actions">
+            <button id="pageBgUploadBtn" class="btn btn--ghost btn--xs" type="button">Загрузить с устройства</button>
+            <input id="pageBgUploadInput" type="file" accept="image/*" hidden />
+          </div>
+        </label>
+
+        <label class="form-row">
+          <span>Макет</span>
+          <select id="pageLayoutInput">
+            <option value="full">Цельный фон</option>
+            <option value="split-right-image">Фото справа</option>
+            <option value="split-left-image">Фото слева</option>
+            <option value="cover-top-image">Обложка сверху</option>
+            <option value="center-card">Карточка по центру</option>
+          </select>
+        </label>
+
+        <label class="form-row">
+          <span>Накладка: <strong id="pageOverlayValue">0%</strong></span>
+          <input id="pageOverlayInput" type="range" min="0" max="90" step="5" value="0" />
+        </label>
+
+        <div class="constructor-design__actions">
+          <button id="applyDesignAllBtn" class="btn btn--outline btn--xs" type="button">Применить ко всем</button>
+          <button id="resetDesignBtn" class="btn btn--ghost btn--xs" type="button">Сброс</button>
+        </div>
+      </section>
+    </div>
+
     <div id="questionTypeOverlay" class="constructor-modal-overlay" hidden>
       <div class="constructor-modal" role="dialog" aria-modal="true" aria-labelledby="questionTypeTitle">
         <div class="constructor-modal-head">
-          <h3 id="questionTypeTitle">Р’С‹Р±РµСЂРёС‚Рµ С‚РёРї РІРѕРїСЂРѕСЃР°</h3>
-          <button id="closeQuestionTypeModalBtn" class="constructor-modal-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">×</button>
+          <h3 id="questionTypeTitle">Выберите тип вопроса</h3>
+          <button id="closeQuestionTypeModalBtn" class="constructor-modal-close" type="button" aria-label="Закрыть">×</button>
         </div>
         <div class="constructor-type-groups">
           <section class="constructor-type-group">
-            <h4>Р‘Р°Р·РѕРІС‹Рµ</h4>
+            <h4>Базовые</h4>
             <div class="constructor-type-list">
-              <button class="constructor-type-item" type="button" data-question-type="single"><strong>РћРґРёРЅРѕС‡РЅС‹Р№ РІС‹Р±РѕСЂ</strong><span>РћРґРёРЅ РІР°СЂРёР°РЅС‚ РѕС‚РІРµС‚Р°</span></button>
-              <button class="constructor-type-item" type="button" data-question-type="multiple"><strong>РњРЅРѕР¶РµСЃС‚РІРµРЅРЅС‹Р№ РІС‹Р±РѕСЂ</strong><span>РќРµСЃРєРѕР»СЊРєРѕ РІР°СЂРёР°РЅС‚РѕРІ РѕС‚РІРµС‚Р°</span></button>
-              <button class="constructor-type-item" type="button" data-question-type="single"><strong>Р’С‹Р±РѕСЂ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ</strong><span>РљР°СЂС‚РѕС‡РєРё СЃ РёР·РѕР±СЂР°Р¶РµРЅРёСЏРјРё</span></button>
+              <button class="constructor-type-item" type="button" data-question-type="single"><strong>Одиночный выбор</strong><span>Один вариант ответа</span></button>
+              <button class="constructor-type-item" type="button" data-question-type="multiple"><strong>Множественный выбор</strong><span>Несколько вариантов ответа</span></button>
+              <button class="constructor-type-item" type="button" data-question-type="select"><strong>Выпадающий список</strong><span>Компактный выбор из длинного списка</span></button>
+              <button class="constructor-type-item" type="button" data-question-type="image"><strong>Опрос с изображениями</strong><span>Карточки вариантов с картинками</span></button>
             </div>
           </section>
           <section class="constructor-type-group">
-            <h4>РћС‚РєСЂС‹С‚С‹Рµ</h4>
+            <h4>Открытые</h4>
             <div class="constructor-type-list">
-              <button class="constructor-type-item" type="button" data-question-type="text"><strong>РўРµРєСЃС‚РѕРІС‹Р№ РѕС‚РІРµС‚</strong><span>РЎРІРѕР±РѕРґРЅС‹Р№ С‚РµРєСЃС‚</span></button>
-              <button class="constructor-type-item" type="button" data-question-type="text"><strong>РћС‚РІРµС‚ СЌР»РµРєС‚СЂРѕРЅРЅРѕР№ РїРѕС‡С‚С‹</strong><span>РџСЂРѕРІРµСЂРєР° email</span></button>
-              <button class="constructor-type-item" type="button" data-question-type="text"><strong>Р§РёСЃР»РѕРІРѕР№ РѕС‚РІРµС‚</strong><span>Р§РёСЃР»Р° Рё Р·РЅР°С‡РµРЅРёСЏ</span></button>
-              <button class="constructor-type-item" type="button" data-question-type="text"><strong>РћС‚РІРµС‚ СЃ РґР°С‚РѕР№</strong><span>Р”Р°С‚Р° Рё РІСЂРµРјСЏ</span></button>
+              <button class="constructor-type-item" type="button" data-question-type="text"><strong>Текстовый ответ</strong><span>Свободный текст</span></button>
+              <button class="constructor-type-item" type="button" data-question-type="text"><strong>Ответ электронной почты</strong><span>Проверка email</span></button>
             </div>
           </section>
           <section class="constructor-type-group">
-            <h4>РЎС‚СЂСѓРєС‚СѓСЂРёСЂРѕРІР°РЅРЅС‹Рµ</h4>
+            <h4>Оценочные</h4>
             <div class="constructor-type-list">
-              <button class="constructor-type-item" type="button" data-question-type="multiple"><strong>РњР°С‚СЂРёС†Р°</strong><span>РЎРµС‚РєР° РѕС‚РІРµС‚РѕРІ</span></button>
-              <button class="constructor-type-item" type="button" data-question-type="single"><strong>Р Р°РЅР¶РёСЂРѕРІР°РЅРёРµ</strong><span>РџРѕСЂСЏРґРѕРє РїСЂРёРѕСЂРёС‚РµС‚РѕРІ</span></button>
-              <button class="constructor-type-item" type="button" data-question-type="select"><strong>Р’С‹РїР°РґР°СЋС‰РёР№ СЃРїРёСЃРѕРє</strong><span>РљРѕРјРїР°РєС‚РЅС‹Р№ РІС‹Р±РѕСЂ</span></button>
-            </div>
-          </section>
-          <section class="constructor-type-group">
-            <h4>РћС†РµРЅРѕС‡РЅС‹Рµ</h4>
-            <div class="constructor-type-list">
-              <button class="constructor-type-item" type="button" data-question-type="rating"><strong>Р­РјРѕРґР·Рё СЂРµР№С‚РёРЅРі</strong><span>Р‘С‹СЃС‚СЂР°СЏ РѕС†РµРЅРєР°</span></button>
-              <button class="constructor-type-item" type="button" data-question-type="rating"><strong>Р—РІС‘Р·РґРЅС‹Р№ СЂРµР№С‚РёРЅРі</strong><span>РЁРєР°Р»Р° 1-5</span></button>
-              <button class="constructor-type-item" type="button" data-question-type="rating"><strong>РЎРµРјР°РЅС‚РёС‡РµСЃРєРёР№ РґРёС„С„РµСЂРµРЅС†РёР°Р»</strong><span>РћС†РµРЅРєР° РїРѕ РїРѕР»СЋСЃР°Рј</span></button>
-              <button class="constructor-type-item" type="button" data-question-type="rating"><strong>Р Р°СЃРїСЂРµРґРµР»РёС‚РµР»СЊРЅР°СЏ С€РєР°Р»Р°</strong><span>Р Р°СЃРїСЂРµРґРµР»РµРЅРёРµ Р±Р°Р»Р»РѕРІ</span></button>
-            </div>
-          </section>
-          <section class="constructor-type-group">
-            <h4>Р­Р»РµРјРµРЅС‚С‹</h4>
-            <div class="constructor-type-list">
-              <button class="constructor-type-item" type="button" data-question-type="text"><strong>РЎРѕР±СЃС‚РІРµРЅРЅС‹Р№ С‚РµРєСЃС‚</strong><span>РРЅС„РѕСЂРјР°С†РёРѕРЅРЅС‹Р№ Р±Р»РѕРє</span></button>
+              <button class="constructor-type-item" type="button" data-question-type="rating"><strong>Звёздный рейтинг</strong><span>Шкала 1-5</span></button>
+              <button class="constructor-type-item" type="button" data-question-type="rating"><strong>NPS-оценка</strong><span>Быстрая шкала лояльности</span></button>
             </div>
           </section>
         </div>
@@ -432,17 +501,21 @@
     <div id="creationEntryOverlay" class="constructor-modal-overlay" hidden>
       <div class="constructor-modal constructor-modal--entry" role="dialog" aria-modal="true" aria-labelledby="creationEntryTitle">
         <div class="constructor-modal-head">
-          <h3 id="creationEntryTitle">РЎРѕР·РґР°Р№С‚Рµ РѕРїСЂРѕСЃ</h3>
-          <button id="closeCreationEntryBtn" class="constructor-modal-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">×</button>
+          <h3 id="creationEntryTitle">Создайте опрос</h3>
+          <button id="closeCreationEntryBtn" class="constructor-modal-close" type="button" aria-label="Закрыть">×</button>
         </div>
         <div class="constructor-entry-grid">
           <button id="entryCustomBtn" class="constructor-entry-item" type="button">
-            <strong>РЎРѕР±СЃС‚РІРµРЅРЅС‹Р№ РѕРїСЂРѕСЃ</strong>
-            <span>РЎРѕР·РґР°Р№С‚Рµ Р°РЅРєРµС‚Сѓ СЃ РЅСѓР»СЏ Рё РЅР°СЃС‚СЂРѕР№С‚Рµ РІРѕРїСЂРѕСЃС‹ РІСЂСѓС‡РЅСѓСЋ.</span>
+            <strong>Собственный опрос</strong>
+            <span>Создайте анкету с нуля и настройте вопросы вручную.</span>
+          </button>
+          <button id="entryQuickStartBtn" class="constructor-entry-item" type="button">
+            <strong>Быстрый старт</strong>
+            <span>Соберите продуманный сценарий за минуту и доработайте его в редакторе.</span>
           </button>
           <button id="entryTemplateBtn" class="constructor-entry-item" type="button">
-            <strong>РћРїСЂРѕСЃ РёР· С€Р°Р±Р»РѕРЅР°</strong>
-            <span>Р’С‹Р±РµСЂРёС‚Рµ РіРѕС‚РѕРІСѓСЋ СЃС‚СЂСѓРєС‚СѓСЂСѓ Рё Р°РґР°РїС‚РёСЂСѓР№С‚Рµ РїРѕРґ СЃРµР±СЏ.</span>
+            <strong>Опрос из шаблона</strong>
+            <span>Выберите готовую структуру и адаптируйте под себя.</span>
           </button>
         </div>
       </div>
@@ -451,19 +524,19 @@
     <div id="templateCatalogOverlay" class="constructor-modal-overlay" hidden>
       <div class="constructor-modal constructor-modal--catalog" role="dialog" aria-modal="true" aria-labelledby="templateCatalogTitle">
         <div class="constructor-modal-head">
-          <h3 id="templateCatalogTitle">РЁР°Р±Р»РѕРЅС‹ РѕРїСЂРѕСЃРѕРІ</h3>
-          <button id="closeTemplateCatalogBtn" class="constructor-modal-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">×</button>
+          <h3 id="templateCatalogTitle">Шаблоны опросов</h3>
+          <button id="closeTemplateCatalogBtn" class="constructor-modal-close" type="button" aria-label="Закрыть">×</button>
         </div>
-        <p class="constructor-modal-lead">Р’С‹Р±РµСЂРёС‚Рµ РєР°С‚РµРіРѕСЂРёСЋ Рё СЃРѕР·РґР°Р№С‚Рµ Р°РЅРєРµС‚Сѓ РЅР° РіРѕС‚РѕРІРѕР№ СЃС‚СЂСѓРєС‚СѓСЂРµ.</p>
+        <p class="constructor-modal-lead">Выберите категорию и создайте анкету на готовой структуре.</p>
         <div class="constructor-catalog">
           <aside class="constructor-catalog__side">
             <div id="templateCategoryList" class="constructor-category-list"></div>
           </aside>
           <section class="constructor-catalog__content">
             <div class="constructor-catalog__toolbar">
-              <input id="templateSearchInput" type="search" class="constructor-catalog__search" placeholder="РџРѕРёСЃРє С€Р°Р±Р»РѕРЅР°" />
+              <input id="templateSearchInput" type="search" class="constructor-catalog__search" placeholder="Поиск шаблона" />
               <span id="templateCountBadge" class="ui-badge ui-badge--muted">0 шаблонов</span>
-              <button id="templateCreateBlankBtn" class="btn btn--primary btn--xs" type="button">+ РЎРѕР·РґР°С‚СЊ Р°РЅРєРµС‚Сѓ</button>
+              <button id="templateCreateBlankBtn" class="btn btn--primary btn--xs" type="button">+ Создать анкету</button>
             </div>
             <div id="templateCatalogGrid" class="constructor-catalog-grid"></div>
           </section>
@@ -474,17 +547,18 @@
     <div id="templatePreviewOverlay" class="constructor-modal-overlay" hidden>
       <div class="constructor-modal constructor-modal--preview" role="dialog" aria-modal="true" aria-labelledby="templatePreviewTitle">
         <div class="constructor-modal-head">
-          <h3 id="templatePreviewTitle">РџСЂРµРґРїСЂРѕСЃРјРѕС‚СЂ С€Р°Р±Р»РѕРЅР°</h3>
-          <button id="closeTemplatePreviewBtn" class="constructor-modal-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">×</button>
+          <h3 id="templatePreviewTitle">Состав шаблона</h3>
+          <button id="closeTemplatePreviewBtn" class="constructor-modal-close" type="button" aria-label="Закрыть">×</button>
         </div>
         <div class="constructor-preview-layout">
           <div class="constructor-preview-body">
             <h4 id="templatePreviewName"></h4>
             <p id="templatePreviewDescription"></p>
+            <div id="templatePreviewMeta" class="constructor-preview-meta"></div>
             <ol id="templatePreviewQuestions" class="constructor-preview-questions"></ol>
           </div>
           <aside class="constructor-preview-side">
-            <button id="applyTemplateBtn" class="btn btn--primary" type="button">РСЃРїРѕР»СЊР·РѕРІР°С‚СЊ С€Р°Р±Р»РѕРЅ</button>
+            <button id="applyTemplateBtn" class="btn btn--primary" type="button">Использовать шаблон</button>
           </aside>
         </div>
       </div>
@@ -493,20 +567,20 @@
     <div id="themePickerOverlay" class="constructor-modal-overlay" hidden>
       <div class="constructor-modal constructor-modal--theme" role="dialog" aria-modal="true" aria-labelledby="themePickerTitle">
         <div class="constructor-modal-head">
-          <h3 id="themePickerTitle">Р’С‹Р±РµСЂРёС‚Рµ С‚РµРјСѓ</h3>
-          <button id="closeThemePickerBtn" class="constructor-modal-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">×</button>
+          <h3 id="themePickerTitle">Выберите тему</h3>
+          <button id="closeThemePickerBtn" class="constructor-modal-close" type="button" aria-label="Закрыть">×</button>
         </div>
         <div class="constructor-theme-layout">
           <div class="constructor-theme-preview">
             <div id="themePreviewCard" class="constructor-theme-preview__card"></div>
             <div class="constructor-theme-preview__meta">
               <h4 id="themePreviewName">Sea</h4>
-              <p id="themePreviewDescription">РЎРІРµС‚Р»Р°СЏ С‚РµРјР° СЃ РјСЏРіРєРёРј РіРѕР»СѓР±С‹Рј С„РѕРЅРѕРј.</p>
+              <p id="themePreviewDescription">Светлая тема с мягким голубым фоном.</p>
             </div>
           </div>
           <div id="themeGrid" class="constructor-theme-grid"></div>
           <div class="constructor-theme-footer">
-            <button id="applyThemeBtn" class="btn btn--primary" type="button">РСЃРїРѕР»СЊР·РѕРІР°С‚СЊ С‚РµРјСѓ</button>
+            <button id="applyThemeBtn" class="btn btn--primary" type="button">Использовать тему</button>
           </div>
         </div>
       </div>
@@ -515,7 +589,7 @@
     <div id="quickStartWizardOverlay" class="constructor-modal-overlay" hidden>
       <div class="constructor-modal constructor-modal--wizard" role="dialog" aria-modal="true" aria-labelledby="quickStartWizardTitle">
         <div class="constructor-modal-head">
-          <h3 id="quickStartWizardTitle">Опрос за 60 секунд</h3>
+          <h3 id="quickStartWizardTitle">Быстрый старт</h3>
           <button id="closeQuickStartWizardBtn" class="constructor-modal-close" type="button" aria-label="Закрыть">×</button>
         </div>
         <div class="constructor-wizard-steps">
@@ -529,7 +603,7 @@
             <button class="constructor-wizard-card is-active" type="button" data-wizard-preset="registration">Регистрация</button>
             <button class="constructor-wizard-card" type="button" data-wizard-preset="event-feedback">Фидбек события</button>
             <button class="constructor-wizard-card" type="button" data-wizard-preset="product-discovery">Исследование продукта</button>
-            <button class="constructor-wizard-card" type="button" data-wizard-preset="hr-pulse">HR Pulse</button>
+            <button class="constructor-wizard-card" type="button" data-wizard-preset="hr-pulse">Опрос команды</button>
           </div>
         </section>
         <section id="wizardPaneTheme" class="constructor-wizard-pane" hidden>
@@ -578,8 +652,9 @@
       </div>
     </div>
 
-    <script src="/templates.js?v=20260314-templates-ultra-2"></script>
-    <script src="/create.js?v=20260314-utf8-hotfix-4"></script>
+    <script src="/lang.js?v=20260429-1"></script>
+    <script src="/templates.js?v=20260607-phase6-templates-1"></script>
+    <script src="/create.js?v=20260607-public-runner-1"></script>
   </body>
 </html>
 

@@ -1,36 +1,73 @@
-﻿const logoutBtn = document.getElementById("logoutBtn");
-const accountStatus = document.getElementById("accountStatus");
-const tabs = Array.from(document.querySelectorAll(".account-tab"));
-const panes = Array.from(document.querySelectorAll(".account-pane"));
-const toast = document.getElementById("toast");
+const refs = {
+  logoutBtn: document.getElementById("logoutBtn"),
+  accountStatus: document.getElementById("accountStatus"),
+  tabs: Array.from(document.querySelectorAll(".account-tab")),
+  panes: Array.from(document.querySelectorAll(".account-pane")),
+  toast: document.getElementById("toast"),
 
-const displayNameInput = document.getElementById("displayNameInput");
-const emailInput = document.getElementById("emailInput");
-const localeSelect = document.getElementById("localeSelect");
-const themeSelect = document.getElementById("themeSelect");
-const dateFormatSelect = document.getElementById("dateFormatSelect");
-const saveProfileBtn = document.getElementById("saveProfileBtn");
-const savePrefsBtn = document.getElementById("savePrefsBtn");
+  displayNameInput: document.getElementById("displayNameInput"),
+  emailInput: document.getElementById("emailInput"),
+  companyInput: document.getElementById("companyInput"),
+  positionInput: document.getElementById("positionInput"),
+  profileInitials: document.getElementById("profileInitials"),
+  profileSummaryName: document.getElementById("profileSummaryName"),
+  profileSummaryEmail: document.getElementById("profileSummaryEmail"),
+  profileSummaryVerified: document.getElementById("profileSummaryVerified"),
+  profileSummaryPassword: document.getElementById("profileSummaryPassword"),
+  profileCreatedAt: document.getElementById("profileCreatedAt"),
+  profileUpdatedAt: document.getElementById("profileUpdatedAt"),
+  profileSessionsCount: document.getElementById("profileSessionsCount"),
+  profileCompleteness: document.getElementById("profileCompleteness"),
+  profileCompletenessHint: document.getElementById("profileCompletenessHint"),
+  profileCompanyPreview: document.getElementById("profileCompanyPreview"),
+  profileRolePreview: document.getElementById("profileRolePreview"),
+  profileThemePreview: document.getElementById("profileThemePreview"),
+  profileLocalePreview: document.getElementById("profileLocalePreview"),
 
-const currentPasswordInput = document.getElementById("currentPasswordInput");
-const newPasswordInput = document.getElementById("newPasswordInput");
-const repeatPasswordInput = document.getElementById("repeatPasswordInput");
-const changePasswordBtn = document.getElementById("changePasswordBtn");
-const logoutAllBtn = document.getElementById("logoutAllBtn");
-const passwordForm = document.getElementById("passwordForm");
-const passwordUnavailable = document.getElementById("passwordUnavailable");
-const refreshSessionsBtn = document.getElementById("refreshSessionsBtn");
-const sessionsList = document.getElementById("sessionsList");
-const deleteAccountPasswordInput = document.getElementById("deleteAccountPasswordInput");
-const deleteAccountBtn = document.getElementById("deleteAccountBtn");
+  localeSelect: document.getElementById("localeSelect"),
+  themeSelect: document.getElementById("themeSelect"),
+  prefsLocalePreview: document.getElementById("prefsLocalePreview"),
+  prefsThemePreview: document.getElementById("prefsThemePreview"),
 
-const confirmModal = document.getElementById("confirmModal");
-const confirmTitle = document.getElementById("confirmTitle");
-const confirmText = document.getElementById("confirmText");
-const confirmCancel = document.getElementById("confirmCancel");
-const confirmSubmit = document.getElementById("confirmSubmit");
+  saveProfileBtn: document.getElementById("saveProfileBtn"),
+  savePrefsBtn: document.getElementById("savePrefsBtn"),
 
-const state = { profile: null, confirmAction: null, sessions: [] };
+  currentPasswordInput: document.getElementById("currentPasswordInput"),
+  newPasswordInput: document.getElementById("newPasswordInput"),
+  repeatPasswordInput: document.getElementById("repeatPasswordInput"),
+  changePasswordBtn: document.getElementById("changePasswordBtn"),
+  logoutAllBtn: document.getElementById("logoutAllBtn"),
+  passwordForm: document.getElementById("passwordForm"),
+  passwordUnavailable: document.getElementById("passwordUnavailable"),
+  refreshSessionsBtn: document.getElementById("refreshSessionsBtn"),
+  sessionsList: document.getElementById("sessionsList"),
+  deleteAccountPasswordInput: document.getElementById("deleteAccountPasswordInput"),
+  deleteAccountBtn: document.getElementById("deleteAccountBtn"),
+  deleteAccountHint: document.getElementById("deleteAccountHint"),
+  securityPasswordState: document.getElementById("securityPasswordState"),
+  securityPasswordHint: document.getElementById("securityPasswordHint"),
+  securityCurrentDevice: document.getElementById("securityCurrentDevice"),
+  securityCurrentHint: document.getElementById("securityCurrentHint"),
+  securitySessionsCount: document.getElementById("securitySessionsCount"),
+
+  supportGuideBtn: document.getElementById("supportGuideBtn"),
+  supportAuthorBtn: document.getElementById("supportAuthorBtn"),
+
+  confirmModal: document.getElementById("confirmModal"),
+  confirmTitle: document.getElementById("confirmTitle"),
+  confirmText: document.getElementById("confirmText"),
+  confirmCancel: document.getElementById("confirmCancel"),
+  confirmSubmit: document.getElementById("confirmSubmit"),
+
+  passwordToggles: Array.from(document.querySelectorAll("[data-toggle-password]"))
+};
+
+const state = {
+  profile: null,
+  confirmAction: null,
+  sessions: []
+};
+const THEME_STORAGE_KEY = "asking_theme";
 
 const api = {
   async request(url, options) {
@@ -41,128 +78,34 @@ const api = {
   }
 };
 
-function applyStaticAccountTextFixes() {
-  const setText = (selector, value) => {
-    const node = document.querySelector(selector);
-    if (node) node.textContent = value;
-  };
-  const setAttr = (selector, attr, value) => {
-    const node = document.querySelector(selector);
-    if (node) node.setAttribute(attr, value);
-  };
-
-  document.title = "Аккаунт | Asking";
-
-  setText(".topbar__actions a[href='/guide']", "Инструкция");
-  setText(".topbar__actions a[href='/create']", "Создать");
-  setText(".topbar__actions a[href='/cabinet']", "Кабинет");
-  setText(".topbar__actions a[href='/account']", "Аккаунт");
-  setText("#logoutBtn", "Выйти");
-
-  setText(".svacc-side h1", "Аккаунт");
-  setText(".svacc-side p", "Настройки профиля и безопасности");
-  setAttr(".svacc-nav", "aria-label", "Разделы аккаунта");
-  setText(".account-tab[data-tab='profile']", "Профиль");
-  setText(".account-tab[data-tab='security']", "Безопасность");
-  setText(".account-tab[data-tab='prefs']", "Предпочтения");
-
-  setText("[data-pane='profile'] .svacc-pane__head h2", "Профиль");
-  setText("[data-pane='profile'] .svacc-pane__head p", "Базовая информация вашей учетной записи.");
-  setText("#saveProfileBtn", "Сохранить профиль");
-
-  const displayNameLabel = displayNameInput?.closest(".form-row")?.querySelector("span");
-  if (displayNameLabel) displayNameLabel.textContent = "Имя";
-  const emailLabel = emailInput?.closest(".form-row")?.querySelector("span");
-  if (emailLabel) emailLabel.textContent = "Email";
-
-  setText("[data-pane='security'] .svacc-pane__head h2", "Безопасность");
-  setText("[data-pane='security'] .svacc-pane__head p", "Смена пароля и завершение других сессий.");
-  setText("#passwordUnavailable p", "Смена пароля недоступна в текущем режиме авторизации.");
-  setText("#changePasswordBtn", "Сменить пароль");
-  setText("#logoutAllBtn", "Выйти со всех устройств");
-  setText("#refreshSessionsBtn", "Обновить");
-  setText(".svacc-section__head h3", "Активные сессии");
-  setText(".svacc-danger__head h3", "Опасная зона");
-  setText(".svacc-danger__head p", "Удаление аккаунта необратимо.");
-  setText("#deleteAccountBtn", "Удалить аккаунт");
-
-  const currentPwdLabel = currentPasswordInput?.closest(".form-row")?.querySelector("span");
-  if (currentPwdLabel) currentPwdLabel.textContent = "Текущий пароль";
-  const newPwdLabel = newPasswordInput?.closest(".form-row")?.querySelector("span");
-  if (newPwdLabel) newPwdLabel.textContent = "Новый пароль";
-  const repeatPwdLabel = repeatPasswordInput?.closest(".form-row")?.querySelector("span");
-  if (repeatPwdLabel) repeatPwdLabel.textContent = "Повторите новый пароль";
-  const deletePwdLabel = deleteAccountPasswordInput?.closest(".form-row")?.querySelector("span");
-  if (deletePwdLabel) deletePwdLabel.textContent = "Введите пароль для удаления аккаунта";
-
-  setText("[data-pane='prefs'] .svacc-pane__head h2", "Предпочтения");
-  setText("[data-pane='prefs'] .svacc-pane__head p", "Язык интерфейса, тема и формат даты.");
-  setText("#savePrefsBtn", "Сохранить предпочтения");
-
-  const localeLabel = localeSelect?.closest(".form-row")?.querySelector("span");
-  if (localeLabel) localeLabel.textContent = "Язык";
-  const themeLabel = themeSelect?.closest(".form-row")?.querySelector("span");
-  if (themeLabel) themeLabel.textContent = "Тема";
-  const dateFormatLabel = dateFormatSelect?.closest(".form-row")?.querySelector("span");
-  if (dateFormatLabel) dateFormatLabel.textContent = "Формат даты";
-  const themeOptions = { light: "Светлая", dark: "Тёмная", system: "Системная" };
-  Array.from(themeSelect?.options || []).forEach((opt) => {
-    if (themeOptions[opt.value]) opt.textContent = themeOptions[opt.value];
-  });
-
-  setText("#confirmTitle", "Подтвердите действие");
-  setText("#confirmCancel", "Отмена");
-  setText("#confirmSubmit", "Подтвердить");
-}
-
 function showToast(message, isError = false) {
-  if (!toast) return;
-  toast.textContent = message;
-  toast.hidden = false;
-  toast.classList.toggle("is-error", isError);
-  toast.classList.add("is-visible");
+  if (!refs.toast) return;
+  refs.toast.textContent = message;
+  refs.toast.hidden = false;
+  refs.toast.classList.toggle("is-error", isError);
+  refs.toast.classList.add("is-visible");
   clearTimeout(showToast.timer);
   showToast.timer = setTimeout(() => {
-    toast.classList.remove("is-visible");
-    setTimeout(() => (toast.hidden = true), 180);
+    refs.toast.classList.remove("is-visible");
+    setTimeout(() => {
+      refs.toast.hidden = true;
+    }, 180);
   }, 2200);
 }
 
 function setStatus(message, isError = false) {
-  accountStatus.textContent = message || "";
-  accountStatus.style.color = isError ? "#b91c1c" : "#334155";
-}
-
-function switchTab(tab) {
-  tabs.forEach((item) => item.classList.toggle("is-active", item.dataset.tab === tab));
-  panes.forEach((item) => item.classList.toggle("is-active", item.dataset.pane === tab));
+  if (!refs.accountStatus) return;
+  refs.accountStatus.textContent = message || "";
+  refs.accountStatus.style.color = isError ? "#b91c1c" : "#334155";
 }
 
 function applyTheme(theme) {
-  const resolved = theme === "system"
-    ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-    : theme;
+  const resolved =
+    theme === "system" ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : theme;
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, theme || "light");
+  } catch {}
   document.documentElement.setAttribute("data-theme", resolved);
-}
-
-function fillProfile(profile) {
-  displayNameInput.value = profile.displayName || profile.name || "";
-  emailInput.value = profile.email || "";
-  localeSelect.value = profile.locale || "ru";
-  themeSelect.value = profile.theme || "light";
-  dateFormatSelect.value = profile.dateFormat || "dd.mm.yyyy";
-
-  const passwordEnabled = Boolean(profile.hasPassword !== false);
-  passwordForm.hidden = !passwordEnabled;
-  passwordUnavailable.hidden = passwordEnabled;
-
-  applyTheme(themeSelect.value);
-}
-
-async function loadAccount() {
-  const profile = await api.request("/api/account");
-  state.profile = profile;
-  fillProfile(profile);
 }
 
 function escapeHtml(value) {
@@ -178,7 +121,13 @@ function formatDate(value) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString("ru-RU", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleString("ru-RU", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 function shortUserAgent(value) {
@@ -188,20 +137,160 @@ function shortUserAgent(value) {
   return cleaned.length > 120 ? `${cleaned.slice(0, 117)}...` : cleaned;
 }
 
-async function loadSessions() {
-  const payload = await api.request("/api/account/sessions");
-  state.sessions = Array.isArray(payload.sessions) ? payload.sessions : [];
-  renderSessions();
+function formatShortDate(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("ru-RU", {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  });
+}
+
+function userInitials(profile) {
+  const source = String(profile?.displayName || profile?.name || profile?.email || "A").trim();
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
+  return source.slice(0, 2).toUpperCase();
+}
+
+function themeLabel(value) {
+  if (value === "dark") return "Темная тема";
+  if (value === "system") return "Системная тема";
+  return "Светлая тема";
+}
+
+function localeLabel(value) {
+  if (value === "en") return "English";
+  if (value === "kz") return "Қазақша";
+  return "Русский";
+}
+
+function updateProfilePanels(profile) {
+  if (!profile) return;
+
+  const name = profile.displayName || profile.name || "Пользователь Asking";
+  const company = profile.company || "Личная рабочая область";
+  const position = profile.position || "Роль не указана";
+  const filledFields = [profile.displayName || profile.name, profile.company, profile.position].filter(Boolean).length;
+  const completeness = filledFields >= 3 ? "Профиль заполнен" : filledFields === 2 ? "Почти готово" : "Заполняем профиль";
+
+  if (refs.profileInitials) refs.profileInitials.textContent = userInitials(profile);
+  if (refs.profileSummaryName) refs.profileSummaryName.textContent = name;
+  if (refs.profileSummaryEmail) refs.profileSummaryEmail.textContent = profile.email || "Email не указан";
+  if (refs.profileSummaryVerified) {
+    refs.profileSummaryVerified.textContent = profile.emailVerified ? "Email подтвержден" : "Email не подтвержден";
+    refs.profileSummaryVerified.className = `ui-badge ${profile.emailVerified ? "ui-badge--success" : "ui-badge--muted"}`;
+  }
+  if (refs.profileSummaryPassword) {
+    refs.profileSummaryPassword.textContent = profile.hasPassword ? "Пароль включен" : "Вход без локального пароля";
+    refs.profileSummaryPassword.className = `ui-badge ${profile.hasPassword ? "ui-badge--info" : "ui-badge--muted"}`;
+  }
+  if (refs.profileCreatedAt) refs.profileCreatedAt.textContent = formatShortDate(profile.createdAt);
+  if (refs.profileUpdatedAt) refs.profileUpdatedAt.textContent = formatShortDate(profile.updatedAt);
+  if (refs.profileCompleteness) refs.profileCompleteness.textContent = completeness;
+  if (refs.profileCompletenessHint) {
+    refs.profileCompletenessHint.textContent =
+      filledFields >= 3
+        ? "Основные поля заполнены. Профиль готов к работе и выглядит полноценно."
+        : "Добавьте имя, компанию и должность, чтобы профиль выглядел завершенным.";
+  }
+  if (refs.profileCompanyPreview) refs.profileCompanyPreview.textContent = company;
+  if (refs.profileRolePreview) refs.profileRolePreview.textContent = position;
+  if (refs.profileThemePreview) refs.profileThemePreview.textContent = themeLabel(profile.theme);
+  if (refs.profileLocalePreview) {
+    refs.profileLocalePreview.textContent = localeLabel(profile.locale);
+  }
+  if (refs.prefsLocalePreview) refs.prefsLocalePreview.textContent = (profile.locale || "ru").toUpperCase();
+  if (refs.prefsThemePreview) refs.prefsThemePreview.textContent = themeLabel(profile.theme);
+  if (refs.securityPasswordState) {
+    refs.securityPasswordState.textContent = profile.hasPassword ? "Пароль активен" : "Вход через внешний провайдер";
+  }
+  if (refs.securityPasswordHint) {
+    refs.securityPasswordHint.textContent = profile.hasPassword
+      ? "Можно сменить текущий пароль и завершить старые сессии."
+      : "Смена пароля недоступна, потому что аккаунт вошел без локального пароля.";
+  }
+}
+
+function updateSessionPanels() {
+  const total = state.sessions.length;
+  const current = state.sessions.find((item) => item.isCurrent);
+  if (refs.profileSessionsCount) refs.profileSessionsCount.textContent = String(total);
+  if (refs.securitySessionsCount) refs.securitySessionsCount.textContent = String(total);
+  if (refs.securityCurrentDevice) {
+    refs.securityCurrentDevice.textContent = current ? shortUserAgent(current.userAgent) : "Не определено";
+  }
+  if (refs.securityCurrentHint) {
+    refs.securityCurrentHint.textContent = current
+      ? `Текущая сессия активна до ${formatDate(current.expiresAt)}.`
+      : "Текущая активная сессия не найдена.";
+  }
+}
+
+function syncPreviewFromInputs() {
+  const draftProfile = {
+    ...(state.profile || {}),
+    displayName: refs.displayNameInput?.value?.trim() || state.profile?.displayName || state.profile?.name || "",
+    name: state.profile?.name || "",
+    company: refs.companyInput?.value?.trim() || "",
+    position: refs.positionInput?.value?.trim() || "",
+    email: refs.emailInput?.value || state.profile?.email || "",
+    locale: refs.localeSelect?.value || state.profile?.locale || "ru",
+    theme: refs.themeSelect?.value || state.profile?.theme || "light"
+  };
+  updateProfilePanels(draftProfile);
+}
+
+function switchTab(tab, pushHistory = true) {
+  const allowed = new Set(["profile", "security", "prefs"]);
+  const target = allowed.has(tab) ? tab : "profile";
+  refs.tabs.forEach((item) => item.classList.toggle("is-active", item.dataset.tab === target));
+  refs.panes.forEach((item) => item.classList.toggle("is-active", item.dataset.pane === target));
+  if (pushHistory) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", target);
+    history.replaceState({}, "", url.toString());
+  }
+}
+
+function fillProfile(profile) {
+  refs.displayNameInput.value = profile.displayName || profile.name || "";
+  refs.emailInput.value = profile.email || "";
+  refs.companyInput.value = profile.company || "";
+  refs.positionInput.value = profile.position || "";
+  refs.localeSelect.value = profile.locale || "ru";
+  refs.themeSelect.value = profile.theme || "light";
+
+  const passwordEnabled = Boolean(profile.hasPassword);
+  refs.passwordForm.hidden = !passwordEnabled;
+  refs.passwordUnavailable.hidden = passwordEnabled;
+  refs.currentPasswordInput.disabled = !passwordEnabled;
+  refs.newPasswordInput.disabled = !passwordEnabled;
+  refs.repeatPasswordInput.disabled = !passwordEnabled;
+  refs.changePasswordBtn.disabled = !passwordEnabled;
+
+  if (refs.deleteAccountHint) {
+    refs.deleteAccountHint.textContent = passwordEnabled
+      ? "Введите пароль для подтверждения удаления аккаунта."
+      : "У аккаунта нет пароля. Аккаунт будет удален сразу после подтверждения.";
+  }
+  refs.deleteAccountPasswordInput.required = passwordEnabled;
+  refs.deleteAccountPasswordInput.placeholder = passwordEnabled ? "Текущий пароль" : "Пароль не требуется";
+
+  applyTheme(refs.themeSelect.value);
+  updateProfilePanels(profile);
 }
 
 function renderSessions() {
-  if (!sessionsList) return;
+  if (!refs.sessionsList) return;
   if (!state.sessions.length) {
-    sessionsList.innerHTML = "<div class='svacc-empty-row'>Сессии не найдены.</div>";
+    refs.sessionsList.innerHTML = "<div class='svacc-empty-row'>Сессии не найдены.</div>";
     return;
   }
 
-  sessionsList.innerHTML = state.sessions
+  refs.sessionsList.innerHTML = state.sessions
     .map((session) => {
       const badge = session.isCurrent
         ? "<span class='svacc-session__badge is-current'>Текущая</span>"
@@ -230,33 +319,47 @@ function renderSessions() {
 
 function openConfirm(title, text, action) {
   state.confirmAction = action;
-  confirmTitle.textContent = title;
-  confirmText.textContent = text;
-  confirmModal.hidden = false;
+  refs.confirmTitle.textContent = title;
+  refs.confirmText.textContent = text;
+  refs.confirmModal.hidden = false;
 }
 
 function closeConfirm() {
   state.confirmAction = null;
-  confirmModal.hidden = true;
+  refs.confirmModal.hidden = true;
 }
 
-function accountPayload() {
+function profilePayload() {
   return {
-    displayName: displayNameInput.value.trim(),
-    locale: localeSelect.value,
-    theme: themeSelect.value,
-    dateFormat: dateFormatSelect.value
+    displayName: refs.displayNameInput.value.trim(),
+    company: refs.companyInput.value.trim(),
+    position: refs.positionInput.value.trim(),
+    locale: refs.localeSelect.value,
+    theme: refs.themeSelect.value
   };
 }
 
+async function loadAccount() {
+  const profile = await api.request("/api/account");
+  state.profile = profile;
+  fillProfile(profile);
+}
+
+async function loadSessions() {
+  const payload = await api.request("/api/account/sessions");
+  state.sessions = Array.isArray(payload.sessions) ? payload.sessions : [];
+  renderSessions();
+  updateSessionPanels();
+}
+
 async function saveProfile() {
-  const payload = accountPayload();
+  const payload = profilePayload();
   if (!payload.displayName || payload.displayName.length < 2) {
-    setStatus("Имя не может быть пустым.", true);
+    setStatus("Имя должно быть не короче 2 символов.", true);
     return;
   }
 
-  setStatus("Сохранение...");
+  setStatus("Сохраняем профиль...");
   const profile = await api.request("/api/account", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -265,17 +368,38 @@ async function saveProfile() {
 
   state.profile = profile;
   fillProfile(profile);
-  setStatus("Сохранено");
-  showToast("Профиль сохранён");
+  setStatus("Профиль сохранен.");
+  showToast("Профиль сохранен");
+}
+
+async function savePrefs() {
+  const payload = profilePayload();
+  setStatus("Сохраняем предпочтения...");
+  const profile = await api.request("/api/account", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  state.profile = profile;
+  fillProfile(profile);
+  setStatus("Предпочтения сохранены.");
+  showToast("Предпочтения сохранены");
 }
 
 async function changePassword() {
-  const currentPassword = currentPasswordInput.value;
-  const newPassword = newPasswordInput.value;
-  const repeatPassword = repeatPasswordInput.value;
+  const currentPassword = refs.currentPasswordInput.value;
+  const newPassword = refs.newPasswordInput.value;
+  const repeatPassword = refs.repeatPasswordInput.value;
+
+  if (refs.changePasswordBtn.disabled) return;
 
   if (!currentPassword || !newPassword || !repeatPassword) {
     setStatus("Заполните все поля пароля.", true);
+    return;
+  }
+  if (newPassword.length < 8) {
+    setStatus("Новый пароль должен содержать минимум 8 символов.", true);
     return;
   }
   if (newPassword !== repeatPassword) {
@@ -283,128 +407,156 @@ async function changePassword() {
     return;
   }
 
-  setStatus("Смена пароля...");
+  setStatus("Меняем пароль...");
   await api.request("/api/account/change-password", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ currentPassword, newPassword })
   });
 
-  currentPasswordInput.value = "";
-  newPasswordInput.value = "";
-  repeatPasswordInput.value = "";
-  setStatus("Пароль изменён.");
-  showToast("Пароль изменён");
+  refs.currentPasswordInput.value = "";
+  refs.newPasswordInput.value = "";
+  refs.repeatPasswordInput.value = "";
+  setStatus("Пароль изменен.");
+  showToast("Пароль изменен");
+}
+
+function bindPasswordToggles() {
+  refs.passwordToggles.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const inputId = btn.getAttribute("data-toggle-password");
+      const input = inputId ? document.getElementById(inputId) : null;
+      if (!input) return;
+      const nextType = input.type === "password" ? "text" : "password";
+      input.type = nextType;
+      btn.textContent = nextType === "password" ? "Показать" : "Скрыть";
+    });
+  });
 }
 
 function bindEvents() {
-  tabs.forEach((tab) => tab.addEventListener("click", () => switchTab(tab.dataset.tab)));
+  refs.tabs.forEach((tab) => {
+    tab.addEventListener("click", () => switchTab(tab.dataset.tab || "profile"));
+  });
 
-  logoutBtn.addEventListener("click", async () => {
+  refs.logoutBtn.addEventListener("click", async () => {
     await api.request("/api/auth/logout", { method: "POST" }).catch(() => {});
     window.location.href = "/auth";
   });
 
-  saveProfileBtn.addEventListener("click", () => saveProfile().catch((error) => {
-    setStatus(error.message || "Не удалось сохранить профиль", true);
-    showToast(error.message || "Ошибка", true);
-  }));
-
-  savePrefsBtn.addEventListener("click", () => saveProfile().catch((error) => {
-    setStatus(error.message || "Не удалось сохранить предпочтения", true);
-    showToast(error.message || "Ошибка", true);
-  }));
-
-  themeSelect.addEventListener("change", () => applyTheme(themeSelect.value));
-
-  changePasswordBtn.addEventListener("click", () => changePassword().catch((error) => {
-    setStatus(error.message || "Не удалось сменить пароль", true);
-    showToast(error.message || "Ошибка", true);
-  }));
-
-  logoutAllBtn.addEventListener("click", () => {
-    openConfirm(
-      "Выйти со всех устройств",
-      "Текущая сессия тоже будет завершена. Продолжить?",
-      async () => {
-        await api.request("/api/account/logout-all", { method: "POST" });
-        showToast("Все устройства отключены");
-        window.location.href = "/auth";
-      }
-    );
+  refs.saveProfileBtn.addEventListener("click", () => {
+    saveProfile().catch((error) => {
+      setStatus(error.message || "Не удалось сохранить профиль", true);
+      showToast(error.message || "Ошибка", true);
+    });
   });
 
-  refreshSessionsBtn?.addEventListener("click", () => {
+  refs.savePrefsBtn.addEventListener("click", () => {
+    savePrefs().catch((error) => {
+      setStatus(error.message || "Не удалось сохранить предпочтения", true);
+      showToast(error.message || "Ошибка", true);
+    });
+  });
+
+  refs.themeSelect.addEventListener("change", () => applyTheme(refs.themeSelect.value));
+  refs.themeSelect.addEventListener("change", syncPreviewFromInputs);
+  refs.localeSelect.addEventListener("change", syncPreviewFromInputs);
+  refs.displayNameInput.addEventListener("input", syncPreviewFromInputs);
+  refs.companyInput.addEventListener("input", syncPreviewFromInputs);
+  refs.positionInput.addEventListener("input", syncPreviewFromInputs);
+
+  refs.changePasswordBtn.addEventListener("click", () => {
+    changePassword().catch((error) => {
+      setStatus(error.message || "Не удалось сменить пароль", true);
+      showToast(error.message || "Ошибка", true);
+    });
+  });
+
+  refs.logoutAllBtn.addEventListener("click", () => {
+    openConfirm("Выйти со всех устройств", "Текущая сессия тоже будет завершена. Продолжить?", async () => {
+      await api.request("/api/account/logout-all", { method: "POST" });
+      showToast("Все устройства отключены");
+      window.location.href = "/auth";
+    });
+  });
+
+  refs.refreshSessionsBtn?.addEventListener("click", () => {
     loadSessions()
       .then(() => showToast("Сессии обновлены"))
       .catch((error) => showToast(error.message || "Не удалось обновить сессии", true));
   });
 
-  sessionsList?.addEventListener("click", (event) => {
-    const killBtn = event.target.closest("[data-kill-session]");
-    if (!killBtn) return;
-    const sessionId = Number(killBtn.dataset.killSession);
+  refs.sessionsList?.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target.closest("[data-kill-session]") : null;
+    if (!target) return;
+    const sessionId = Number(target.getAttribute("data-kill-session"));
     if (!Number.isInteger(sessionId) || sessionId <= 0) return;
-    openConfirm(
-      "Завершить сессию",
-      "Это устройство будет разлогинено.",
-      async () => {
-        await api.request(`/api/account/sessions/${sessionId}`, { method: "DELETE" });
-        await loadSessions();
-        showToast("Сессия завершена");
-      }
-    );
+    openConfirm("Завершить сессию", "Это устройство будет разлогинено.", async () => {
+      await api.request(`/api/account/sessions/${sessionId}`, { method: "DELETE" });
+      await loadSessions();
+      showToast("Сессия завершена");
+    });
   });
 
-  deleteAccountBtn?.addEventListener("click", () => {
-    const password = String(deleteAccountPasswordInput?.value || "");
-    if (!password) {
+  refs.deleteAccountBtn?.addEventListener("click", () => {
+    const password = String(refs.deleteAccountPasswordInput?.value || "");
+    const needPassword = Boolean(state.profile?.hasPassword);
+    if (needPassword && !password) {
       setStatus("Введите пароль для удаления аккаунта.", true);
       return;
     }
-    openConfirm(
-      "Удалить аккаунт",
-      "Действие необратимо: будут удалены профиль и связанные данные.",
-      async () => {
-        await api.request("/api/account", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password })
-        });
-        showToast("Аккаунт удалён");
-        window.location.href = "/auth";
-      }
-    );
+    openConfirm("Удалить аккаунт", "Действие необратимо: будут удалены профиль и связанные данные.", async () => {
+      await api.request("/api/account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password })
+      });
+      showToast("Аккаунт удален");
+      window.location.href = "/auth";
+    });
   });
 
-  confirmCancel.addEventListener("click", closeConfirm);
-  confirmModal.addEventListener("click", (event) => {
-    if (event.target === confirmModal) closeConfirm();
+  refs.supportGuideBtn?.addEventListener("click", () => {
+    window.location.href = "/guide";
+  });
+  refs.supportAuthorBtn?.addEventListener("click", () => {
+    window.location.href = "/author";
   });
 
-  confirmSubmit.addEventListener("click", async () => {
+  refs.confirmCancel.addEventListener("click", closeConfirm);
+  refs.confirmModal.addEventListener("click", (event) => {
+    if (event.target === refs.confirmModal) closeConfirm();
+  });
+  refs.confirmSubmit.addEventListener("click", async () => {
     if (!state.confirmAction) return;
     try {
-      confirmSubmit.disabled = true;
+      refs.confirmSubmit.disabled = true;
       await state.confirmAction();
       closeConfirm();
     } catch (error) {
       showToast(error.message || "Ошибка действия", true);
     } finally {
-      confirmSubmit.disabled = false;
+      refs.confirmSubmit.disabled = false;
     }
   });
+
+  bindPasswordToggles();
 }
 
 (async function bootstrap() {
   try {
-    applyStaticAccountTextFixes();
     const me = await api.request("/api/auth/me");
-    if (!me.user) return (window.location.href = "/auth");
+    if (!me.user) {
+      window.location.href = "/auth";
+      return;
+    }
 
     bindEvents();
     await loadAccount();
     await loadSessions();
+
+    const initialTab = new URL(window.location.href).searchParams.get("tab") || "profile";
+    switchTab(initialTab, false);
     setStatus("Профиль загружен.");
   } catch (error) {
     setStatus(error.message || "Не удалось загрузить аккаунт", true);

@@ -8,13 +8,28 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260315-auth-refresh" />
+    <link rel="stylesheet" href="/styles.css?v=20260429-gradient-results-1" />
   </head>
   <body class="workspace-page auth-screen">
-    <main class="auth-layout">
+    <main class="auth-layout auth-layout--pro">
+      <aside class="auth-visual" aria-label="Возможности Asking">
+        <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
+        <div class="auth-visual__copy">
+          <span class="auth-visual__badge">Survey workspace</span>
+          <h1>Опросы, кабинет и аналитика в одном рабочем месте</h1>
+          <p>Создавайте анкеты из шаблонов, делитесь ссылкой и смотрите результаты без ручной обработки таблиц.</p>
+        </div>
+        <div class="auth-visual__preview" aria-hidden="true">
+          <div class="auth-visual__row"><span></span><strong>Оценка сервиса</strong><em>86%</em></div>
+          <div class="auth-visual__bar"><span style="width: 86%"></span></div>
+          <div class="auth-visual__row"><span></span><strong>HR Pulse</strong><em>42 ответа</em></div>
+          <div class="auth-visual__bar"><span style="width: 62%"></span></div>
+          <div class="auth-visual__row"><span></span><strong>Фидбек события</strong><em>CSV/XLSX</em></div>
+        </div>
+      </aside>
       <form id="authForm" class="card auth-card" novalidate>
         <div class="auth-card__top">
-          <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
+          <a class="brand auth-card__brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
           <select id="languageSelect" class="lang-select" aria-label="Language">
             <option value="ru">RU</option>
             <option value="en">EN</option>
@@ -86,6 +101,7 @@
       </form>
     </main>
 
+    <script src="/lang.js?v=20260429-1"></script>
     <script src="/auth.js?v=20260315-auth-refresh"></script>
   </body>
 </html>

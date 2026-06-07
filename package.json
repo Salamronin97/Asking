@@ -6,7 +6,10 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test:e2e": "node ./node_modules/@playwright/test/cli.js test",
+    "test:e2e:headed": "node ./node_modules/@playwright/test/cli.js test --headed",
+    "test:e2e:ui": "node ./node_modules/@playwright/test/cli.js test --ui"
   },
   "engines": {
     "node": ">=20"
@@ -16,7 +19,11 @@
     "google-auth-library": "^9.15.1",
     "multer": "^2.1.0",
     "nodemailer": "^8.0.1",
+    "qrcode": "^1.5.4",
     "sqlite3": "^5.1.7",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
   }
 }

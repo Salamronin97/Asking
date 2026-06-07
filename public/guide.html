@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
@@ -8,7 +8,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260304-guide-fix-2" />
+    <script>
+      (function () {
+        try {
+          var preferred = localStorage.getItem("asking_theme") || "light";
+          var resolved = preferred === "system"
+            ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+            : preferred;
+          document.documentElement.setAttribute("data-theme", resolved === "dark" ? "dark" : "light");
+        } catch {}
+      })();
+    </script>
+    <link rel="stylesheet" href="/styles.css?v=20260429-gradient-results-1" />
   </head>
   <body class="workspace-page guide-page">
     <header class="topbar">
@@ -24,24 +35,49 @@
     </header>
 
     <main class="section">
-      <div class="container guide-container">
-        <section class="card guide-hero">
-          <h1>Инструкция</h1>
-          <p>Короткий путь от идеи до готовой анкеты: создание, публикация, сбор ответов и экспорт результатов.</p>
+      <div class="container guide-container guide-layout">
+        <section class="card guide-hero guide-hero--pro">
+          <span class="guide-hero__badge">Help center</span>
+          <h1>Инструкция по Asking</h1>
+          <p>Практичный маршрут от идеи до готового отчёта: шаблон, конструктор, публикация, сбор ответов, аналитика и экспорт.</p>
+          <div class="guide-hero-actions">
+            <a class="btn btn--primary" href="/create">Создать опрос</a>
+            <a class="btn btn--outline" href="/cabinet">Открыть кабинет</a>
+          </div>
         </section>
 
-        <section class="card guide-steps">
+        <section class="guide-link-grid guide-link-grid--pro" aria-label="Основные разделы">
+          <a class="guide-link" href="/create"><strong>Конструктор</strong><span>Вопросы, страницы, дизайн и логика переходов.</span></a>
+          <a class="guide-link" href="/cabinet"><strong>Кабинет</strong><span>Управление публикацией, ссылками и состояниями опросов.</span></a>
+          <a class="guide-link" href="/survey"><strong>Результаты</strong><span>Сводка, детальные ответы и экспорт CSV/XLSX.</span></a>
+          <a class="guide-link" href="/account"><strong>Аккаунт</strong><span>Профиль, безопасность, язык и тема интерфейса.</span></a>
+        </section>
+
+        <section class="card guide-steps guide-quick">
           <h2>Быстрый старт</h2>
           <ol>
-            <li>Откройте кабинет и создайте новую анкету.</li>
-            <li>Добавьте вопросы вручную или вставьте шаблон.</li>
-            <li>Проверьте параметры доступа и даты активности.</li>
-            <li>Опубликуйте анкету и отправьте ссылку участникам.</li>
-            <li>Смотрите результаты и выгружайте отчеты CSV/XLSX.</li>
+            <li><strong>Выберите сценарий.</strong> Начните с шаблона или создайте пустую анкету.</li>
+            <li><strong>Соберите структуру.</strong> Разбейте вопросы на страницы и добавьте подсказки.</li>
+            <li><strong>Настройте запуск.</strong> Укажите пароль, лимит ответов и даты активности.</li>
+            <li><strong>Опубликуйте ссылку.</strong> Отправьте участникам или откройте QR-код из кабинета.</li>
+            <li><strong>Проверьте результат.</strong> Смотрите диаграммы, ответы и выгружайте отчёт.</li>
           </ol>
         </section>
 
-        <section class="guide-faq">
+        <section class="card guide-search-card guide-faq-shell">
+          <div class="guide-faq-head">
+            <div>
+              <h2>FAQ</h2>
+              <p class="lead">Найдите нужный раздел по ключевому слову.</p>
+            </div>
+            <label class="guide-search" for="guideSearchInput">
+              <span>Поиск по FAQ</span>
+              <input id="guideSearchInput" type="search" placeholder="Экспорт, пароль, картинки, шаблоны" />
+            </label>
+          </div>
+        </section>
+
+        <section id="guideFaqList" class="guide-faq">
           <details class="card guide-faq-item" open>
             <summary>Как создать анкету</summary>
             <p>Перейдите в раздел «Создать», задайте название и добавьте вопросы нужного типа на страницу анкеты.</p>
@@ -49,12 +85,12 @@
 
           <details class="card guide-faq-item">
             <summary>Типы вопросов</summary>
-            <p>Доступны текст, одиночный выбор, множественный выбор, рейтинг и выпадающий список.</p>
+            <p>Доступны текст, одиночный выбор, множественный выбор, рейтинг, выпадающий список и карточки с изображениями.</p>
           </details>
 
           <details class="card guide-faq-item">
-            <summary>Публикация</summary>
-            <p>Перед публикацией убедитесь, что анкета имеет название и минимум один корректно заполненный вопрос.</p>
+            <summary>Публикация и доступ</summary>
+            <p>Перед публикацией проверьте название, вопросы и при необходимости включите пароль доступа или лимит ответов.</p>
           </details>
 
           <details class="card guide-faq-item">
@@ -64,7 +100,12 @@
 
           <details class="card guide-faq-item">
             <summary>Результаты и экспорт</summary>
-            <p>В разделе результатов доступны сводка по вопросам и выгрузка данных в CSV/XLSX.</p>
+            <p>В разделе результатов доступны сводка по вопросам и выгрузка в CSV/XLSX, в том числе для Excel.</p>
+          </details>
+
+          <details class="card guide-faq-item">
+            <summary>Изображения</summary>
+            <p>Картинки можно загрузить с устройства прямо в конструкторе. На Railway они сохраняются в persistent volume, если он подключён.</p>
           </details>
 
           <details class="card guide-faq-item">
@@ -72,8 +113,13 @@
             <p>Используйте готовые шаблоны для образования, HR, маркетинга, сервиса, событий и голосований.</p>
           </details>
         </section>
+
+        <p id="guideFaqEmpty" class="card guide-empty" hidden>По запросу ничего не найдено. Попробуйте другое слово.</p>
       </div>
     </main>
+
+    <script src="/theme.js?v=20260315-theme-public-1"></script>
+    <script src="/lang.js?v=20260429-1"></script>
+    <script src="/guide.js?v=20260315-theme-public-1"></script>
   </body>
 </html>
-
