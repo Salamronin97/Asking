@@ -1510,6 +1510,7 @@
     if (!bg || !wash) return;
     const welcome = normalizeWelcomeSettings(d.welcome);
     const image = isIntro && welcome.imageEnabled ? welcome.coverImage : d.bgImage;
+    root.dataset.storyImage = image ? "true" : "false";
     const overlay = Math.max(0, Math.min(0.82, Number(d.overlay || 0) / 100));
     bg.style.backgroundColor = d.bgColor;
     bg.style.backgroundImage = image ? `url("${image}")` : "";
@@ -1611,9 +1612,10 @@
     renderStorySidebar(state);
     const viewport = state.root.querySelector(".asking-runner__viewport");
     const question = step.question;
+    const kind = getPublicQuestionKind(question);
     const error = state.errors.get(String(question.id)) || "";
     viewport.innerHTML = `
-      <section class="asking-step asking-step--${direction}${error ? " is-invalid" : ""}" tabindex="-1">
+      <section class="asking-step asking-step--${escapeAttr(kind)} asking-step--${direction}${error ? " is-invalid" : ""}" tabindex="-1">
         <div class="asking-step__head">
           <div>
             <span class="asking-step__eyebrow">${String(state.currentIndex + 1).padStart(2, "0")} / ${state.steps.length} · ${escapeHtml(step.page.title || `Страница ${step.pageIndex + 1}`)}</span>

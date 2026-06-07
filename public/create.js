@@ -629,6 +629,7 @@
       "toolbarLaneComposeBtn",
       "toolbarLaneOrganizeBtn",
       "toolbarLaneAdvancedBtn",
+      "toolbarSurveySettingsBtn",
       "addQuestionBtn",
       "openTemplateCatalogBtn",
       "openVersionHistoryBtn",
@@ -1425,6 +1426,7 @@
     refs.topbarUndoBtn?.addEventListener("click", () => refs.undoBtn?.click());
     refs.topbarRedoBtn?.addEventListener("click", () => refs.redoBtn?.click());
     refs.topbarPublishBtn?.addEventListener("click", () => refs.publishBtn?.click());
+    refs.toolbarSurveySettingsBtn?.addEventListener("click", () => activateBuilderSection("survey"));
     refs.topbarPreviewBtn?.addEventListener("click", async () => {
       try {
         if (!surveyId) await saveRemote();
