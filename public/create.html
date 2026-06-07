@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260607-reference-target-2" />
+    <link rel="stylesheet" href="/styles.css?v=20260607-reference-ui-1" />
     <style>
       body.create-new {
         visibility: hidden;
@@ -78,13 +78,6 @@
           <span>Логика переходов</span>
           <strong id="builderSidebarLogicCount">0 переходов</strong>
           <p>Маршруты появятся после настройки условий в правой панели.</p>
-        </section>
-        <section class="constructor-sidebar-theme">
-          <span>Тема</span>
-          <strong>Corporate Visual</strong>
-          <div class="constructor-sidebar-theme__preview" aria-hidden="true">
-            <i></i><i></i><i></i>
-          </div>
         </section>
         <div class="constructor-pages-actions">
           <button id="renamePageBtn" class="btn btn--ghost btn--xs" type="button">Переименовать</button>
@@ -169,15 +162,15 @@
 
         <div id="questionsStep" class="constructor-sheet constructor-step-pane" data-step-pane="questions">
           <div class="constructor-toolbar">
-            <div class="constructor-toolbar-lanes constructor-toolbar-legacy" aria-label="Режимы конструктора">
+            <div class="constructor-toolbar-lanes" aria-label="Режимы конструктора">
               <button id="toolbarLaneComposeBtn" class="constructor-toolbar-lane is-active" type="button" data-toolbar-lane-btn="compose" aria-pressed="true">Конструктор</button>
               <button id="toolbarLaneOrganizeBtn" class="constructor-toolbar-lane" type="button" data-toolbar-lane-btn="organize" aria-pressed="false">Структура</button>
             </div>
             <div class="constructor-toolbar__group constructor-toolbar__group--core" data-toolbar-lane="compose" aria-label="Основные действия">
+              <span class="constructor-toolbar__group-title">Основное</span>
               <button id="addQuestionBtn" class="btn btn--outline" type="button">+ Добавить вопрос</button>
-              <button id="openQuickStartWizardBtn" class="btn btn--ghost" type="button">Импорт</button>
+              <button id="openQuickStartWizardBtn" class="btn btn--ghost" type="button">Быстрый старт</button>
               <button id="openTemplateCatalogBtn" class="btn btn--ghost" type="button">Шаблоны</button>
-              <button id="toolbarSurveySettingsBtn" class="btn btn--ghost" type="button">Настройки анкеты</button>
             </div>
             <div class="constructor-toolbar__group constructor-toolbar__group--search" data-toolbar-lane="compose organize" aria-label="Поиск и выделение">
               <span class="constructor-toolbar__group-title">Поиск</span>
@@ -690,7 +683,7 @@
 
     <script src="/lang.js?v=20260429-1"></script>
     <script src="/templates.js?v=20260607-phase6-templates-1"></script>
-    <script src="/create.js?v=20260607-reference-target-2"></script>
+    <script src="/create.js?v=20260607-reference-ui-1"></script>
   </body>
 </html>
 
