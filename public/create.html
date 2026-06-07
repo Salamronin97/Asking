@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260607-builder-saas-2" />
+    <link rel="stylesheet" href="/styles.css?v=20260607-reference-ui-1" />
     <style>
       body.create-new {
         visibility: hidden;
@@ -17,14 +17,28 @@
     </style>
   </head>
   <body class="workspace-page create-new">
-    <header class="topbar">
+    <header class="topbar constructor-product-topbar">
       <div class="container topbar__inner">
-        <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span><span class="brand__context">Конструктор</span></a>
-        <div class="topbar__actions">
-          <a class="btn btn--ghost" href="/guide">Инструкция</a>
-          <a class="btn btn--ghost" href="/cabinet">Кабинет</a>
-          <a class="btn btn--ghost" href="/account">Аккаунт</a>
-          <button id="logoutBtn" class="btn btn--outline" type="button">Выйти</button>
+        <a class="brand constructor-product-brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
+        <div class="constructor-product-title">
+          <span>Survey builder</span>
+          <strong id="topbarSurveyTitle">Новая анкета</strong>
+        </div>
+        <div class="constructor-product-status">
+          <span class="save-indicator__dot"></span>
+          <strong id="topbarSaveStatus">Сохранено</strong>
+        </div>
+        <div class="constructor-product-preview" aria-label="Режим предпросмотра">
+          <button id="topbarDesktopPreviewBtn" class="is-active" type="button">Desktop</button>
+          <button id="topbarMobilePreviewBtn" type="button">Mobile</button>
+        </div>
+        <div class="topbar__actions constructor-product-actions">
+          <button id="topbarUndoBtn" class="btn btn--ghost btn--xs" type="button" title="Отменить">Undo</button>
+          <button id="topbarRedoBtn" class="btn btn--ghost btn--xs" type="button" title="Повторить">Redo</button>
+          <button id="topbarPreviewBtn" class="btn btn--outline btn--xs" type="button">Предпросмотр</button>
+          <button id="topbarPublishBtn" class="btn btn--primary btn--xs" type="button">Опубликовать</button>
+          <a class="constructor-product-avatar" href="/account" aria-label="Аккаунт">A</a>
+          <button id="logoutBtn" class="btn btn--ghost btn--xs" type="button">Выйти</button>
         </div>
       </div>
     </header>
@@ -51,12 +65,25 @@
           <span id="pagesPanelMeta" class="constructor-pages-meta">1 стр. · 1 вопрос</span>
         </div>
         <div id="pagesList" class="constructor-pages-list"></div>
+        <button id="addPageBtn" class="btn btn--outline constructor-add-page-btn" type="button">+ Добавить страницу</button>
+        <section class="constructor-sidebar-progress">
+          <div class="constructor-sidebar-progress__head">
+            <span>Прогресс анкеты</span>
+            <strong id="builderSidebarQuestionProgress">0 / 18</strong>
+          </div>
+          <div class="constructor-sidebar-progress__bar"><span id="builderSidebarProgressBar"></span></div>
+          <p id="builderSidebarProgressText">Добавьте вопросы, чтобы собрать сценарий.</p>
+        </section>
+        <section class="constructor-sidebar-logic">
+          <span>Логика переходов</span>
+          <strong id="builderSidebarLogicCount">0 переходов</strong>
+          <p>Маршруты появятся после настройки условий в правой панели.</p>
+        </section>
         <div class="constructor-pages-actions">
           <button id="renamePageBtn" class="btn btn--ghost btn--xs" type="button">Переименовать</button>
           <button id="duplicatePageBtn" class="btn btn--ghost btn--xs" type="button">Дублировать</button>
           <button id="removePageBtn" class="btn btn--ghost btn--xs" type="button">Удалить</button>
         </div>
-        <button id="addPageBtn" class="btn btn--outline" type="button">+ Страница</button>
 
         <section class="constructor-bank">
           <div class="constructor-bank__head">
@@ -319,6 +346,8 @@
         </div>
         <div class="constructor-settings-tabs constructor-settings-tabs--steps" role="tablist" aria-label="Секции настроек">
           <button id="settingsTabQuestion" class="constructor-settings-tab is-active" type="button" role="tab" aria-selected="true">Вопрос</button>
+          <button id="settingsTabDesign" class="constructor-settings-tab" type="button" role="tab" aria-selected="false">Дизайн</button>
+          <button id="settingsTabLogic" class="constructor-settings-tab" type="button" role="tab" aria-selected="false">Логика</button>
         </div>
 
         <div id="settingsQuestionPane">
@@ -654,7 +683,7 @@
 
     <script src="/lang.js?v=20260429-1"></script>
     <script src="/templates.js?v=20260607-phase6-templates-1"></script>
-    <script src="/create.js?v=20260607-builder-saas-2"></script>
+    <script src="/create.js?v=20260607-reference-ui-1"></script>
   </body>
 </html>
 

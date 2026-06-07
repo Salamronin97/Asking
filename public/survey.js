@@ -282,6 +282,7 @@
     const value = raw && typeof raw === "object" ? raw : {};
     const bgImage = String(value.bgImage || "").trim();
     return {
+      themeId: String(value.themeId || value.theme_id || inferPublicThemeId(value)).trim() || "corporate",
       bgColor: /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(value.bgColor || "").trim()) ? String(value.bgColor).trim() : "#eaf3fb",
       bgImage: /^https?:\/\//i.test(bgImage) || bgImage.startsWith("/uploads/") ? bgImage : "",
       layout: ["full", "split-right-image", "split-left-image", "cover-top-image", "center-card"].includes(String(value.layout || "").trim())
@@ -290,6 +291,16 @@
       overlay: Number.isFinite(Number(value.overlay)) ? Math.max(0, Math.min(90, Math.round(Number(value.overlay)))) : 0,
       welcome: normalizeWelcomeSettings(value.welcome)
     };
+  }
+
+  function inferPublicThemeId(design = {}) {
+    const bg = String(design.bgColor || "").toLowerCase();
+    const image = String(design.bgImage || "").toLowerCase();
+    if (image.includes("forest") || bg.includes("e8f4ed") || bg.includes("ecfdf5")) return "forest";
+    if (image.includes("space") || image.includes("cosmos") || bg.includes("0f172a")) return "cosmos";
+    if (bg.includes("f5efe2") || bg.includes("f8f1e5")) return "academic";
+    if (bg.includes("fff1f2") || bg.includes("fff4ec") || bg.includes("f5f3ff")) return "creative";
+    return "corporate";
   }
 
   function getRequiredValidationMessage(question) {
@@ -1473,7 +1484,7 @@
     if (!isLastQuestionOnPage) return state.currentIndex + 1;
 
     const answer = state.answers.get(String(current.question.id));
-    const selected = resolveOptionByAnswer(current.question, answer);
+    const selected = current.question.logicEnabled ? resolveOptionByAnswer(current.question, answer) : null;
     let targetPageIndex = null;
     if (selected) {
       if (selected.jumpToPageId) {
@@ -1493,6 +1504,7 @@
 
   function applyRunnerBackground(root, design, isIntro = false) {
     const d = normalizePublicPageDesign(design || {});
+    root.dataset.storyTheme = d.themeId || "corporate";
     const bg = root.querySelector(".asking-runner__bg");
     const wash = root.querySelector(".asking-runner__wash");
     if (!bg || !wash) return;
@@ -1514,9 +1526,36 @@
       <div class="asking-runner__bg" aria-hidden="true"></div>
       <div class="asking-runner__wash" aria-hidden="true"></div>
       <div class="asking-runner__progress" aria-hidden="true"><span></span></div>
+      <header class="asking-story-topbar">
+        <strong>Asking</strong>
+        <span data-story-counter>0 / 0</span>
+        <button type="button" data-action="exit-survey">Выйти</button>
+      </header>
+      <aside class="asking-story-sidebar" aria-label="Прогресс анкеты"></aside>
       <main class="asking-runner__viewport"></main>
     `;
+    root.querySelector("[data-action='exit-survey']")?.addEventListener("click", () => {
+      window.location.href = "/";
+    });
     return root;
+  }
+
+  function renderStorySidebar(state) {
+    const sidebar = state.root.querySelector(".asking-story-sidebar");
+    if (!sidebar) return;
+    const pages = state.pages || [];
+    sidebar.innerHTML = `
+      <span class="asking-story-sidebar__eyebrow">Progress</span>
+      <strong>${escapeHtml(state.survey.title || "Анкета")}</strong>
+      <div class="asking-story-sidebar__list">
+        ${pages.map((page, index) => `
+          <div class="asking-story-sidebar__item${index === state.steps[state.currentIndex]?.pageIndex ? " is-active" : ""}">
+            <span>${String(index + 1).padStart(2, "0")}</span>
+            <em>${escapeHtml(page.title || `Страница ${index + 1}`)}</em>
+          </div>
+        `).join("")}
+      </div>
+    `;
   }
 
   function renderIntro(state) {
@@ -1526,6 +1565,7 @@
     const needsPassword = Boolean(state.survey?.has_access_password);
     applyRunnerBackground(state.root, introDesign, true);
     const viewport = state.root.querySelector(".asking-runner__viewport");
+    renderStorySidebar(state);
     viewport.innerHTML = `
       <section class="asking-intro asking-intro--${escapeAttr(layout)}">
         <div class="asking-intro__media" aria-hidden="true"></div>
@@ -1568,6 +1608,7 @@
     }
     applyRunnerBackground(state.root, step.page.design, false);
     updateRunnerProgress(state);
+    renderStorySidebar(state);
     const viewport = state.root.querySelector(".asking-runner__viewport");
     const question = step.question;
     const error = state.errors.get(String(question.id)) || "";
@@ -1575,7 +1616,7 @@
       <section class="asking-step asking-step--${direction}${error ? " is-invalid" : ""}" tabindex="-1">
         <div class="asking-step__head">
           <div>
-            <span class="asking-step__eyebrow">${escapeHtml(step.page.title || `Страница ${step.pageIndex + 1}`)}</span>
+            <span class="asking-step__eyebrow">${String(state.currentIndex + 1).padStart(2, "0")} / ${state.steps.length} · ${escapeHtml(step.page.title || `Страница ${step.pageIndex + 1}`)}</span>
             <h2>${escapeHtml(question.text || "Вопрос")}</h2>
           </div>
           ${question.required ? `<span class="asking-required">Обязательный</span>` : ""}
@@ -1634,22 +1675,29 @@
   function renderTextQuestion(state, question, mount) {
     const value = String(getPublicAnswer(state, question) || "");
     mount.innerHTML = `
-      <textarea class="asking-textarea" name="q_${escapeAttr(question.id)}" rows="4" placeholder="Введите ответ">${escapeHtml(value)}</textarea>
+      <label class="asking-text-field">
+        <textarea class="asking-textarea" name="q_${escapeAttr(question.id)}" rows="5" maxlength="1200" placeholder="Введите ответ">${escapeHtml(value)}</textarea>
+        <span class="asking-char-counter">${value.length} / 1200</span>
+      </label>
     `;
     mount.querySelector("textarea")?.addEventListener("input", (event) => {
       setPublicAnswer(state, question, event.target.value);
+      const counter = mount.querySelector(".asking-char-counter");
+      if (counter) counter.textContent = `${String(event.target.value || "").length} / 1200`;
       clearInlineError(state.root, question);
     });
   }
 
   function renderRatingQuestion(state, question, mount) {
     const current = String(getPublicAnswer(state, question) || "");
+    const isTenPoint = /nps|0\s*[-–—]\s*10|10/i.test(`${question.text || ""} ${question.helpText || ""}`);
+    const values = isTenPoint ? Array.from({ length: 11 }, (_, index) => index) : [1, 2, 3, 4, 5];
     mount.innerHTML = `
-      <div class="asking-rating" role="radiogroup" aria-label="${escapeAttr(question.text || "Рейтинг")}">
-        ${[1, 2, 3, 4, 5].map((value) => `
+      <div class="asking-rating-labels"><span>${isTenPoint ? "Не рекомендую" : "Плохо"}</span><span>${isTenPoint ? "Точно рекомендую" : "Отлично"}</span></div>
+      <div class="asking-rating asking-rating--${isTenPoint ? "nps" : "five"}" role="radiogroup" aria-label="${escapeAttr(question.text || "Рейтинг")}">
+        ${values.map((value) => `
           <button class="asking-rating__item${current === String(value) ? " is-selected" : ""}" type="button" data-value="${value}" aria-pressed="${current === String(value) ? "true" : "false"}">
             <strong>${value}</strong>
-            <span>${value === 1 ? "Плохо" : value === 5 ? "Отлично" : ""}</span>
           </button>
         `).join("")}
       </div>
@@ -1687,6 +1735,7 @@
     const currentRaw = getPublicAnswer(state, question);
     const current = multiple ? (Array.isArray(currentRaw) ? currentRaw : []) : String(currentRaw || "");
     mount.innerHTML = `
+      ${multiple ? `<div class="asking-selected-count">Выбрано: ${current.length}</div>` : ""}
       <div class="asking-choice-list">
         ${(question.options || []).map((option, index) => {
           const value = String(option.value || option.text || index + 1);
@@ -1720,6 +1769,7 @@
     const multiple = normalizeType(question.type) === "multiple";
     const current = multiple ? (Array.isArray(currentRaw) ? currentRaw : []) : String(currentRaw || "");
     mount.innerHTML = `
+      ${multiple ? `<div class="asking-selected-count">Выбрано: ${current.length}</div>` : ""}
       <div class="asking-image-grid">
         ${(question.options || []).map((option, index) => {
           const value = String(option.value || option.text || index + 1);
@@ -1770,9 +1820,10 @@
 
   function updateRunnerProgress(state, forced = null) {
     const bar = state.root.querySelector(".asking-runner__progress span");
-    if (!bar) return;
+    const counter = state.root.querySelector("[data-story-counter]");
     const value = forced == null ? Math.round(((state.currentIndex + 1) / Math.max(1, state.steps.length)) * 100) : forced;
-    bar.style.width = `${Math.max(0, Math.min(100, value))}%`;
+    if (bar) bar.style.width = `${Math.max(0, Math.min(100, value))}%`;
+    if (counter) counter.textContent = forced === 0 ? `0 / ${state.steps.length}` : `${Math.min(state.currentIndex + 1, state.steps.length)} / ${state.steps.length}`;
   }
 
   async function submitSurvey(state) {
@@ -1808,12 +1859,18 @@
 
   function renderSuccess(state) {
     updateRunnerProgress(state, 100);
+    renderStorySidebar(state);
     const viewport = state.root.querySelector(".asking-runner__viewport");
     viewport.innerHTML = `
       <section class="asking-success">
         <span class="asking-success__mark">✓</span>
         <h2>Спасибо за прохождение</h2>
         <p>Результаты отправлены на базу.</p>
+        <div class="asking-success__next">
+          <strong>Что дальше?</strong>
+          <span>Ответ сохранен. Автор анкеты увидит его в разделе результатов.</span>
+        </div>
+        <a class="asking-btn asking-btn--primary asking-success__link" href="/">Посмотреть другие опросы</a>
       </section>
     `;
   }

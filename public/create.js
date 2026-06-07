@@ -566,8 +566,20 @@
   function cacheRefs() {
     [
       "logoutBtn",
+      "topbarSurveyTitle",
+      "topbarSaveStatus",
+      "topbarUndoBtn",
+      "topbarRedoBtn",
+      "topbarPreviewBtn",
+      "topbarPublishBtn",
+      "topbarDesktopPreviewBtn",
+      "topbarMobilePreviewBtn",
       "pagesList",
       "pagesPanelMeta",
+      "builderSidebarQuestionProgress",
+      "builderSidebarProgressBar",
+      "builderSidebarProgressText",
+      "builderSidebarLogicCount",
       "renamePageBtn",
       "duplicatePageBtn",
       "removePageBtn",
@@ -707,6 +719,8 @@
       "questionsPanel",
       "settingsPanel",
       "settingsTabQuestion",
+      "settingsTabDesign",
+      "settingsTabLogic",
       "settingsQuestionPane",
       "closeInspectorBtn",
       "openDesignSettingsBtn",
@@ -836,6 +850,7 @@
     refs.editorSectionShortcutButtons.forEach((node) => {
       node.classList.toggle("is-active", node.dataset.editorSectionShortcut === normalized);
     });
+    updatePropertiesTabs(normalized === "logic" ? "logic" : "question");
   }
 
   function getQuestionTypeHint(type) {
@@ -1407,6 +1422,39 @@
       removeSelectedQuestions();
     });
 
+    refs.topbarUndoBtn?.addEventListener("click", () => refs.undoBtn?.click());
+    refs.topbarRedoBtn?.addEventListener("click", () => refs.redoBtn?.click());
+    refs.topbarPublishBtn?.addEventListener("click", () => refs.publishBtn?.click());
+    refs.topbarPreviewBtn?.addEventListener("click", async () => {
+      try {
+        if (!surveyId) await saveRemote();
+        const id = surveyId || state.survey.id;
+        if (!id) {
+          setStatus("Сначала сохраните анкету", true);
+          return;
+        }
+        window.open(`/s/${encodeURIComponent(id)}?preview=1`, "_blank", "noopener,noreferrer");
+      } catch (error) {
+        setStatus(error.message || "Не удалось открыть предпросмотр", true);
+      }
+    });
+    refs.topbarDesktopPreviewBtn?.addEventListener("click", () => setBuilderPreviewMode("desktop"));
+    refs.topbarMobilePreviewBtn?.addEventListener("click", () => setBuilderPreviewMode("mobile"));
+    refs.settingsTabQuestion?.addEventListener("click", () => {
+      setEditorSection("content");
+      updatePropertiesTabs("question");
+    });
+    refs.settingsTabDesign?.addEventListener("click", () => {
+      updateDesignEditor();
+      updatePropertiesTabs("design");
+      document.getElementById("designSettingsPanel")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    refs.settingsTabLogic?.addEventListener("click", () => {
+      setEditorSection("logic");
+      updatePropertiesTabs("logic");
+      refs.logicMapList?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+
     bindModal(refs.questionTypeOverlay, refs.closeQuestionTypeModalBtn, closeQuestionTypeModal);
     bindModal(refs.creationEntryOverlay, refs.closeCreationEntryBtn, closeCreationEntryModal);
     bindModal(refs.templateCatalogOverlay, refs.closeTemplateCatalogBtn, closeTemplateCatalogModal);
@@ -1641,6 +1689,7 @@
     if (refs.accessPasswordEnabledInput) refs.accessPasswordEnabledInput.checked = Boolean(state.survey.accessPasswordEnabled);
     if (refs.responseLimitInput) refs.responseLimitInput.value = state.survey.responseLimit == null ? "" : String(state.survey.responseLimit);
     if (refs.worktopSurveyTitle) refs.worktopSurveyTitle.textContent = state.survey.title || "Новая анкета";
+    if (refs.topbarSurveyTitle) refs.topbarSurveyTitle.textContent = state.survey.title || "Новая анкета";
     if (refs.questionSearchInput) refs.questionSearchInput.value = state.questionFilter || "";
     updateQuestionActionButtons();
     updateBuilderMeta();
@@ -1661,6 +1710,7 @@
     renderWelcomeSettings();
     activateBuilderSection(state.builderSection || "questions");
     updateSharePanel();
+    setBuilderPreviewMode(state.previewDevice || "desktop");
 
     if (window.innerWidth <= 1100) {
       setMobilePanel(state.mobilePanel);
@@ -1713,6 +1763,14 @@
     if (refs.heroMetaQuestions) refs.heroMetaQuestions.textContent = String(questions);
     if (refs.heroMetaLogic) refs.heroMetaLogic.textContent = String(logicRoutes);
     if (refs.heroMetaTime) refs.heroMetaTime.textContent = `~${estimatedMinutes} мин`;
+    if (refs.builderSidebarQuestionProgress) refs.builderSidebarQuestionProgress.textContent = `${questions} / 18`;
+    if (refs.builderSidebarProgressBar) refs.builderSidebarProgressBar.style.width = `${Math.min(100, Math.round((questions / 18) * 100))}%`;
+    if (refs.builderSidebarProgressText) {
+      refs.builderSidebarProgressText.textContent = questions >= 18
+        ? "Структура выглядит насыщенной."
+        : `${Math.max(0, 18 - questions)} ${declOfNum(Math.max(0, 18 - questions), ["вопрос", "вопроса", "вопросов"])} до полного сценария.`;
+    }
+    if (refs.builderSidebarLogicCount) refs.builderSidebarLogicCount.textContent = `${logicRoutes} ${declOfNum(logicRoutes, ["переход", "перехода", "переходов"])}`;
     updateBuilderHealth({ pages, questions, logicRoutes });
   }
 
@@ -2226,9 +2284,13 @@
     welcomeButton.type = "button";
     welcomeButton.className = `constructor-page-item constructor-page-item--welcome${state.builderSection === "survey" ? " is-active" : ""}`;
     welcomeButton.innerHTML = `
+      <span class="constructor-page-item__index">00</span>
       <span class="constructor-page-item__thumb constructor-page-item__thumb--welcome" style="background-image:url('${sanitizeCssUrl(welcome.coverImage)}')"></span>
-      <span class="constructor-page-item__title">0. Заглавная</span>
-      <span class="constructor-page-item__meta">PowerPoint intro · не удаляется</span>
+      <span class="constructor-page-item__body">
+        <span class="constructor-page-item__title">Welcome</span>
+        <span class="constructor-page-item__meta">Заглавная · intro</span>
+      </span>
+      <span class="constructor-page-item__menu">...</span>
     `;
     welcomeButton.addEventListener("click", () => {
       activateBuilderSection("survey");
@@ -2246,9 +2308,13 @@
       button.className = `constructor-page-item${String(page.id) === String(state.selectedPageId) ? " is-active" : ""}`;
       button.dataset.pageId = page.id;
       button.innerHTML = `
+        <span class="constructor-page-item__index">${String(index + 1).padStart(2, "0")}</span>
         <span class="constructor-page-item__thumb" style="${buildPageBackgroundStyle(design)}"></span>
-        <span class="constructor-page-item__title">${escapeHtml(`${index + 1}. ${page.title || `Страница ${index + 1}`}`)}</span>
-        <span class="constructor-page-item__meta">${questionCount} ${declOfNum(questionCount, ["вопрос", "вопроса", "вопросов"])}</span>
+        <span class="constructor-page-item__body">
+          <span class="constructor-page-item__title">${escapeHtml(page.title || `Страница ${index + 1}`)}</span>
+          <span class="constructor-page-item__meta">${questionCount} ${declOfNum(questionCount, ["вопрос", "вопроса", "вопросов"])}</span>
+        </span>
+        <span class="constructor-page-item__menu">...</span>
       `;
       button.addEventListener("click", () => {
         state.selectedPageId = String(page.id);
@@ -2348,6 +2414,24 @@
 
       refs.pagesList.appendChild(button);
     });
+
+    const thanksButton = document.createElement("button");
+    thanksButton.type = "button";
+    thanksButton.className = "constructor-page-item constructor-page-item--thanks";
+    thanksButton.innerHTML = `
+      <span class="constructor-page-item__index">${String(pageTotal + 1).padStart(2, "0")}</span>
+      <span class="constructor-page-item__thumb constructor-page-item__thumb--thanks">✓</span>
+      <span class="constructor-page-item__body">
+        <span class="constructor-page-item__title">Спасибо</span>
+        <span class="constructor-page-item__meta">Success screen</span>
+      </span>
+      <span class="constructor-page-item__menu">...</span>
+    `;
+    thanksButton.addEventListener("click", () => {
+      activateBuilderSection("publish");
+      updateSharePanel();
+    });
+    refs.pagesList.appendChild(thanksButton);
 
     const hasPage = Boolean(getSelectedPage());
     if (refs.renamePageBtn) refs.renamePageBtn.disabled = !hasPage;
@@ -2772,6 +2856,18 @@
       updateQuestionActionButtons(page);
       return;
     }
+
+    const selectedPageIndex = state.survey.pages.findIndex((item) => String(item.id) === String(page.id));
+    const pageHeader = document.createElement("section");
+    pageHeader.className = "constructor-canvas-page-head";
+    pageHeader.innerHTML = `
+      <div>
+        <span>${String(Math.max(0, selectedPageIndex) + 1).padStart(2, "0")}. ${escapeHtml(page.title || "Основные вопросы")}</span>
+        <strong>${visibleQuestions.length} ${declOfNum(visibleQuestions.length, ["вопрос", "вопроса", "вопросов"])}</strong>
+      </div>
+      <em>${escapeHtml(normalizePageDesign(page.design).themeId || state.activeThemeId)}</em>
+    `;
+    refs.questionList.appendChild(pageHeader);
 
     visibleQuestions.forEach(({ question, index }) => {
       const card = document.createElement("article");
@@ -4551,6 +4647,7 @@
     refs.saveState.classList.remove("is-saved", "is-saving", "is-error");
     refs.saveState.classList.add(type === "error" ? "is-error" : type === "saving" ? "is-saving" : "is-saved");
     refs.saveStateText.textContent = text;
+    if (refs.topbarSaveStatus) refs.topbarSaveStatus.textContent = text;
   }
 
   function toast(message) {
@@ -4610,6 +4707,28 @@
     }
   }
 
+  function setBuilderPreviewMode(mode = "desktop") {
+    const normalized = mode === "mobile" ? "mobile" : "desktop";
+    state.previewDevice = normalized;
+    document.body.dataset.builderPreview = normalized;
+    refs.topbarDesktopPreviewBtn?.classList.toggle("is-active", normalized === "desktop");
+    refs.topbarMobilePreviewBtn?.classList.toggle("is-active", normalized === "mobile");
+  }
+
+  function updatePropertiesTabs(active = "question") {
+    const map = {
+      question: refs.settingsTabQuestion,
+      design: refs.settingsTabDesign,
+      logic: refs.settingsTabLogic
+    };
+    Object.entries(map).forEach(([key, button]) => {
+      if (!button) return;
+      const isActive = key === active;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+  }
+
   function activateBuilderSection(section) {
     const normalized = ["questions", "survey", "publish"].includes(section)
       ? section
@@ -4630,6 +4749,10 @@
           ? "Продолжить"
           : "Опубликовать";
       refs.publishBtn.disabled = Boolean(state.survey.published && normalized === "publish");
+    }
+    if (refs.topbarPublishBtn) {
+      refs.topbarPublishBtn.textContent = state.survey.published ? "Опубликовано" : "Опубликовать";
+      refs.topbarPublishBtn.disabled = Boolean(state.survey.published && normalized === "publish");
     }
     if (normalized === "publish") updateSharePanel();
   }
@@ -5003,6 +5126,8 @@
   function updateHistoryControls() {
     if (refs.undoBtn) refs.undoBtn.disabled = historyState.undoStack.length <= 1;
     if (refs.redoBtn) refs.redoBtn.disabled = historyState.redoStack.length === 0;
+    if (refs.topbarUndoBtn) refs.topbarUndoBtn.disabled = historyState.undoStack.length <= 1;
+    if (refs.topbarRedoBtn) refs.topbarRedoBtn.disabled = historyState.redoStack.length === 0;
   }
 
   function normalizeDraft(survey) {
