@@ -366,9 +366,9 @@
     setText(".constructor-editor-top h3", "Вопрос и страница");
     setText("#openDesignSettingsBtn", "Дизайн");
     setText("#settingsTabQuestion", "Вопрос");
-    setText("[data-editor-section-shortcut='content']", "1. Вопрос");
-    setText("[data-editor-section-shortcut='options']", "2. Варианты");
-    setText("[data-editor-section-shortcut='logic']", "3. Логика");
+    setText("[data-editor-section-shortcut='content']", "Content");
+    setText("[data-editor-section-shortcut='options']", "Options");
+    setText("[data-editor-section-shortcut='logic']", "Logic");
     setText("#emptyEditor p", "Выберите вопрос в центре, чтобы изменить его параметры.");
 
     const questionTitleRow = document.querySelector("#questionTitleInput")?.closest(".form-row");
@@ -782,27 +782,29 @@
       return section;
     };
 
-    const mainGroup = createGroup("Текст вопроса");
+    const mainGroup = createGroup("Content");
     mainGroup.dataset.editorSection = "content";
-    const optionsGroup = createGroup("Варианты");
+    const behaviorGroup = createGroup("Behavior & validation");
+    behaviorGroup.dataset.editorSection = "content";
+    const optionsGroup = createGroup("Options & media");
     optionsGroup.dataset.editorSection = "options";
-    const logicGroup = createGroup("Логика");
+    const logicGroup = createGroup("Logic");
     logicGroup.dataset.editorSection = "logic";
-    const actionGroup = createGroup("Удаление вопроса", "constructor-editor-group--danger");
+    const actionGroup = createGroup("Advanced", "constructor-editor-group--danger");
     actionGroup.dataset.editorSection = "logic";
     const typeHint = document.createElement("div");
     typeHint.id = "questionTypeHint";
     typeHint.className = "constructor-type-hint";
     typeHint.textContent = "Подсказки появятся после выбора вопроса.";
 
-    [titleRow, descriptionRow, opacityRow].forEach((node) => {
+    [titleRow, descriptionRow].forEach((node) => {
       if (node) mainGroup.appendChild(node);
     });
-    [requiredRow, requiredQuickBtn, typeRow, ratingSection].forEach((node) => {
-      if (node) mainGroup.appendChild(node);
+    [typeRow, requiredRow, requiredQuickBtn, ratingSection, opacityRow].forEach((node) => {
+      if (node) behaviorGroup.appendChild(node);
     });
     [typeHint].forEach((node) => {
-      if (node) mainGroup.appendChild(node);
+      if (node) behaviorGroup.appendChild(node);
     });
     if (logicRow && logicRow.parentElement === optionsSection) logicGroup.appendChild(logicRow);
     if (logicHint && logicHint.parentElement === optionsSection) logicGroup.appendChild(logicHint);
@@ -810,7 +812,7 @@
     if (removeButton) actionGroup.appendChild(removeButton);
 
     editor.innerHTML = "";
-    [mainGroup, optionsGroup, logicGroup, actionGroup].forEach((group) => {
+    [mainGroup, behaviorGroup, optionsGroup, logicGroup, actionGroup].forEach((group) => {
       if (group.children.length > 1) editor.appendChild(group);
     });
 
@@ -850,40 +852,41 @@
 
   function mountDesignSidebar() {
     const sidebar = refs.settingsPanel;
+    if (!sidebar || sidebar.dataset.propertiesMounted === "1") return;
+    sidebar.dataset.propertiesMounted = "1";
+    sidebar.classList.remove("constructor-editor--design");
+    sidebar.classList.add("constructor-properties-panel");
+    sidebar.setAttribute("aria-label", "Свойства выбранного элемента");
+
     const designPanel = refs.designSettingsPanel;
-    if (!sidebar || !designPanel || designPanel.dataset.sidebarMounted === "1") return;
+    if (designPanel && designPanel.dataset.sidebarMounted !== "1") {
+      designPanel.dataset.sidebarMounted = "1";
+      designPanel.classList.remove("constructor-modal", "constructor-modal--design");
+      designPanel.classList.add("constructor-design--sidebar", "constructor-properties-design");
+      designPanel.removeAttribute("role");
+      designPanel.removeAttribute("aria-modal");
+      designPanel.removeAttribute("aria-labelledby");
+      refs.closeDesignSettingsBtn?.setAttribute("hidden", "");
 
-    const archive = document.createElement("div");
-    archive.id = "questionSettingsArchive";
-    archive.className = "question-settings-overlay";
-    archive.hidden = true;
-    const modal = document.createElement("section");
-    modal.className = "question-settings-modal";
-    modal.setAttribute("role", "dialog");
-    modal.setAttribute("aria-modal", "true");
-    modal.setAttribute("aria-label", "Настройки вопроса");
-    while (sidebar.firstChild) {
-      modal.appendChild(sidebar.firstChild);
+      const themeMount = document.createElement("section");
+      themeMount.id = "inlineThemePanel";
+      themeMount.className = "constructor-inline-themes";
+      themeMount.innerHTML = `
+        <div class="constructor-inline-themes__head">
+          <div>
+            <span>Theme library</span>
+            <strong>Готовые стили</strong>
+          </div>
+          <small>Live preview</small>
+        </div>
+        <div class="constructor-inline-themes__categories" data-inline-theme-categories></div>
+        <div class="constructor-inline-themes__grid" data-inline-theme-grid></div>
+      `;
+      designPanel.appendChild(themeMount);
+      sidebar.appendChild(designPanel);
+      refs.designSettingsOverlay?.setAttribute("hidden", "");
+      renderInlineThemePanel();
     }
-    archive.appendChild(modal);
-    archive.addEventListener("click", (event) => {
-      if (event.target === archive) setInspectorOpen(false);
-    });
-    document.body.appendChild(archive);
-
-    designPanel.dataset.sidebarMounted = "1";
-    designPanel.classList.remove("constructor-modal", "constructor-modal--design");
-    designPanel.classList.add("constructor-design--sidebar");
-    designPanel.removeAttribute("role");
-    designPanel.removeAttribute("aria-modal");
-    designPanel.removeAttribute("aria-labelledby");
-
-    if (refs.closeDesignSettingsBtn) refs.closeDesignSettingsBtn.hidden = true;
-    refs.designSettingsOverlay?.setAttribute("hidden", "");
-
-    sidebar.classList.add("constructor-editor--design");
-    sidebar.setAttribute("aria-label", "Дизайн анкеты");
-    sidebar.appendChild(designPanel);
   }
 
   function applyOptionPreset(presetKey) {
@@ -2781,16 +2784,17 @@
         card.innerHTML = `
           <div class="question-card__head question-card__head--simple">
             <div class="question-card__left">
+              <span class="question-card__type-icon">${escapeHtml(getQuestionIcon(question))}</span>
               <div class="question-card__title-wrap">
                 <h4 class="q-title">${highlightQuestionText(`${index + 1}. ${question.title || "Новый вопрос"}`, state.questionFilter)}</h4>
-                <div class="q-meta">${escapeHtml(getMetaText(question))}</div>
+                <div class="q-meta">${renderQuestionBadges(question)}</div>
               </div>
             </div>
             <div class="question-card__actions">
-              <button type="button" class="btn btn--ghost btn--xs" data-action="select" aria-pressed="${isSelected ? "true" : "false"}">Выбрать</button>
-              <button type="button" class="btn btn--ghost btn--xs" data-action="focus">Редактировать</button>
-              <button type="button" class="btn btn--ghost btn--xs question-card__action-extra" data-action="duplicate">Копия</button>
-              <button type="button" class="btn btn--ghost btn--xs question-card__action-extra" data-action="delete">Удалить</button>
+              <button type="button" class="question-card__icon" data-action="drag" draggable="true" title="Переместить">::</button>
+              <button type="button" class="question-card__icon" data-action="focus" title="Свойства">⚙</button>
+              <button type="button" class="question-card__icon" data-action="duplicate" title="Дублировать">⧉</button>
+              <button type="button" class="question-card__icon danger" data-action="delete" title="Удалить">✕</button>
             </div>
           </div>
           <div class="question-card__preview">${renderQuestionCardPreview(question)}</div>
@@ -2801,9 +2805,10 @@
             <div class="question-card__left">
               <button type="button" class="question-card__drag" data-action="drag" draggable="true" title="Перетащить вопрос">≡</button>
               <button type="button" class="question-card__select${isSelected ? " is-on" : ""}" data-action="select" aria-pressed="${isSelected ? "true" : "false"}" title="Выделить вопрос">✓</button>
+              <span class="question-card__type-icon">${escapeHtml(getQuestionIcon(question))}</span>
               <div class="question-card__title-wrap">
                 <h4 class="q-title">${highlightQuestionText(`${index + 1}. ${question.title || "Новый вопрос"}`, state.questionFilter)}</h4>
-                <div class="q-meta">${escapeHtml(getMetaText(question))}</div>
+                <div class="q-meta">${renderQuestionBadges(question)}</div>
               </div>
             </div>
             <div class="question-card__actions">
@@ -2990,7 +2995,7 @@
       const prefix = questionIndex >= 0 ? `${questionIndex + 1}. ` : "";
       title.innerHTML = highlightQuestionText(`${prefix}${question.title || "Новый вопрос"}`, state.questionFilter);
     }
-    if (meta) meta.textContent = getMetaText(question);
+    if (meta) meta.innerHTML = renderQuestionBadges(question);
     if (preview) preview.innerHTML = renderQuestionCardPreview(question, state.survey.pages.findIndex((item) => item.id === page?.id));
     card.style.setProperty("--question-panel-alpha", (normalizeQuestionPanelOpacity(question.panelOpacity) / 100).toFixed(2));
   }
@@ -3577,6 +3582,12 @@
   }
 
   function openThemePickerModal() {
+    const inlinePanel = document.getElementById("inlineThemePanel");
+    if (inlinePanel) {
+      renderInlineThemePanel();
+      inlinePanel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      return;
+    }
     if (!refs.themePickerOverlay || !refs.themePickerOverlay.hidden) return;
     state.previewThemeId = state.activeThemeId;
     renderThemePicker();
@@ -3592,6 +3603,8 @@
 
   function openDesignSettingsModal() {
     if (refs.designSettingsPanel?.dataset.sidebarMounted === "1") {
+      updateDesignEditor();
+      renderInlineThemePanel();
       refs.settingsPanel?.scrollIntoView({ block: "nearest", behavior: "smooth" });
       refs.pageBgColorInput?.focus();
       return;
@@ -3830,6 +3843,59 @@
     refs.themePreviewDescription.textContent = preview.description;
   }
 
+  function getThemeCategory(theme) {
+    const id = String(theme?.id || "").toLowerCase();
+    const name = String(theme?.name || "").toLowerCase();
+    if (id.includes("graphite") || id.includes("dark") || id.includes("boardroom") || name.includes("dark")) return "Dark";
+    if (id.includes("academy") || id.includes("school") || id.includes("course")) return "Academic";
+    if (id.includes("forest") || id.includes("mint") || id.includes("clinic") || id.includes("ice")) return "Nature";
+    if (id.includes("event") || id.includes("rose") || id.includes("violet") || id.includes("peach") || id.includes("restaurant")) return "Creative";
+    if (id.includes("skyline") || id.includes("support") || id.includes("product") || id.includes("sea")) return "SaaS";
+    return "Corporate";
+  }
+
+  function renderInlineThemePanel() {
+    const panel = document.getElementById("inlineThemePanel");
+    if (!panel) return;
+    const categoriesNode = panel.querySelector("[data-inline-theme-categories]");
+    const gridNode = panel.querySelector("[data-inline-theme-grid]");
+    if (!categoriesNode || !gridNode) return;
+
+    const categories = ["All", "SaaS", "Corporate", "Academic", "Creative", "Dark", "Nature"];
+    const activeCategory = state.inlineThemeCategory || "All";
+    categoriesNode.innerHTML = categories
+      .map((category) => `
+        <button class="${category === activeCategory ? "is-active" : ""}" type="button" data-inline-theme-category="${escapeAttr(category)}">${escapeHtml(category)}</button>
+      `)
+      .join("");
+
+    const visibleThemes = BUILDER_THEMES.filter((theme) => activeCategory === "All" || getThemeCategory(theme) === activeCategory);
+    gridNode.innerHTML = visibleThemes
+      .map((theme) => {
+        const isActive = theme.id === state.activeThemeId;
+        const category = getThemeCategory(theme);
+        return `
+          <button class="constructor-inline-theme${isActive ? " is-active" : ""}" type="button" data-inline-theme-id="${escapeAttr(theme.id)}">
+            <span class="constructor-inline-theme__preview" style="background:${escapeAttr(theme.preview || theme.bgColor)}"></span>
+            <span class="constructor-inline-theme__screens" aria-hidden="true"><i></i><i></i><i></i></span>
+            <strong>${escapeHtml(theme.name)}</strong>
+            <em>${escapeHtml(category)}</em>
+          </button>
+        `;
+      })
+      .join("");
+
+    categoriesNode.querySelectorAll("[data-inline-theme-category]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.inlineThemeCategory = button.dataset.inlineThemeCategory || "All";
+        renderInlineThemePanel();
+      });
+    });
+    gridNode.querySelectorAll("[data-inline-theme-id]").forEach((button) => {
+      button.addEventListener("click", () => applyThemeToCurrentPage(String(button.dataset.inlineThemeId || "")));
+    });
+  }
+
   function applyThemeToCurrentPage(themeId) {
     const theme = getThemeById(themeId);
     const page = ensureSelectedPage();
@@ -3846,6 +3912,7 @@
     renderPages();
     renderQuestions();
     updateDesignEditor();
+    renderInlineThemePanel();
     markDirty("Тема применена");
   }
 
@@ -4532,15 +4599,13 @@
   }
 
   function setInspectorOpen(open) {
-    const overlay = document.getElementById("questionSettingsArchive");
     const shouldOpen = Boolean(open) && Boolean(getSelectedQuestion());
     document.body.classList.toggle("builder-inspector-open", shouldOpen);
-    if (overlay) overlay.hidden = !shouldOpen;
-    document.body.classList.toggle("modal-open", shouldOpen || hasAnyModalOpen());
+    document.body.classList.toggle("modal-open", hasAnyModalOpen());
     if (shouldOpen) {
       renderEditor();
       requestAnimationFrame(() => {
-        refs.questionTitleInput?.focus();
+        if (window.innerWidth <= 1100) refs.questionTitleInput?.focus();
       });
     }
   }
@@ -5207,6 +5272,7 @@
     refs.pageLayoutInput.value = design.layout;
     refs.pageOverlayInput.value = String(design.overlay);
     refs.pageOverlayValue.textContent = `${design.overlay}%`;
+    renderInlineThemePanel();
   }
 
   function normalizePageDesign(raw) {
@@ -5356,6 +5422,27 @@ function createOption(text = "") {
   function getMetaText(question) {
     const label = isImageChoiceQuestion(question) ? "Опрос с изображениями" : TYPE_LABELS[normalizeType(question.type)] || "Текст";
     return question.required ? `${label} • Обязательный` : label;
+  }
+
+  function getQuestionIcon(question) {
+    if (isImageChoiceQuestion(question)) return "IMG";
+    const icons = {
+      text: "T",
+      single: "1",
+      multiple: "M",
+      select: "V",
+      rating: "5"
+    };
+    return icons[normalizeType(question?.type)] || "Q";
+  }
+
+  function renderQuestionBadges(question) {
+    const typeLabel = isImageChoiceQuestion(question) ? "Фото-выбор" : TYPE_LABELS[normalizeType(question.type)] || "Текст";
+    const badges = [`<span class="q-badge q-badge--type">${escapeHtml(typeLabel)}</span>`];
+    if (question.required) badges.push(`<span class="q-badge q-badge--required">Обязательный</span>`);
+    if (question.logicEnabled) badges.push(`<span class="q-badge q-badge--logic">Логика</span>`);
+    if (isImageChoiceQuestion(question)) badges.push(`<span class="q-badge q-badge--image">Изображения</span>`);
+    return badges.join("");
   }
 
   function ensureRatingLabels(question) {
