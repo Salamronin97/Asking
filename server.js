@@ -182,6 +182,21 @@ function normalizeStoredQuestionType(type) {
   return value;
 }
 
+function isNpsLikeQuestion(question, value = null) {
+  const source = `${question?.question_text || question?.text || ""} ${question?.help_text || question?.helpText || ""}`;
+  if (/nps|recommend|порекоменду|рекоменд|0\s*[-–—]\s*10|10/i.test(source)) return true;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric >= 0 && numeric <= 10 && numeric > 5;
+}
+
+function parseClientIso(value, fallback = null) {
+  const raw = String(value || "").trim();
+  if (!raw) return fallback;
+  const parsed = Date.parse(raw);
+  if (!Number.isFinite(parsed)) return fallback;
+  return new Date(parsed).toISOString();
+}
+
 function isAllowedMediaPath(value) {
   const raw = String(value || "").trim();
   if (!raw) return false;
@@ -978,6 +993,10 @@ app.get("/auth", (_req, res) => {
 
 app.get("/create", (_req, res) => {
   sendHtmlUtf8(res, path.join(__dirname, "public", "create.html"));
+});
+
+app.get("/create-v2", (_req, res) => {
+  sendHtmlUtf8(res, path.join(__dirname, "public", "create-v2.html"));
 });
 
 app.get("/cabinet", (_req, res) => {
@@ -2439,7 +2458,9 @@ async function handleSurveySubmit(req, res, next, surveyIdRaw) {
 
       if (normalizedType === "rating") {
         const numeric = Number(value);
-        if (!Number.isFinite(numeric) || numeric < 1 || numeric > 5) invalidQuestions.push(q.id);
+        const maxRating = isNpsLikeQuestion(q, value) ? 10 : 5;
+        const minRating = isNpsLikeQuestion(q, value) ? 0 : 1;
+        if (!Number.isFinite(numeric) || numeric < minRating || numeric > maxRating) invalidQuestions.push(q.id);
       }
 
       if (normalizedType === "text" && String(value).trim().length > 2000) {
@@ -2452,8 +2473,18 @@ async function handleSurveySubmit(req, res, next, surveyIdRaw) {
     }
 
     const participantHash = hashParticipant(req);
-    const respondentHash = participantHash;
+    const isTestSubmission = parseBool(req.body?.testMode, false) || parseBool(req.query?.test, false);
+    const respondentHash = isTestSubmission ? `test:${participantHash}` : participantHash;
     const responseLimit = parseResponseLimit(survey.response_limit);
+    const completedAt = parseClientIso(req.body?.completedAt, nowIso());
+    const startedAt = parseClientIso(req.body?.startedAt, completedAt);
+    const durationSecondsRaw = Number(req.body?.durationSeconds);
+    const derivedDurationSeconds = Math.max(0, Math.round((Date.parse(completedAt) - Date.parse(startedAt)) / 1000));
+    const durationSeconds = Number.isFinite(durationSecondsRaw) && durationSecondsRaw >= 0
+      ? Math.min(Math.round(durationSecondsRaw), 60 * 60 * 24)
+      : derivedDurationSeconds;
+    const responseStatusRaw = String(req.body?.status || "completed").trim().toLowerCase();
+    const responseStatus = responseStatusRaw === "partial" ? "partial" : "completed";
     const submissionId = String(req.body?.submissionId || req.headers["x-asking-submission-id"] || "")
       .trim()
       .slice(0, 140);
@@ -2478,7 +2509,7 @@ async function handleSurveySubmit(req, res, next, surveyIdRaw) {
         }
       }
 
-      if (!survey.allow_multiple_responses) {
+      if (!survey.allow_multiple_responses && !isTestSubmission) {
         const previous = await get(
           "SELECT id FROM responses WHERE survey_id = ? AND participant_hash = ? LIMIT 1",
           [surveyId, participantHash]
@@ -2488,13 +2519,19 @@ async function handleSurveySubmit(req, res, next, surveyIdRaw) {
           if (submissionCacheKey && PUBLIC_SUBMISSION_CACHE.has(submissionCacheKey)) {
             return res.status(200).json({ ok: true, duplicate: true });
           }
-          return res.status(409).json({ error: "Only one response is allowed" });
+          return res.status(409).json({
+            error: "Вы уже отправили ответ на эту анкету",
+            code: "duplicate_response",
+            hint: "Для повторной проверки откройте ссылку в тестовом режиме"
+          });
         }
       }
 
       const response = await run(
-        "INSERT INTO responses (survey_id, participant_hash, respondent_hash, created_at) VALUES (?, ?, ?, ?)",
-        [surveyId, participantHash, respondentHash, nowIso()]
+        `INSERT INTO responses
+          (survey_id, participant_hash, respondent_hash, created_at, started_at, completed_at, duration_seconds, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [surveyId, participantHash, respondentHash, completedAt, startedAt, completedAt, durationSeconds, responseStatus]
       );
 
       for (const q of questions) {
@@ -2908,6 +2945,93 @@ app.get("/api/surveys/:id/results", requireAuth, async (req, res, next) => {
       },
       trend,
       results
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/surveys/:id/results-v2", requireAuth, async (req, res, next) => {
+  try {
+    const surveyId = Number(req.params.id);
+    if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
+
+    const survey = await get(
+      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at
+       FROM surveys WHERE id = ?`,
+      [surveyId]
+    );
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+    if (survey.owner_user_id !== req.user.id) return res.status(403).json({ error: "Forbidden" });
+
+    const [questions, responsesRaw] = await Promise.all([
+      getSurveyQuestionsDetailed(surveyId),
+      all(
+        `SELECT id, created_at, started_at, completed_at, duration_seconds, status, respondent_hash
+         FROM responses
+         WHERE survey_id = ?
+         ORDER BY created_at DESC, id DESC`,
+        [surveyId]
+      )
+    ]);
+
+    const responseIds = responsesRaw.map((row) => row.id);
+    const answersRaw = responseIds.length
+      ? await all(
+          `SELECT response_id, question_id, answer_json
+           FROM answers
+           WHERE response_id IN (${responseIds.map(() => "?").join(",")})
+           ORDER BY id ASC`,
+          responseIds
+        )
+      : [];
+
+    const answersByResponse = new Map();
+    answersRaw.forEach((answer) => {
+      const list = answersByResponse.get(answer.response_id) || [];
+      list.push({
+        questionId: answer.question_id,
+        value: safeJsonParse(answer.answer_json, null)
+      });
+      answersByResponse.set(answer.response_id, list);
+    });
+
+    const responses = responsesRaw.map((response) => {
+      const completedAt = response.completed_at || response.created_at;
+      const startedAt = response.started_at || response.created_at;
+      const durationRaw = Number(response.duration_seconds);
+      const durationSeconds = Number.isFinite(durationRaw)
+        ? Math.max(0, Math.round(durationRaw))
+        : Math.max(0, Math.round((Date.parse(completedAt) - Date.parse(startedAt)) / 1000));
+      return {
+        id: response.id,
+        status: response.status || "completed",
+        createdAt: response.created_at,
+        startedAt,
+        completedAt,
+        submittedAt: completedAt,
+        durationSeconds,
+        respondentHash: response.respondent_hash || "",
+        answers: answersByResponse.get(response.id) || []
+      };
+    });
+
+    const completedResponses = responses.filter((response) => response.status === "completed");
+    const averageDurationSeconds = completedResponses.length
+      ? Math.round(completedResponses.reduce((sum, response) => sum + Number(response.durationSeconds || 0), 0) / completedResponses.length)
+      : 0;
+
+    res.json({
+      survey,
+      questions,
+      responses,
+      summary: {
+        totalResponses: responses.length,
+        completedResponses: completedResponses.length,
+        completionRate: responses.length ? Math.round((completedResponses.length / responses.length) * 100) : 0,
+        averageDurationSeconds,
+        lastResponseAt: responses[0]?.submittedAt || null
+      }
     });
   } catch (error) {
     next(error);

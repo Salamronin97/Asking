@@ -13,8 +13,6 @@
   const shareCopyBtn = document.getElementById("shareCopyBtn");
   const shareOpenBtn = document.getElementById("shareOpenBtn");
   const THEME_STORAGE_KEY = "asking_theme";
-  const WELCOME_DEFAULT_COVER =
-    "https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1400&q=78";
   const WELCOME_LAYOUTS = new Set(["image-right", "image-left", "image-top", "background", "typographic"]);
 
   const api = {
@@ -40,7 +38,8 @@
     currentStep: 0,
     history: [0],
     logicNotice: "",
-    accessPassword: ""
+    accessPassword: "",
+    testMode: false
   };
 
   const PUBLIC_I18N = {
@@ -108,6 +107,10 @@
     const normalized = String(type || "text").trim().toLowerCase();
     if (normalized === "multi") return "multiple";
     if (normalized === "dropdown") return "select";
+    if (normalized === "long_text" || normalized === "textarea") return "text";
+    if (normalized === "email") return "text";
+    if (normalized === "nps") return "rating";
+    if (normalized === "image_choice" || normalized === "image") return "single";
     if (["text", "single", "multiple", "rating", "select"].includes(normalized)) return normalized;
     return "text";
   }
@@ -234,6 +237,34 @@
     };
   }
 
+  function normalizeRuntimeType(type) {
+    const normalized = String(type || "text").trim().toLowerCase();
+    if (normalized === "multiple") return "multi";
+    if (normalized === "select") return "dropdown";
+    if (normalized === "textarea") return "long_text";
+    if (["text", "long_text", "email", "single", "multi", "dropdown", "image_choice", "rating", "nps", "info"].includes(normalized)) {
+      return normalized;
+    }
+    return "text";
+  }
+
+  function normalizeRuntimeQuestionFromApi(question) {
+    const base = normalizeQuestionFromApi(question);
+    const rawType = normalizeRuntimeType(question?.type || base.type);
+    const options = Array.isArray(question?.options)
+      ? question.options.map(normalizeOptionForPublic)
+      : Array.isArray(base.options)
+        ? base.options.map(normalizeOptionForPublic)
+        : [];
+    const hasImages = options.some((option) => option.imageUrl);
+    return {
+      ...base,
+      type: rawType === "single" && hasImages ? "image_choice" : rawType,
+      options,
+      settings: question?.settings && typeof question.settings === "object" ? question.settings : {}
+    };
+  }
+
   function normalizeOwnerPageFromApi(page, index) {
     return {
       id: String(page?.id || `page_${index + 1}`),
@@ -269,12 +300,12 @@
     const allowedImage =
       /^https?:\/\//i.test(coverImage) || coverImage.startsWith("/uploads/")
         ? coverImage
-        : WELCOME_DEFAULT_COVER;
+        : "";
     return {
       coverImage: allowedImage,
       layout: WELCOME_LAYOUTS.has(layout) ? layout : "image-right",
       imageOpacity: Number.isFinite(opacity) ? Math.max(20, Math.min(100, Math.round(opacity))) : 86,
-      imageEnabled: value.imageEnabled !== false
+      imageEnabled: value.imageEnabled !== false && Boolean(allowedImage)
     };
   }
 
@@ -1092,6 +1123,15 @@
     return Object.keys(values).reduce((acc, key) => acc.replaceAll(`{${key}}`, values[key]), template);
   }
 
+  function isDuplicateResponseError(error) {
+    return /only one response is allowed|уже отправили/i.test(String(error?.message || error || ""));
+  }
+
+  function duplicateResponseMessage(state) {
+    const suffix = state?.testMode ? "" : " Для повторной проверки откройте ссылку в тестовом режиме.";
+    return `Вы уже отправили ответ на эту анкету.${suffix}`;
+  }
+
   function buildPublicQuestion(question) {
     const row = document.createElement("div");
     row.className = "public-question-card public-question-row";
@@ -1391,7 +1431,7 @@
   }
 
   function normalizeSurveyData(survey, pagesRaw, questionsRaw) {
-    const questions = Array.isArray(questionsRaw) ? questionsRaw.map(normalizeQuestionFromApi) : [];
+    const questions = Array.isArray(questionsRaw) ? questionsRaw.map(normalizeRuntimeQuestionFromApi) : [];
     const pages = buildPublicPages(pagesRaw, questions).map((page, pageIndex) => ({
       ...page,
       id: String(page.id || `page_${pageIndex + 1}`),
@@ -1402,12 +1442,13 @@
         id: String(question.id),
         pageId: String(page.id || `page_${pageIndex + 1}`),
         pageIndex,
-        type: normalizeType(question.type),
+        type: normalizeRuntimeType(question.type),
         text: String(question.text || question.question_text || "Вопрос"),
         helpText: String(question.helpText || question.help_text || question.description || ""),
         required: Boolean(question.required),
         panelOpacity: Number.isFinite(Number(question.panelOpacity)) ? Number(question.panelOpacity) : 72,
-        options: Array.isArray(question.options) ? question.options.map(normalizeOptionForPublic) : []
+        options: Array.isArray(question.options) ? question.options.map(normalizeOptionForPublic) : [],
+        settings: question.settings && typeof question.settings === "object" ? question.settings : {}
       }))
     }));
     const steps = pages.reduce((list, page, pageIndex) => {
@@ -1420,9 +1461,9 @@
   }
 
   function getPublicQuestionKind(question) {
-    const type = normalizeType(question?.type);
-    if ((type === "single" || type === "select" || type === "multiple") && (question.options || []).some((option) => option.imageUrl)) {
-      return "image";
+    const type = normalizeRuntimeType(question?.type);
+    if (type === "image_choice" || ((type === "single" || type === "dropdown" || type === "multi") && (question.options || []).some((option) => option.imageUrl))) {
+      return "image_choice";
     }
     return type;
   }
@@ -1450,7 +1491,7 @@
   function validateCurrentStep(state) {
     const step = state.steps[state.currentIndex];
     if (!step?.question) return true;
-    if (!step.question.required || isPublicQuestionAnswered(state, step.question)) {
+    if (normalizeRuntimeType(step.question.type) === "info" || !step.question.required || isPublicQuestionAnswered(state, step.question)) {
       state.errors.delete(String(step.question.id));
       return true;
     }
@@ -1460,6 +1501,7 @@
 
   function collectAnswers(state) {
     return state.steps.map((step) => step.question)
+      .filter((question) => normalizeRuntimeType(question.type) !== "info")
       .filter((question) => state.answers.has(String(question.id)))
       .map((question) => ({
         questionId: question.id,
@@ -1504,91 +1546,78 @@
 
   function applyRunnerBackground(root, design, isIntro = false) {
     const d = normalizePublicPageDesign(design || {});
+    const previewDesign = {
+      backgroundColor: d.bgColor || "#f6f7fb",
+      backgroundImage: d.bgImage || "",
+      backgroundType: d.bgImage ? "image" : "color",
+      overlay: d.overlay || 0,
+      gradientStyle: "soft",
+      primaryColor: "#6C63FF",
+      secondaryColor: "#22C55E",
+      progressStyle: "top",
+      cardStyle: "shadow",
+      animationStyle: "fade"
+    };
     root.dataset.storyTheme = d.themeId || "corporate";
-    const bg = root.querySelector(".asking-runner__bg");
-    const wash = root.querySelector(".asking-runner__wash");
-    if (!bg || !wash) return;
     const welcome = normalizeWelcomeSettings(d.welcome);
     const image = isIntro && welcome.imageEnabled ? welcome.coverImage : d.bgImage;
-    const overlay = Math.max(0, Math.min(0.82, Number(d.overlay || 0) / 100));
-    bg.style.backgroundColor = d.bgColor;
-    bg.style.backgroundImage = image ? `url("${image}")` : "";
-    bg.style.opacity = image ? String(isIntro ? welcome.imageOpacity / 100 : 1) : "1";
-    wash.style.background = image
-      ? `linear-gradient(135deg, rgba(15,23,42,${Math.max(0.32, overlay)}), rgba(15,23,42,${Math.max(0.18, overlay * 0.7)}))`
-      : `radial-gradient(circle at 18% 0%, rgba(37,99,235,0.18), transparent 32%), linear-gradient(135deg, ${d.bgColor}, #f8fbff)`;
+    const overlay = Math.max(0, Math.min(90, Number(d.overlay || 0))) / 100;
+    const background = image
+      ? `linear-gradient(rgba(17,24,39,${overlay}), rgba(17,24,39,${overlay})), url("${image}"), ${previewDesign.backgroundColor}`
+      : `radial-gradient(circle at 18% 0%, rgba(108,99,255,0.14), transparent 34%), ${previewDesign.backgroundColor}`;
+    root.style.setProperty("--preview-bg", background);
+    document.body.dataset.cardStyle = previewDesign.cardStyle;
+    document.body.dataset.progressStyle = previewDesign.progressStyle;
+    document.body.dataset.animationStyle = previewDesign.animationStyle;
   }
 
   function createRunnerShell() {
     const root = document.createElement("div");
-    root.className = "asking-runner";
+    root.className = "asking-runner bv2-public-runtime bv2-preview-stage";
     root.innerHTML = `
-      <div class="asking-runner__bg" aria-hidden="true"></div>
-      <div class="asking-runner__wash" aria-hidden="true"></div>
-      <div class="asking-runner__progress" aria-hidden="true"><span></span></div>
-      <header class="asking-story-topbar">
-        <strong>Asking</strong>
-        <span data-story-counter>0 / 0</span>
-        <button type="button" data-action="exit-survey">Выйти</button>
-      </header>
-      <aside class="asking-story-sidebar" aria-label="Прогресс анкеты"></aside>
       <main class="asking-runner__viewport"></main>
     `;
-    root.querySelector("[data-action='exit-survey']")?.addEventListener("click", () => {
-      window.location.href = "/";
-    });
     return root;
   }
 
   function renderStorySidebar(state) {
-    const sidebar = state.root.querySelector(".asking-story-sidebar");
-    if (!sidebar) return;
-    const pages = state.pages || [];
-    sidebar.innerHTML = `
-      <span class="asking-story-sidebar__eyebrow">Progress</span>
-      <strong>${escapeHtml(state.survey.title || "Анкета")}</strong>
-      <div class="asking-story-sidebar__list">
-        ${pages.map((page, index) => `
-          <div class="asking-story-sidebar__item${index === state.steps[state.currentIndex]?.pageIndex ? " is-active" : ""}">
-            <span>${String(index + 1).padStart(2, "0")}</span>
-            <em>${escapeHtml(page.title || `Страница ${index + 1}`)}</em>
-          </div>
-        `).join("")}
-      </div>
-    `;
+    const counter = state.root.querySelector("[data-story-counter]");
+    if (counter) counter.textContent = `${Math.min(state.currentIndex + 1, state.steps.length)} / ${state.steps.length}`;
   }
 
   function renderIntro(state) {
     const introDesign = state.pages[0]?.design || {};
     const welcome = normalizeWelcomeSettings(introDesign.welcome);
-    const layout = welcome.imageEnabled ? welcome.layout : "typographic";
     const needsPassword = Boolean(state.survey?.has_access_password);
     applyRunnerBackground(state.root, introDesign, true);
     const viewport = state.root.querySelector(".asking-runner__viewport");
     renderStorySidebar(state);
+    const questionCount = state.steps.length;
+    const estimated = Math.max(1, Math.ceil(questionCount * 0.45));
     viewport.innerHTML = `
-      <section class="asking-intro asking-intro--${escapeAttr(layout)}">
-        <div class="asking-intro__media" aria-hidden="true"></div>
-        <div class="asking-intro__content">
-          <span class="asking-kicker">Asking</span>
+      <section class="bv2-preview-runtime-card bv2-preview-runtime-card--welcome" data-preview-view>
+        ${state.testMode ? `<span class="bv2-test-badge">Тестовый режим</span>` : ""}
+        ${welcome.imageEnabled && welcome.coverImage ? `<img class="bv2-preview-welcome-image" src="${escapeAttr(welcome.coverImage)}" alt="" />` : ""}
+        <div class="bv2-preview-runtime-head">
+          <span>Asking</span>
           <h1>${escapeHtml(state.survey.title || "Анкета")}</h1>
           <p>${escapeHtml(state.survey.description || "Ответьте на несколько вопросов. Это займет немного времени.")}</p>
-          <div class="asking-intro__meta"><strong>${state.questions.length}</strong><span>${state.questions.length === 1 ? "вопрос" : "вопросов"}</span></div>
+        </div>
+        <div class="bv2-preview-start-meta" aria-label="Параметры анкеты">
+          <span><strong>${estimated} мин</strong>примерное время</span>
+          <span><strong>${questionCount}</strong>${questionCount === 1 ? "вопрос" : "вопросов"}</span>
+        </div>
+        <div class="bv2-preview-actions bv2-public-start-actions">
           ${needsPassword ? `
-            <label class="asking-access">
+            <label class="bv2-public-access">
               <span>Пароль доступа</span>
               <input type="password" name="surveyAccessPassword" value="${escapeAttr(state.accessPassword || "")}" placeholder="Введите пароль" autocomplete="current-password" />
             </label>
           ` : ""}
-          <button class="asking-btn asking-btn--primary asking-intro__start" type="button">Начать</button>
+          <button class="bv2-btn bv2-btn--primary asking-intro__start" type="button">Начать опрос</button>
         </div>
       </section>
     `;
-    const media = viewport.querySelector(".asking-intro__media");
-    if (media && welcome.imageEnabled && welcome.coverImage) {
-      media.style.backgroundImage = `url("${welcome.coverImage}")`;
-      media.style.opacity = String(welcome.imageOpacity / 100);
-    }
     viewport.querySelector("[name='surveyAccessPassword']")?.addEventListener("input", (event) => {
       state.accessPassword = String(event.target.value || "");
     });
@@ -1612,21 +1641,33 @@
     const viewport = state.root.querySelector(".asking-runner__viewport");
     const question = step.question;
     const error = state.errors.get(String(question.id)) || "";
+    const type = getPublicQuestionKind(question);
+    const required = question.required && type !== "info" ? `<span class="bv2-badge bv2-badge--required">Обязательный</span>` : "";
+    const progress = Math.round(((state.currentIndex + 1) / Math.max(1, state.steps.length)) * 100);
+    state.root.dataset.previewDirection = direction === "back" ? "back" : "next";
     viewport.innerHTML = `
-      <section class="asking-step asking-step--${direction}${error ? " is-invalid" : ""}" tabindex="-1">
-        <div class="asking-step__head">
-          <div>
-            <span class="asking-step__eyebrow">${String(state.currentIndex + 1).padStart(2, "0")} / ${state.steps.length} · ${escapeHtml(step.page.title || `Страница ${step.pageIndex + 1}`)}</span>
-            <h2>${escapeHtml(question.text || "Вопрос")}</h2>
-          </div>
-          ${question.required ? `<span class="asking-required">Обязательный</span>` : ""}
+      <section class="bv2-preview-runtime-card bv2-preview-runtime-card--question bv2-preview-runtime-card--${type === "image_choice" ? "image" : "standard"} asking-step--${direction}${error ? " is-invalid" : ""}" data-preview-view data-preview-direction="${escapeAttr(direction === "back" ? "back" : "next")}" tabindex="-1">
+        ${state.testMode ? `<span class="bv2-test-badge">Тестовый режим</span>` : ""}
+        <div class="bv2-preview-progress"><i style="width:${progress}%"></i></div>
+        <div class="bv2-preview-runtime-meta">
+          <span>${state.currentIndex + 1} / ${state.steps.length}</span>
+          ${required}
         </div>
-        ${question.helpText ? `<p class="asking-step__hint">${escapeHtml(question.helpText)}</p>` : ""}
+        <div class="bv2-preview-runtime-head">
+          ${step.page?.title ? `<span>${escapeHtml(step.page.title)}</span>` : ""}
+          <h1>${escapeHtml(question.text || "Вопрос")}</h1>
+          ${question.helpText ? `<p>${escapeHtml(question.helpText)}</p>` : ""}
+        </div>
         <div class="asking-step__error" ${error ? "" : "hidden"}>${escapeHtml(error)}</div>
-        <div class="asking-step__field"></div>
-        <div class="asking-step__nav">
-          <button class="asking-btn asking-btn--secondary" type="button" data-action="back" ${state.currentIndex === 0 ? "disabled" : ""}>Назад</button>
-          <button class="asking-btn asking-btn--primary" type="button" data-action="next">${state.currentIndex >= state.steps.length - 1 ? "Отправить анкету" : "Далее"}</button>
+        <div class="bv2-preview-runtime-questions">
+          <article class="bv2-preview-runtime-question" data-preview-question="${escapeAttr(question.id)}">
+            <div class="asking-step__field"></div>
+          </article>
+        </div>
+        <div class="bv2-preview-actions">
+          <button class="bv2-btn bv2-btn--light" type="button" data-action="back" ${state.currentIndex === 0 ? "disabled" : ""}>Назад</button>
+          <span class="bv2-preview-note">${error ? escapeHtml(error) : "Enter для продолжения"}</span>
+          <button class="bv2-btn bv2-btn--primary" type="button" data-action="next">${state.currentIndex >= state.steps.length - 1 ? "Отправить" : "Далее"}</button>
         </div>
       </section>
     `;
@@ -1665,47 +1706,59 @@
 
   function renderQuestionControl(state, question, mount) {
     const kind = getPublicQuestionKind(question);
-    if (kind === "image") return renderImageChoice(state, question, mount);
-    if (kind === "text") return renderTextQuestion(state, question, mount);
+    if (kind === "info") return renderInfoQuestion(state, question, mount);
+    if (kind === "image_choice") return renderImageChoice(state, question, mount);
+    if (kind === "text" || kind === "long_text" || kind === "email") return renderTextQuestion(state, question, mount);
     if (kind === "rating") return renderRatingQuestion(state, question, mount);
-    if (kind === "select") return renderSelectQuestion(state, question, mount);
-    return renderChoiceQuestion(state, question, mount, kind === "multiple");
+    if (kind === "nps") return renderNpsQuestion(state, question, mount);
+    if (kind === "dropdown") return renderSelectQuestion(state, question, mount);
+    return renderChoiceQuestion(state, question, mount, kind === "multi");
   }
 
   function renderTextQuestion(state, question, mount) {
     const value = String(getPublicAnswer(state, question) || "");
-    mount.innerHTML = `
-      <label class="asking-text-field">
-        <textarea class="asking-textarea" name="q_${escapeAttr(question.id)}" rows="5" maxlength="1200" placeholder="Введите ответ">${escapeHtml(value)}</textarea>
-        <span class="asking-char-counter">${value.length} / 1200</span>
-      </label>
-    `;
-    mount.querySelector("textarea")?.addEventListener("input", (event) => {
+    const type = normalizeRuntimeType(question.type);
+    const settings = question.settings || {};
+    const placeholder = settings.placeholder || "Введите ответ...";
+    mount.innerHTML = type === "long_text"
+      ? `<textarea class="bv2-preview-input" data-preview-answer="${escapeAttr(question.id)}" rows="5" maxlength="2000" placeholder="${escapeAttr(placeholder)}">${escapeHtml(value)}</textarea>`
+      : `<input class="bv2-preview-input" data-preview-answer="${escapeAttr(question.id)}" type="${type === "email" ? "email" : "text"}" value="${escapeAttr(value)}" maxlength="2000" placeholder="${escapeAttr(placeholder)}" />`;
+    mount.querySelector("[data-preview-answer]")?.addEventListener("input", (event) => {
       setPublicAnswer(state, question, event.target.value);
-      const counter = mount.querySelector(".asking-char-counter");
-      if (counter) counter.textContent = `${String(event.target.value || "").length} / 1200`;
       clearInlineError(state.root, question);
     });
   }
 
   function renderRatingQuestion(state, question, mount) {
     const current = String(getPublicAnswer(state, question) || "");
-    const isTenPoint = /nps|0\s*[-–—]\s*10|10/i.test(`${question.text || ""} ${question.helpText || ""}`);
-    const values = isTenPoint ? Array.from({ length: 11 }, (_, index) => index) : [1, 2, 3, 4, 5];
     mount.innerHTML = `
-      <div class="asking-rating-labels"><span>${isTenPoint ? "Не рекомендую" : "Плохо"}</span><span>${isTenPoint ? "Точно рекомендую" : "Отлично"}</span></div>
-      <div class="asking-rating asking-rating--${isTenPoint ? "nps" : "five"}" role="radiogroup" aria-label="${escapeAttr(question.text || "Рейтинг")}">
-        ${values.map((value) => `
-          <button class="asking-rating__item${current === String(value) ? " is-selected" : ""}" type="button" data-value="${value}" aria-pressed="${current === String(value) ? "true" : "false"}">
-            <strong>${value}</strong>
-          </button>
-        `).join("")}
+      <div class="bv2-preview-rating" role="radiogroup" aria-label="${escapeAttr(question.text || "Рейтинг")}">
+        ${[1, 2, 3, 4, 5].map((value) => `<button class="${Number(current) >= value ? "is-selected" : ""}" type="button" data-value="${value}" aria-pressed="${current === String(value) ? "true" : "false"}">*</button>`).join("")}
       </div>
     `;
     mount.querySelectorAll("[data-value]").forEach((button) => {
       button.addEventListener("click", () => {
-        setPublicAnswer(state, question, String(button.dataset.value));
+        setPublicAnswer(state, question, Number(button.dataset.value));
         renderRatingQuestion(state, question, mount);
+        clearInlineError(state.root, question);
+      });
+    });
+  }
+
+  function renderNpsQuestion(state, question, mount) {
+    const current = String(getPublicAnswer(state, question) ?? "");
+    mount.innerHTML = `
+      <div class="bv2-preview-nps-wrap">
+        <div class="bv2-preview-nps" role="radiogroup" aria-label="${escapeAttr(question.text || "NPS")}">
+          ${Array.from({ length: 11 }, (_, value) => `<button class="${current === String(value) ? "is-selected" : ""}" type="button" data-value="${value}" aria-pressed="${current === String(value) ? "true" : "false"}">${value}</button>`).join("")}
+        </div>
+        <div class="bv2-preview-nps-labels"><span>Точно нет</span><span>Точно да</span></div>
+      </div>
+    `;
+    mount.querySelectorAll("[data-value]").forEach((button) => {
+      button.addEventListener("click", () => {
+        setPublicAnswer(state, question, Number(button.dataset.value));
+        renderNpsQuestion(state, question, mount);
         clearInlineError(state.root, question);
       });
     });
@@ -1714,16 +1767,13 @@
   function renderSelectQuestion(state, question, mount) {
     const current = String(getPublicAnswer(state, question) || "");
     mount.innerHTML = `
-      <label class="asking-select-wrap">
-        <span>Выберите вариант</span>
-        <select class="asking-select" name="q_${escapeAttr(question.id)}">
+        <select class="bv2-preview-input" data-preview-answer="${escapeAttr(question.id)}" name="q_${escapeAttr(question.id)}">
           <option value="">Не выбрано</option>
           ${(question.options || []).map((option, index) => {
             const value = option.value || option.text || String(index + 1);
             return `<option value="${escapeAttr(value)}" ${current === String(value) ? "selected" : ""}>${escapeHtml(option.text || `Вариант ${index + 1}`)}</option>`;
           }).join("")}
         </select>
-      </label>
     `;
     mount.querySelector("select")?.addEventListener("change", (event) => {
       setPublicAnswer(state, question, event.target.value);
@@ -1735,23 +1785,22 @@
     const currentRaw = getPublicAnswer(state, question);
     const current = multiple ? (Array.isArray(currentRaw) ? currentRaw : []) : String(currentRaw || "");
     mount.innerHTML = `
-      ${multiple ? `<div class="asking-selected-count">Выбрано: ${current.length}</div>` : ""}
-      <div class="asking-choice-list">
+      <div class="bv2-preview-options">
         ${(question.options || []).map((option, index) => {
           const value = String(option.value || option.text || index + 1);
           const selected = multiple ? current.includes(value) : current === value;
           return `
-            <button class="asking-choice${selected ? " is-selected" : ""}" type="button" data-value="${escapeAttr(value)}">
-              <span class="asking-choice__mark">${selected ? "✓" : ""}</span>
-              <span>${escapeHtml(option.text || `Вариант ${index + 1}`)}</span>
-            </button>
+            <label class="${selected ? "is-selected" : ""}">
+              <input data-preview-answer="${escapeAttr(question.id)}" name="q_${escapeAttr(question.id)}" type="${multiple ? "checkbox" : "radio"}" value="${escapeAttr(value)}" ${selected ? "checked" : ""} />
+              ${escapeHtml(option.text || `Вариант ${index + 1}`)}
+            </label>
           `;
         }).join("")}
       </div>
     `;
-    mount.querySelectorAll("[data-value]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const value = String(button.dataset.value || "");
+    mount.querySelectorAll("[data-preview-answer]").forEach((input) => {
+      input.addEventListener("change", () => {
+        const value = String(input.value || "");
         if (multiple) {
           const next = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
           setPublicAnswer(state, question, next);
@@ -1766,47 +1815,34 @@
 
   function renderImageChoice(state, question, mount) {
     const currentRaw = getPublicAnswer(state, question);
-    const multiple = normalizeType(question.type) === "multiple";
-    const current = multiple ? (Array.isArray(currentRaw) ? currentRaw : []) : String(currentRaw || "");
+    const current = String(currentRaw || "");
     mount.innerHTML = `
-      ${multiple ? `<div class="asking-selected-count">Выбрано: ${current.length}</div>` : ""}
-      <div class="asking-image-grid">
+      <div class="bv2-preview-image-options">
         ${(question.options || []).map((option, index) => {
           const value = String(option.value || option.text || index + 1);
-          const selected = multiple ? current.includes(value) : current === value;
-          const hasText = String(option.text || "").trim();
+          const selected = current === value;
           return `
-            <button class="asking-image-choice${selected ? " is-selected" : ""}" type="button" data-value="${escapeAttr(value)}">
-              <span class="asking-image-choice__media" style="--image-scale:${(option.imageScale || 100) / 100}">
-                ${option.imageUrl ? `<img src="${escapeAttr(option.imageUrl)}" alt="${escapeAttr(option.text || `Вариант ${index + 1}`)}" style="object-fit:${escapeAttr(option.imageFit || "cover")}" loading="lazy" />` : `<span class="asking-image-choice__fallback">Нет изображения</span>`}
-                <span class="asking-image-choice__check">✓</span>
-              </span>
-              ${hasText ? `<span class="asking-image-choice__label">${escapeHtml(option.text)}</span>` : `<span class="asking-image-choice__label asking-image-choice__label--muted">Вариант ${index + 1}</span>`}
+            <button class="${selected ? "is-selected" : ""}" type="button" data-preview-choice="${escapeAttr(question.id)}" data-value="${escapeAttr(value)}">
+              ${option.imageUrl ? `<img src="${escapeAttr(option.imageUrl)}" alt="" style="object-fit:${escapeAttr(option.imageFit || "cover")}" loading="lazy" />` : ""}
+              <strong>${escapeHtml(option.text || `Вариант ${index + 1}`)}</strong>
             </button>
           `;
         }).join("")}
       </div>
     `;
-    mount.querySelectorAll(".asking-image-choice img").forEach((image) => {
-      image.addEventListener("error", () => {
-        const media = image.closest(".asking-image-choice__media");
-        if (!media) return;
-        media.innerHTML = `<span class="asking-image-choice__fallback">Изображение недоступно</span><span class="asking-image-choice__check">✓</span>`;
-      }, { once: true });
-    });
     mount.querySelectorAll("[data-value]").forEach((button) => {
       button.addEventListener("click", () => {
         const value = String(button.dataset.value || "");
-        if (multiple) {
-          const next = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
-          setPublicAnswer(state, question, next);
-        } else {
-          setPublicAnswer(state, question, value);
-        }
+        setPublicAnswer(state, question, value);
         renderImageChoice(state, question, mount);
         clearInlineError(state.root, question);
       });
     });
+  }
+
+  function renderInfoQuestion(_state, question, mount) {
+    const settings = question.settings || {};
+    mount.innerHTML = `<div class="bv2-preview-info">${escapeHtml(settings.infoContent || question.text || "Информационный блок")}</div>`;
   }
 
   function clearInlineError(root, question) {
@@ -1841,7 +1877,16 @@
       await api.request(`/api/surveys/${state.survey.id}/respond`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: collectAnswers(state), password: accessPassword, submissionId })
+        body: JSON.stringify({
+          answers: collectAnswers(state),
+          password: accessPassword,
+          submissionId,
+          startedAt: state.startedAt,
+          completedAt: new Date().toISOString(),
+          durationSeconds: Math.max(0, Math.round((Date.now() - Date.parse(state.startedAt || new Date().toISOString())) / 1000)),
+          status: "completed",
+          testMode: Boolean(state.testMode)
+        })
       });
       renderSuccess(state);
     } catch (error) {
@@ -1851,26 +1896,27 @@
         button.textContent = "Отправить анкету";
       }
       const step = state.steps[state.currentIndex];
-      if (step?.question) state.errors.set(String(step.question.id), error.message || "Не удалось отправить ответ");
+      const message = isDuplicateResponseError(error) ? duplicateResponseMessage(state) : (error.message || "Не удалось отправить ответ");
+      if (step?.question) state.errors.set(String(step.question.id), message);
       renderQuestionStep(state, "forward");
-      showToast(error.message || "Не удалось отправить ответ", true);
+      showToast(isDuplicateResponseError(error) ? "Повторная отправка отключена" : message, true);
     }
   }
 
   function renderSuccess(state) {
-    updateRunnerProgress(state, 100);
-    renderStorySidebar(state);
+    applyRunnerBackground(state.root, state.pages[0]?.design || {}, false);
     const viewport = state.root.querySelector(".asking-runner__viewport");
     viewport.innerHTML = `
-      <section class="asking-success">
-        <span class="asking-success__mark">✓</span>
-        <h2>Спасибо за прохождение</h2>
-        <p>Результаты отправлены на базу.</p>
-        <div class="asking-success__next">
-          <strong>Что дальше?</strong>
-          <span>Ответ сохранен. Автор анкеты увидит его в разделе результатов.</span>
+      <section class="bv2-preview-runtime-card bv2-preview-runtime-card--thanks" data-preview-view>
+        ${state.testMode ? `<span class="bv2-test-badge">Тестовый режим</span>` : ""}
+        <div class="bv2-preview-runtime-head">
+          <h1>Спасибо!</h1>
+          <p>Ответ сохранен. Автор анкеты увидит его в разделе результатов.</p>
         </div>
-        <a class="asking-btn asking-btn--primary asking-success__link" href="/">Посмотреть другие опросы</a>
+        <div class="bv2-preview-actions">
+          <span class="bv2-preview-note"></span>
+          <a class="bv2-btn bv2-btn--primary" href="/">Готово</a>
+        </div>
       </section>
     `;
   }
@@ -1886,8 +1932,10 @@
       answers: new Map(),
       errors: new Map(),
       isPreview: Boolean(isPreview),
+      testMode: Boolean(publicState.testMode),
       isSubmitting: false,
       submissionId: "",
+      startedAt: new Date().toISOString(),
       accessPassword: ""
     };
     if (!state.steps.length) {
@@ -2064,6 +2112,7 @@
     const ambientTint = wrap.querySelector(".public-ambient--tint");
     const cover = wrap.querySelector(".public-survey-cover");
     const startBtn = wrap.querySelector(".public-survey-cover__start");
+    const startedAt = new Date().toISOString();
     startBtn?.addEventListener("click", () => {
       cover?.classList.add("is-leaving");
       setTimeout(() => {
@@ -2209,16 +2258,26 @@
         await api.request(`/api/surveys/${survey.id}/respond`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ answers, password: accessPassword, submissionId })
+          body: JSON.stringify({
+            answers,
+            password: accessPassword,
+            submissionId,
+            startedAt,
+            completedAt: new Date().toISOString(),
+            durationSeconds: Math.max(0, Math.round((Date.now() - Date.parse(startedAt)) / 1000)),
+            status: "completed",
+            testMode: Boolean(publicState.testMode)
+          })
         });
         publicState.history = [];
         publicState.logicNotice = "";
         showCompletion();
         showToast(tPublic("success"));
       } catch (error) {
-        status.textContent = error.message;
+        const message = isDuplicateResponseError(error) ? duplicateResponseMessage(publicState) : error.message;
+        status.textContent = message;
         status.style.color = "#b91c1c";
-        showToast(error.message || "Не удалось отправить ответ", true);
+        showToast(isDuplicateResponseError(error) ? "Повторная отправка отключена" : (message || "Не удалось отправить ответ"), true);
         nextBtn.disabled = false;
         finishBtn.disabled = false;
         nextBtn.textContent = currentIndex < steps.length - 1 ? tPublic("next") : tPublic("finish");
@@ -2289,6 +2348,7 @@
   async function bootPublicMode(surveyId) {
     document.body.classList.remove("survey-owner-mode");
     document.body.classList.add("survey-public-mode");
+    publicState.testMode = new URLSearchParams(window.location.search).get("test") === "1";
     await initAuthButton();
 
     const cleanUrl = new URL(window.location.href);
@@ -2306,6 +2366,7 @@
 
     ownerApp.hidden = true;
     publicApp.hidden = false;
+    surveyCard.className = "bv2-public-card";
 
     if (!surveyId) {
       surveyCard.innerHTML = `<h2>${tPublic("invalidLink")}</h2>`;

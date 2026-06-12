@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Builder V2 | Asking</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/create-v2.css?v=20260612-3" />
+  </head>
+  <body class="builder-v2-page">
+    <header class="bv2-topbar">
+      <a class="bv2-brand" href="/cabinet" aria-label="Asking кабинет">
+        <span class="bv2-brand__mark">A</span>
+        <span>Asking</span>
+      </a>
+      <div class="bv2-titlebar">
+        <input id="surveyTitleInput" class="bv2-title-input" type="text" value="Новая анкета" aria-label="Название анкеты" />
+        <span id="saveState" class="bv2-save-state">Черновик</span>
+      </div>
+      <div class="bv2-topbar__actions">
+        <button id="undoBtn" class="bv2-icon-btn" type="button" title="Отменить" disabled>↶</button>
+        <button id="redoBtn" class="bv2-icon-btn" type="button" title="Повторить" disabled>↷</button>
+        <button id="previewTopBtn" class="bv2-btn bv2-btn--ghost" type="button">Предпросмотр</button>
+        <button id="publishBtn" class="bv2-btn bv2-btn--primary" type="button">Публикация</button>
+        <a class="bv2-avatar" href="/account" aria-label="Аккаунт">A</a>
+      </div>
+    </header>
+
+    <nav class="bv2-flow-nav" aria-label="Шаги Builder V2">
+      <button class="is-active" type="button" data-flow-target="constructor">1. Конструктор</button>
+      <button type="button" data-flow-target="settings">2. Настройки</button>
+      <button type="button" data-flow-target="publish">3. Публикация</button>
+    </nav>
+
+    <main id="constructorView" class="bv2-step-view bv2-step-view--active bv2-shell" data-step="constructor">
+      <aside class="bv2-sidebar bv2-pages" aria-label="Страницы">
+        <div class="bv2-panel-head">
+          <h1>Страницы</h1>
+          <button id="addPageIconBtn" class="bv2-icon-btn bv2-icon-btn--raised" type="button" title="Добавить страницу">+</button>
+        </div>
+        <div id="pagesList" class="bv2-pages-list"></div>
+        <button id="addPageBtn" class="bv2-add-page" type="button">+ Добавить страницу</button>
+
+        <section class="bv2-stats-card" aria-label="Статистика анкеты">
+          <h2>Статистика</h2>
+          <div><span>Вопросов</span><strong id="statQuestions">0</strong></div>
+          <div><span>Время</span><strong id="statTime">1 мин</strong></div>
+          <div><span>Логика</span><strong id="statLogic">0</strong></div>
+        </section>
+      </aside>
+
+      <section class="bv2-canvas" aria-label="Рабочая область">
+        <div class="bv2-toolbar">
+          <button id="addQuestionBtn" class="bv2-btn bv2-btn--primary" type="button">+ Добавить вопрос</button>
+          <button id="templatesBtn" class="bv2-btn bv2-btn--light" type="button">Шаблоны</button>
+          <button id="settingsBtn" class="bv2-btn bv2-btn--light" type="button">Настройки анкеты</button>
+          <button id="previewBtn" class="bv2-btn bv2-btn--light" type="button">Предпросмотр</button>
+          <button id="saveBtn" class="bv2-btn bv2-btn--dark" type="button">Сохранить</button>
+        </div>
+
+        <div class="bv2-page-title-row">
+          <div>
+            <label for="pageTitleInput">Текущая страница</label>
+            <input id="pageTitleInput" class="bv2-page-title-input" type="text" value="Страница 1" />
+          </div>
+          <button id="deletePageBtn" class="bv2-btn bv2-btn--danger-light" type="button">Удалить страницу</button>
+        </div>
+
+        <div id="questionsList" class="bv2-question-stack"></div>
+        <button id="addQuestionBottomBtn" class="bv2-bottom-add" type="button">+ Добавить вопрос</button>
+      </section>
+
+      <aside class="bv2-sidebar bv2-design" aria-label="Дизайн">
+        <h2>Дизайн</h2>
+        <div class="bv2-design-tabs" aria-label="Разделы дизайна">
+          <button class="is-active" type="button" data-design-tab="themes">Темы</button>
+          <button type="button" data-design-tab="background">Фон</button>
+          <button type="button" data-design-tab="colors">Цвета</button>
+          <button type="button" data-design-tab="elements">Элементы</button>
+        </div>
+
+        <section class="bv2-design-section bv2-design-panel is-active" data-design-panel="themes">
+          <h3>Темы</h3>
+          <div class="bv2-theme-grid bv2-theme-grid--visual">
+            <button class="bv2-theme-card is-active" type="button" data-theme="corporate"><span class="is-corporate"></span><strong>Корпоративная</strong></button>
+            <button class="bv2-theme-card" type="button" data-theme="nature"><span class="is-nature"></span><strong>Природа</strong></button>
+            <button class="bv2-theme-card" type="button" data-theme="dark"><span class="is-dark"></span><strong>Тёмная</strong></button>
+            <button class="bv2-theme-card" type="button" data-theme="minimal"><span class="is-minimal"></span><strong>Минимализм</strong></button>
+            <button class="bv2-theme-card" type="button" data-theme="creative"><span class="is-creative"></span><strong>Креативная</strong></button>
+            <button class="bv2-theme-card" type="button" data-theme="academic"><span class="is-academic"></span><strong>Академическая</strong></button>
+          </div>
+          <button id="applyRecommendedBgBtn" class="bv2-btn bv2-btn--light bv2-design-wide-btn" type="button">Применить рекомендуемый фон</button>
+        </section>
+
+        <section class="bv2-design-section bv2-design-panel" data-design-panel="background" hidden>
+          <h3>Фон</h3>
+          <div class="bv2-segmented bv2-segmented--three">
+            <button class="is-active" type="button" data-background-type="color">Цвет</button>
+            <button type="button" data-background-type="gradient">Градиент</button>
+            <button type="button" data-background-type="image">Изображение</button>
+          </div>
+
+          <div class="bv2-bg-mode is-active" data-background-mode="color">
+            <div class="bv2-swatch-row bv2-swatch-row--wrap">
+              <button style="--swatch:#F6F7FB" type="button" data-bg-color="#F6F7FB"></button>
+              <button style="--swatch:#FFFFFF" type="button" data-bg-color="#FFFFFF"></button>
+              <button style="--swatch:#F2F8F4" type="button" data-bg-color="#F2F8F4"></button>
+              <button style="--swatch:#FFF7ED" type="button" data-bg-color="#FFF7ED"></button>
+              <button style="--swatch:#111827" type="button" data-bg-color="#111827"></button>
+            </div>
+            <label class="bv2-field"><span>Свой цвет</span><input id="designBgColor" type="color" value="#F6F7FB" /></label>
+          </div>
+
+          <div class="bv2-bg-mode" data-background-mode="gradient" hidden>
+            <div class="bv2-gradient-grid">
+              <button type="button" data-gradient-style="soft">Мягкий светлый</button>
+              <button type="button" data-gradient-style="contrast">Контрастный</button>
+              <button type="button" data-gradient-style="dark">Тёмный</button>
+              <button type="button" data-gradient-style="sunset">Закат</button>
+              <button type="button" data-gradient-style="forest">Лес</button>
+              <button type="button" data-gradient-style="academic">Академический</button>
+            </div>
+            <select id="designGradient" hidden>
+              <option value="soft">Мягкий светлый</option>
+              <option value="contrast">Контрастный</option>
+              <option value="dark">Тёмный</option>
+              <option value="sunset">Закат</option>
+              <option value="forest">Лес</option>
+              <option value="academic">Академический</option>
+              <option value="none">Без градиента</option>
+            </select>
+          </div>
+
+          <div class="bv2-bg-mode" data-background-mode="image" hidden>
+            <label class="bv2-field bv2-field--stack"><span>URL изображения</span><input id="designBgImage" type="url" placeholder="https://images.unsplash.com/..." /></label>
+            <div class="bv2-upload-row">
+              <button id="designBgUploadBtn" class="bv2-btn bv2-btn--light" type="button">Загрузить</button>
+              <button id="designBgClearBtn" class="bv2-btn bv2-btn--danger-light" type="button">Очистить фон</button>
+              <input id="designBgFileInput" type="file" accept="image/*" hidden />
+            </div>
+            <div class="bv2-bg-preview"><img id="designBgPreview" alt="Предпросмотр фона" /></div>
+          </div>
+
+          <label class="bv2-field"><span id="designOverlayLabel">Затемнение: 0%</span><input id="designOverlay" type="range" min="0" max="90" value="0" /></label>
+        </section>
+
+        <section class="bv2-design-section bv2-design-panel" data-design-panel="colors" hidden>
+          <h3>Цвета</h3>
+          <label class="bv2-field bv2-field--stack"><span>Основной цвет</span><div class="bv2-color-control"><div class="bv2-swatch-row"><button style="--swatch:#6C63FF" class="is-active" type="button" data-color="#6C63FF"></button><button style="--swatch:#2563EB" type="button" data-color="#2563EB"></button><button style="--swatch:#0F766E" type="button" data-color="#0F766E"></button><button style="--swatch:#DB2777" type="button" data-color="#DB2777"></button><button style="--swatch:#111827" type="button" data-color="#111827"></button></div><input id="designPrimaryColor" type="color" value="#6C63FF" /></div></label>
+          <label class="bv2-field bv2-field--stack"><span>Дополнительный цвет</span><input id="designSecondaryColor" type="color" value="#22C55E" /></label>
+          <label class="bv2-field bv2-field--stack"><span>Акцентный цвет</span><input id="designAccentColor" type="color" value="#6C63FF" /></label>
+          <label class="bv2-field bv2-field--stack"><span>Цвет текста</span><input id="designTextColor" type="color" value="#111827" /></label>
+        </section>
+
+        <section class="bv2-design-section bv2-design-panel" data-design-panel="elements" hidden>
+          <h3>Элементы</h3>
+          <label class="bv2-field"><span>Режим</span><select id="designLayout"><option value="full">На всю ширину</option><option value="center-card">По центру</option><option value="cover-top-image">Обложка сверху</option></select></label>
+          <h4>Карточки</h4>
+          <div class="bv2-segmented">
+            <button type="button" data-card-style="light">Светлая</button>
+            <button type="button" data-card-style="transparent">Прозрачная</button>
+            <button class="is-active" type="button" data-card-style="shadow">С тенью</button>
+            <button type="button" data-card-style="outlined">Контурная</button>
+          </div>
+
+          <h4>Кнопки</h4>
+          <div class="bv2-segmented">
+            <button class="is-active" type="button" data-button-style="filled">Заливка</button>
+            <button type="button" data-button-style="outline">Контур</button>
+            <button type="button" data-button-style="soft">Мягкая</button>
+          </div>
+
+          <h4>Прогресс</h4>
+          <div class="bv2-segmented">
+            <button class="is-active" type="button" data-progress-style="top">Верхняя линия</button>
+            <button type="button" data-progress-style="segments">Сегменты</button>
+            <button type="button" data-progress-style="dots">Точки</button>
+          </div>
+
+          <label class="bv2-check"><input id="designQuestionNumbers" type="checkbox" checked />Показывать номера вопросов</label>
+          <h4>Анимации</h4>
+          <div class="bv2-segmented">
+            <button class="is-active" type="button" data-animation-style="fade">Плавное появление</button>
+            <button type="button" data-animation-style="slide">Слайд</button>
+            <button type="button" data-animation-style="none">Без анимации</button>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <section id="settingsView" class="bv2-step-view bv2-flow-screen" data-step="settings" hidden>
+      <div class="bv2-flow-screen__inner">
+        <header class="bv2-flow-head">
+          <div>
+            <span>Шаг 2</span>
+            <h1>Настройки анкеты</h1>
+            <p>Настройте стартовый экран, доступ, ограничения и поведение анкеты.</p>
+          </div>
+          <button id="settingsBackTopBtn" class="bv2-btn bv2-btn--light" type="button">Назад к конструктору</button>
+        </header>
+
+        <div class="bv2-settings-layout">
+          <div class="bv2-settings-column">
+            <section class="bv2-settings-section">
+              <h3>Общие</h3>
+              <label class="bv2-field bv2-field--stack"><span>Название анкеты</span><input id="settingsTitleInput" type="text" /></label>
+              <label class="bv2-field bv2-field--stack"><span>Описание анкеты</span><textarea id="settingsDescriptionInput" rows="3"></textarea></label>
+              <label class="bv2-field bv2-field--stack"><span>Язык</span><select id="settingsLanguageSelect"><option value="ru">Русский</option><option value="en">English</option></select></label>
+            </section>
+
+            <section class="bv2-settings-section">
+              <h3>Встречающая страница</h3>
+              <label class="bv2-field bv2-field--stack"><span>Заголовок</span><input id="welcomeTitleInput" type="text" /></label>
+              <label class="bv2-field bv2-field--stack"><span>Подзаголовок</span><input id="welcomeSubtitleInput" type="text" /></label>
+              <label class="bv2-field bv2-field--stack"><span>Описание</span><textarea id="welcomeDescriptionInput" rows="3"></textarea></label>
+              <label class="bv2-field bv2-field--stack"><span>Текст кнопки</span><input id="welcomeButtonTextInput" type="text" /></label>
+              <div class="bv2-upload-row">
+                <label class="bv2-field bv2-field--stack"><span>Обложка</span><input id="welcomeCoverInput" type="url" placeholder="https://..." /></label>
+                <button id="welcomeCoverUploadBtn" class="bv2-btn bv2-btn--light" type="button">Загрузить</button>
+                <input id="welcomeCoverFileInput" type="file" accept="image/*" hidden />
+              </div>
+              <div class="bv2-upload-row">
+                <label class="bv2-field bv2-field--stack"><span>Фоновое изображение</span><input id="welcomeBgInput" type="url" placeholder="https://..." /></label>
+                <button id="welcomeBgUploadBtn" class="bv2-btn bv2-btn--light" type="button">Загрузить</button>
+                <input id="welcomeBgFileInput" type="file" accept="image/*" hidden />
+              </div>
+              <label class="bv2-field bv2-field--stack"><span>Сила затемнения</span><input id="welcomeOverlayInput" type="range" min="0" max="90" value="24" /></label>
+            </section>
+
+            <section class="bv2-settings-section">
+              <h3>Доступ</h3>
+              <label class="bv2-field bv2-field--stack"><span>Пароль</span><input id="settingsPasswordInput" type="password" placeholder="Не задан" /></label>
+              <label class="bv2-check"><input id="settingsPublicInput" type="checkbox" />Публичная анкета</label>
+              <label class="bv2-check"><input id="settingsHiddenInput" type="checkbox" />Скрытая анкета</label>
+            </section>
+
+            <section class="bv2-settings-section">
+              <h3>Ограничения</h3>
+              <label class="bv2-field bv2-field--stack"><span>Дата окончания</span><input id="settingsEndsAtInput" type="date" /></label>
+              <label class="bv2-field bv2-field--stack"><span>Лимит ответов</span><input id="settingsResponseLimitInput" type="number" min="1" placeholder="Без лимита" /></label>
+            </section>
+
+            <section class="bv2-settings-section">
+              <h3>Поведение</h3>
+              <label class="bv2-check"><input id="settingsShowProgressInput" type="checkbox" />Показывать прогресс</label>
+              <label class="bv2-check"><input id="settingsAllowBackInput" type="checkbox" />Разрешить возврат назад</label>
+              <label class="bv2-check"><input id="settingsShowNumbersInput" type="checkbox" />Показывать номера вопросов</label>
+            </section>
+          </div>
+
+          <aside class="bv2-welcome-preview">
+            <h3>Карточка предпросмотра</h3>
+            <div id="welcomePreviewCard" class="bv2-welcome-card">
+              <div class="bv2-welcome-card__media"></div>
+              <span id="welcomePreviewSubtitle">Добро пожаловать</span>
+              <h2 id="welcomePreviewTitle">Название анкеты</h2>
+              <p id="welcomePreviewDescription">Описание анкеты</p>
+              <button id="welcomePreviewButton" type="button">Начать опрос</button>
+            </div>
+          </aside>
+        </div>
+
+        <footer class="bv2-flow-actions">
+          <button id="settingsBackBtn" class="bv2-btn bv2-btn--light" type="button">Назад к конструктору</button>
+          <button id="settingsToPublishBtn" class="bv2-btn bv2-btn--primary" type="button">Продолжить к публикации</button>
+        </footer>
+      </div>
+    </section>
+
+    <section id="publishView" class="bv2-step-view bv2-flow-screen" data-step="publish" hidden>
+      <div class="bv2-flow-screen__inner">
+        <header class="bv2-flow-head">
+          <div>
+            <span>Шаг 3</span>
+            <h1>Публикация</h1>
+            <p>Проверьте статус, ссылку и параметры перед запуском анкеты.</p>
+          </div>
+        </header>
+
+        <div class="bv2-publish-grid">
+          <section class="bv2-publish-card">
+            <h3>Статус</h3>
+            <div id="publishStatusBadge" class="bv2-publish-status">Черновик</div>
+          </section>
+
+          <section class="bv2-publish-card bv2-publish-card--wide">
+            <h3>Ссылка</h3>
+            <div class="bv2-copy-row">
+              <input id="publishUrlInput" type="text" readonly />
+              <button id="copyPublishUrlBtn" class="bv2-btn bv2-btn--light" type="button">Копировать</button>
+            </div>
+          </section>
+
+          <section class="bv2-publish-card">
+            <h3>QR</h3>
+            <div class="bv2-qr-preview"><img id="publishQrImage" alt="QR" /></div>
+            <a id="downloadQrLink" class="bv2-btn bv2-btn--light" download="survey-qr.png">Скачать QR</a>
+          </section>
+
+          <section class="bv2-publish-card bv2-publish-card--wide">
+            <h3>Информация</h3>
+            <div id="publishInfoGrid" class="bv2-publish-info"></div>
+          </section>
+        </div>
+
+        <footer class="bv2-flow-actions">
+          <button id="publishBackBtn" class="bv2-btn bv2-btn--light" type="button">Назад к настройкам</button>
+          <a id="openSurveyLink" class="bv2-btn bv2-btn--light" target="_blank" rel="noreferrer">Открыть анкету</a>
+          <button id="publishSurveyBtn" class="bv2-btn bv2-btn--primary" type="button">Опубликовать</button>
+        </footer>
+      </div>
+    </section>
+
+    <div id="addTypeModal" class="bv2-modal" hidden>
+      <div class="bv2-modal__panel bv2-modal__panel--wide" role="dialog" aria-modal="true" aria-labelledby="addTypeTitle">
+        <div class="bv2-modal__head">
+          <div>
+            <h2 id="addTypeTitle">Выберите тип вопроса</h2>
+            <p>Добавьте новый блок на текущую страницу анкеты.</p>
+          </div>
+          <button id="addTypeCloseBtn" class="bv2-icon-btn" type="button" aria-label="Закрыть">×</button>
+        </div>
+        <div id="addTypeGrid" class="bv2-type-grid"></div>
+        <div class="bv2-modal__actions">
+          <span></span>
+          <button id="addTypeCancelBtn" class="bv2-btn bv2-btn--light" type="button">Закрыть</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="questionModal" class="bv2-modal" hidden>
+      <div class="bv2-modal__panel bv2-modal__panel--question" role="dialog" aria-modal="true" aria-labelledby="questionModalTitle">
+        <div class="bv2-modal__head">
+          <div>
+            <h2 id="questionModalTitle">Редактирование вопроса</h2>
+            <p>Настройте содержание и поведение вопроса</p>
+          </div>
+          <button id="modalCloseBtn" class="bv2-icon-btn" type="button" aria-label="Закрыть">×</button>
+        </div>
+        <div class="bv2-modal__body">
+          <label class="bv2-field bv2-field--stack"><span>Текст вопроса</span><input id="modalQuestionTitle" type="text" /></label>
+          <label class="bv2-field bv2-field--stack"><span>Описание</span><textarea id="modalQuestionDescription" rows="3"></textarea></label>
+          <label class="bv2-field bv2-field--stack"><span>Тип вопроса</span><select id="modalQuestionType"></select></label>
+          <label class="bv2-switch"><input id="modalQuestionRequired" type="checkbox" /><span></span>Обязательный вопрос</label>
+          <div id="typeSpecificFields"></div>
+        </div>
+        <div class="bv2-modal__actions">
+          <button id="modalDeleteBtn" class="bv2-btn bv2-btn--danger-light" type="button">Удалить</button>
+          <div>
+            <button id="modalCancelBtn" class="bv2-btn bv2-btn--light" type="button">Закрыть</button>
+            <button id="modalApplyBtn" class="bv2-btn bv2-btn--primary" type="button">Применить</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="templatesModal" class="bv2-modal" hidden>
+      <div class="bv2-modal__panel bv2-modal__panel--wide" role="dialog" aria-modal="true" aria-labelledby="templatesModalTitle">
+        <div class="bv2-modal__head">
+          <div>
+            <h2 id="templatesModalTitle">Шаблоны анкет</h2>
+            <p>Выберите готовую структуру и адаптируйте ее под задачу.</p>
+          </div>
+          <button id="templatesCloseBtn" class="bv2-icon-btn" type="button" aria-label="Закрыть">×</button>
+        </div>
+        <div id="templatesGrid" class="bv2-template-grid"></div>
+        <div class="bv2-modal__actions">
+          <span></span>
+          <button id="templatesCancelBtn" class="bv2-btn bv2-btn--light" type="button">Отмена</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="templateConfirmModal" class="bv2-modal" hidden>
+      <div class="bv2-modal__panel bv2-modal__panel--compact" role="dialog" aria-modal="true" aria-labelledby="templateConfirmTitle">
+        <div class="bv2-modal__head">
+          <div>
+            <h2 id="templateConfirmTitle">Заменить текущую структуру?</h2>
+            <p>В анкете уже есть страницы или вопросы. Шаблон заменит их новой структурой.</p>
+          </div>
+          <button id="templateConfirmCloseBtn" class="bv2-icon-btn" type="button" aria-label="Закрыть">×</button>
+        </div>
+        <div class="bv2-modal__body">
+          <p class="bv2-confirm-text">Это действие изменит текущий черновик в Builder V2. Сохраненные ответы респондентов не затрагиваются.</p>
+        </div>
+        <div class="bv2-modal__actions">
+          <button id="templateConfirmCancelBtn" class="bv2-btn bv2-btn--light" type="button">Отмена</button>
+          <button id="templateConfirmApplyBtn" class="bv2-btn bv2-btn--primary" type="button">Использовать шаблон</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="previewModal" class="bv2-preview-modal" hidden>
+      <div class="bv2-preview-shell">
+        <header class="bv2-preview-topbar">
+          <button id="previewBackBtn" class="bv2-btn bv2-btn--light" type="button">Назад в конструктор</button>
+          <div>
+            <strong id="previewSurveyTitle">Новая анкета</strong>
+            <span>Режим предпросмотра</span>
+          </div>
+          <div class="bv2-preview-badges">
+            <span id="previewThemeBadge">Тема: Corporate</span>
+            <span id="previewIndicator">Предпросмотр</span>
+          </div>
+        </header>
+        <main id="previewStage" class="bv2-preview-stage"></main>
+      </div>
+    </div>
+
+    <div id="toast" class="bv2-toast" hidden></div>
+    <script src="/create-v2.js?v=20260612-3"></script>
+  </body>
+</html>

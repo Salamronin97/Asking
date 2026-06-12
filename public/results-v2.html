@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Результаты | Asking</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/results-v2.css?v=20260612-2" />
+  </head>
+  <body class="results-v2-page">
+    <header class="rv2-topbar">
+      <a class="rv2-brand" href="/cabinet" aria-label="Кабинет Asking">
+        <span class="rv2-brand__mark">A</span>
+        <span>Asking</span>
+      </a>
+      <nav class="rv2-topbar__actions" aria-label="Действия с результатами">
+        <button id="exportCsvBtn" class="rv2-btn rv2-btn--light" type="button">Экспорт CSV</button>
+        <button id="exportExcelBtn" class="rv2-btn rv2-btn--light" type="button">Экспорт Excel</button>
+        <button id="refreshBtn" class="rv2-btn rv2-btn--ghost" type="button">Обновить</button>
+        <a id="builderLink" class="rv2-btn rv2-btn--primary" href="/create-v2">Назад в конструктор</a>
+      </nav>
+    </header>
+
+    <main class="rv2-shell">
+      <section class="rv2-hero" aria-labelledby="surveyTitle">
+        <div>
+          <span class="rv2-kicker">Результаты</span>
+          <h1 id="surveyTitle">Анкета</h1>
+          <p id="surveyMeta">Ответы загружаются.</p>
+        </div>
+        <div class="rv2-hero__status">
+          <span>Сбор ответов</span>
+          <strong id="responseCount">128</strong>
+          <small>ответов</small>
+        </div>
+      </section>
+
+      <section id="statsGrid" class="rv2-stats" aria-label="Основная аналитика"></section>
+
+      <section id="emptyState" class="rv2-empty" hidden>
+        <div class="rv2-empty__art" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <h2>Ответов пока нет</h2>
+        <p>Поделитесь ссылкой на анкету. Ответы участников и аналитика появятся здесь после первых прохождений.</p>
+        <a id="openSurveyEmptyBtn" class="rv2-btn rv2-btn--primary" href="#">Открыть анкету</a>
+      </section>
+
+      <section id="loadingState" class="rv2-loading" aria-live="polite">
+        <span></span>
+        <strong>Загружаем результаты</strong>
+        <p>Ответы и аналитика подготавливаются.</p>
+      </section>
+
+      <section id="resultsContent" class="rv2-content" hidden>
+        <div class="rv2-tabs" role="tablist" aria-label="Разделы результатов">
+          <button class="rv2-tab is-active" type="button" role="tab" aria-selected="true" data-tab="responses">Ответы</button>
+          <button class="rv2-tab" type="button" role="tab" aria-selected="false" data-tab="analytics">Аналитика</button>
+        </div>
+
+        <section id="responsesPane" class="rv2-pane is-active" role="tabpanel">
+          <div class="rv2-section-head">
+            <div>
+              <h2>Ответы</h2>
+              <p>Каждое прохождение отображается отдельной карточкой. Откройте ответ, чтобы посмотреть детали.</p>
+            </div>
+            <span id="responsesSummary" class="rv2-pill"></span>
+          </div>
+          <div id="responsesList" class="rv2-response-grid"></div>
+        </section>
+
+        <section id="analyticsPane" class="rv2-pane" role="tabpanel" hidden>
+          <div class="rv2-section-head">
+            <div>
+              <h2>Аналитика вопросов</h2>
+              <p>Сводка автоматически строится по реальным ответам участников.</p>
+            </div>
+            <span id="analyticsSummary" class="rv2-pill"></span>
+          </div>
+          <div id="analyticsList" class="rv2-analytics-grid"></div>
+        </section>
+      </section>
+    </main>
+
+    <aside id="responseDrawer" class="rv2-drawer" aria-labelledby="drawerTitle" aria-hidden="true">
+      <div class="rv2-drawer__panel">
+        <header class="rv2-drawer__head">
+          <div>
+            <span id="drawerStatus" class="rv2-pill">Завершён</span>
+            <h2 id="drawerTitle">Ответ</h2>
+          </div>
+          <button id="closeDrawerBtn" class="rv2-icon-btn" type="button" aria-label="Закрыть ответ">x</button>
+        </header>
+        <div id="drawerBody" class="rv2-drawer__body"></div>
+      </div>
+    </aside>
+
+    <script src="/results-v2.js?v=20260612-2"></script>
+  </body>
+</html>
