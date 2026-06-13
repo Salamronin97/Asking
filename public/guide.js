@@ -9,8 +9,8 @@ const guideI18n = {
   ru: {
     title: "Инструкция | Asking",
     nav: ["Инструкция", "Создать", "Кабинет", "Аккаунт"],
-    heroTitle: "Инструкция по Asking",
-    heroLead: "Практичный маршрут от идеи до готового отчёта: шаблон, конструктор, публикация, сбор ответов, аналитика и экспорт.",
+    heroTitle: "Инструкция по работе с Asking",
+    heroLead: "Краткое описание основных этапов работы: от создания анкеты до просмотра результатов.",
     quickStart: "Быстрый старт",
     quickSteps: [
       "<strong>Выберите сценарий.</strong> Начните с шаблона или создайте пустую анкету.",
@@ -106,7 +106,7 @@ function renderGuide() {
   const copy = guideI18n[lang] || guideI18n.ru;
   const navLinks = [
     document.querySelector(".topbar__actions a[href='/guide']"),
-    document.querySelector(".topbar__actions a[href='/create']"),
+    document.querySelector(".topbar__actions a[href='/create-v2']") || document.querySelector(".topbar__actions a[href='/create']"),
     document.querySelector(".topbar__actions a[href='/cabinet']"),
     document.querySelector(".topbar__actions a[href='/account']")
   ];

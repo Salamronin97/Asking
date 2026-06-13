@@ -31,19 +31,6 @@
     restaurant_guest_experience: "Услуги",
     support_quality_audit: "Удовлетворенность клиентов",
     nonprofit_volunteer_feedback: "Госсектор и НКО",
-    employee_engagement_pulse: "Управление кадрами",
-    internal_tools_audit: "Управление кадрами",
-    training_needs_assessment: "Образование",
-    brand_perception: "Маркетинговое исследование",
-    ecommerce_checkout_audit: "Маркетинговое исследование",
-    hotel_guest_stay: "Услуги",
-    public_service_feedback: "Госсектор и НКО",
-    pricing_research: "Маркетинговое исследование",
-    community_event_feedback: "Мероприятия",
-    event_registration_premium: "Мероприятия",
-    product_beta_feedback: "Продукт",
-    customer_satisfaction_pro: "Удовлетворенность клиентов",
-    course_evaluation_pro: "Образование",
     retail: "Услуги",
     ecommerce: "Маркетинговое исследование",
     product: "Маркетинговое исследование",
@@ -81,26 +68,18 @@
     return byToken ? byToken[1] : "Другие";
   }
   const BUILDER_THEMES = [
-    { id: "sea", name: "Sea", description: "Светлая тема с мягким голубым фоном.", bgColor: "#eaf3fb", accent: "#3159f5", bgImage: "", layout: "full", overlay: 0, preview: "linear-gradient(135deg, #eaf3fb 0%, #ffffff 58%, #dbeafe 100%)" },
-    { id: "skyline", name: "Skyline", description: "Чистая корпоративная тема для B2B-опросов.", bgColor: "#eef6ff", accent: "#2563eb", bgImage: "", layout: "full", overlay: 0, preview: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 48%, #ffffff 100%)" },
-    { id: "graphite", name: "Graphite", description: "Строгая светло-серая тема для бизнеса.", bgColor: "#eef2f7", accent: "#334155", bgImage: "", layout: "center-card", overlay: 0, preview: "linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%)" },
-    { id: "boardroom", name: "Boardroom", description: "Премиальный деловой фон с фото переговорной.", bgColor: "#f8fbff", accent: "#1d4ed8", bgImage: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1600&q=78", layout: "split-right-image", overlay: 18, preview: "linear-gradient(135deg, #f8fbff 0 52%, #1d4ed8 52% 100%)" },
-    { id: "product_lab", name: "Product Lab", description: "Современная продуктовая тема для исследований и beta feedback.", bgColor: "#f5f9ff", accent: "#4f46e5", bgImage: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1600&q=78", layout: "cover-top-image", overlay: 22, preview: "linear-gradient(135deg, #eef2ff 0%, #4f46e5 100%)" },
-    { id: "forest", name: "Forest", description: "Спокойная зелёная палитра для вовлечения.", bgColor: "#e8f4ed", accent: "#0f766e", bgImage: "", layout: "full", overlay: 0, preview: "linear-gradient(135deg, #ecfdf5 0%, #99f6e4 100%)" },
-    { id: "mint", name: "Mint", description: "Свежая мятная палитра для HR и onboarding.", bgColor: "#ecfdf5", accent: "#059669", bgImage: "", layout: "full", overlay: 0, preview: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 52%, #ffffff 100%)" },
-    { id: "clinic", name: "Clinic", description: "Чистый медицинский стиль для patient experience.", bgColor: "#ecfeff", accent: "#0891b2", bgImage: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=1600&q=78", layout: "split-left-image", overlay: 18, preview: "linear-gradient(135deg, #ecfeff 0%, #67e8f9 100%)" },
-    { id: "academy", name: "Academy", description: "Собранная тема для обучения, курсов и аттестаций.", bgColor: "#f0f9ff", accent: "#0369a1", bgImage: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1600&q=78", layout: "cover-top-image", overlay: 20, preview: "linear-gradient(135deg, #e0f2fe 0%, #0ea5e9 100%)" },
-    { id: "event_pro", name: "Event Pro", description: "Контрастная тема для регистрации и фидбека мероприятий.", bgColor: "#fff7ed", accent: "#ea580c", bgImage: "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1600&q=78", layout: "full", overlay: 32, preview: "linear-gradient(135deg, #fff7ed 0%, #fb923c 100%)" },
-    { id: "support", name: "Support Desk", description: "Аккуратная тема для service quality и customer success.", bgColor: "#f8fafc", accent: "#0f766e", bgImage: "https://images.unsplash.com/photo-1556745757-8d76bdb6984b?auto=format&fit=crop&w=1600&q=78", layout: "split-right-image", overlay: 16, preview: "linear-gradient(135deg, #f8fafc 0%, #14b8a6 100%)" },
-    { id: "retail", name: "Retail Studio", description: "Визуальная тема для e-commerce и customer research.", bgColor: "#fff1f2", accent: "#e11d48", bgImage: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1600&q=78", layout: "split-left-image", overlay: 18, preview: "linear-gradient(135deg, #fff1f2 0%, #f43f5e 100%)" },
-    { id: "restaurant", name: "Restaurant", description: "Теплая, но сдержанная тема для гостевого опыта.", bgColor: "#fff7ed", accent: "#c2410c", bgImage: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1600&q=78", layout: "center-card", overlay: 26, preview: "linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)" },
-    { id: "violet", name: "Violet", description: "Фиолетовый акцент для брендовых опросов.", bgColor: "#f5f3ff", accent: "#7c3aed", bgImage: "", layout: "full", overlay: 0, preview: "linear-gradient(135deg, #f5f3ff 0%, #ddd6fe 100%)" },
-    { id: "rose", name: "Rose", description: "Нежный розовый акцент для lifestyle анкет.", bgColor: "#fff1f2", accent: "#e11d48", bgImage: "", layout: "full", overlay: 0, preview: "linear-gradient(135deg, #fff1f2 0%, #fecdd3 100%)" },
-    { id: "ice", name: "Ice", description: "Сдержанная холодная тема для формальных исследований.", bgColor: "#f1f5f9", accent: "#0f766e", bgImage: "", layout: "full", overlay: 0, preview: "linear-gradient(135deg, #f8fafc 0%, #ccfbf1 100%)" },
-    { id: "school", name: "School", description: "Нейтральная тема для образовательных анкет.", bgColor: "#f5efe2", accent: "#6b7280", bgImage: "", layout: "full", overlay: 0, preview: "linear-gradient(135deg, #f8f1e5 0%, #e5e7eb 100%)" },
-    { id: "sunset", name: "Sunset", description: "Тёплая контрастная тема для ярких кампаний.", bgColor: "#fff2e8", accent: "#ea580c", bgImage: "", layout: "full", overlay: 0, preview: "linear-gradient(135deg, #fff7ed 0%, #fed7aa 50%, #fb923c 100%)" },
-    { id: "sand", name: "Sand", description: "Мягкая песочная тема для офлайн-мероприятий.", bgColor: "#f8f1e5", accent: "#a16207", bgImage: "", layout: "full", overlay: 0, preview: "linear-gradient(135deg, #f8f1e5 0%, #fde68a 100%)" },
-    { id: "peach", name: "Peach", description: "Лёгкая персиковая тема для дружелюбных форм.", bgColor: "#fff4ec", accent: "#f97316", bgImage: "", layout: "full", overlay: 0, preview: "linear-gradient(135deg, #fff4ec 0%, #ffedd5 100%)" }
+    { id: "sea", name: "Sea", description: "Светлая тема с мягким голубым фоном.", bgColor: "#eaf3fb", accent: "#3159f5" },
+    { id: "school", name: "School", description: "Нейтральная тема для образовательных анкет.", bgColor: "#f5efe2", accent: "#6b7280" },
+    { id: "forest", name: "Forest", description: "Спокойная зелёная палитра для вовлечения.", bgColor: "#e8f4ed", accent: "#0f766e" },
+    { id: "sunset", name: "Sunset", description: "Тёплая контрастная тема для ярких кампаний.", bgColor: "#fff2e8", accent: "#ea580c" },
+    { id: "violet", name: "Violet", description: "Фиолетовый акцент для брендовых опросов.", bgColor: "#f5f3ff", accent: "#7c3aed" },
+    { id: "graphite", name: "Graphite", description: "Строгая светло-серая тема для бизнеса.", bgColor: "#eef2f7", accent: "#334155" },
+    { id: "peach", name: "Peach", description: "Лёгкая персиковая тема для дружелюбных форм.", bgColor: "#fff4ec", accent: "#f97316" },
+    { id: "mint", name: "Mint", description: "Свежая мятная палитра для HR и onboarding.", bgColor: "#ecfdf5", accent: "#059669" },
+    { id: "skyline", name: "Skyline", description: "Чистая корпоративная тема для B2B-опросов.", bgColor: "#eef6ff", accent: "#2563eb" },
+    { id: "sand", name: "Sand", description: "Мягкая песочная тема для офлайн-мероприятий.", bgColor: "#f8f1e5", accent: "#a16207" },
+    { id: "rose", name: "Rose", description: "Нежный розовый акцент для lifestyle анкет.", bgColor: "#fff1f2", accent: "#e11d48" },
+    { id: "ice", name: "Ice", description: "Сдержанная холодная тема для формальных исследований.", bgColor: "#f1f5f9", accent: "#0f766e" }
   ];
   const OPTION_PRESETS = {
     "yes-no": ["Да", "Нет"],
@@ -179,10 +158,6 @@
   const SIMPLE_MODE_STORAGE_KEY = "asking_builder_simple_mode";
   const THEME_STORAGE_KEY = "asking_theme";
   const VERSION_LIMIT = 25;
-  const WELCOME_DEFAULT_COVER =
-    "https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1400&q=78";
-  const WELCOME_LAYOUTS = new Set(["image-right", "image-left", "image-top", "background", "typographic"]);
-  const IMAGE_FIT_VALUES = new Set(["cover", "contain"]);
 
   const state = {
     survey: {
@@ -200,6 +175,7 @@
     previewTemplateKey: null,
     activeThemeId: "sea",
     previewThemeId: "sea",
+    previewMode: "desktop",
     builderSection: "questions",
     settingsPane: "question",
     densityMode: localStorage.getItem(DENSITY_STORAGE_KEY) === "compact" ? "compact" : "cozy",
@@ -263,7 +239,6 @@
     applyStaticBuilderTextFixes();
     document.body.style.visibility = "visible";
     enhanceQuestionEditorLayout();
-    mountDesignSidebar();
     setAdvancedMode(state.advancedMode, false);
     setToolbarLane(state.toolbarLane, false);
     setSimpleMode(state.simpleMode, false);
@@ -366,9 +341,9 @@
     setText(".constructor-editor-top h3", "Вопрос и страница");
     setText("#openDesignSettingsBtn", "Дизайн");
     setText("#settingsTabQuestion", "Вопрос");
-    setText("[data-editor-section-shortcut='content']", "Content");
-    setText("[data-editor-section-shortcut='options']", "Options");
-    setText("[data-editor-section-shortcut='logic']", "Logic");
+    setText("[data-editor-section-shortcut='content']", "1. Вопрос");
+    setText("[data-editor-section-shortcut='options']", "2. Варианты");
+    setText("[data-editor-section-shortcut='logic']", "3. Логика");
     setText("#emptyEditor p", "Выберите вопрос в центре, чтобы изменить его параметры.");
 
     const questionTitleRow = document.querySelector("#questionTitleInput")?.closest(".form-row");
@@ -422,7 +397,16 @@
     const optionsInlineCheck = document.querySelector("#optionsEditor .inline-check span");
     if (optionsInlineCheck) optionsInlineCheck.textContent = "Логика переходов по ответам";
     setText("#questionLogicHint", "Выберите, на какую страницу перейдет участник после каждого варианта.");
+    setText(".constructor-option-presets__label", "Готовые варианты:");
+    setText("[data-option-preset='yes-no']", "Да / Нет");
+    setText("[data-option-preset='agree']", "Степень согласия");
+    setText("[data-option-preset='satisfaction']", "Оценка 1-5");
     setText("#addOptionBtn", "+ Добавить вариант");
+    setText("#normalizeOptionsBtn", "Нормализовать");
+    setText("#bulkOptionsToggleBtn", "Массовый ввод");
+    setText("#bulkOptionsWrap .form-row span", "Один вариант на строку");
+    setAttr("#bulkOptionsInput", "placeholder", "Вариант 1\nВариант 2\nВариант 3");
+    setText("#applyBulkOptionsBtn", "Применить список");
     setText("#removeQuestionBtn", "Удалить вопрос");
 
     setText("#designSettingsTitle", "Дизайн страницы");
@@ -505,7 +489,7 @@
     setHtml("#entryTemplateBtn", "<strong>Опрос из шаблона</strong><span>Выберите готовую структуру и адаптируйте под себя.</span>");
     setText("#templateCatalogTitle", "Шаблоны опросов");
     setText("#templateCatalogOverlay .constructor-modal-lead", "Выберите категорию и создайте анкету на готовой структуре.");
-    setText("#templatePreviewTitle", "Состав шаблона");
+    setText("#templatePreviewTitle", "Предпросмотр шаблона");
     setText("#themePickerTitle", "Выберите тему");
     setText("#versionHistoryTitle", "История версий");
     setText("#templateCreateBlankBtn", "+ Создать анкету");
@@ -524,6 +508,9 @@
     setText("#wizardBackBtn", "Назад");
     setText("#wizardNextBtn", "Далее");
     setText("#wizardApplyBtn", "Создать анкету");
+    setText("#previewDesktopBtn", "Экран");
+    setText("#previewMobileBtn", "Телефон");
+    setText("#previewModeLabel", "Экран");
     setHtml("[data-wizard-preset='registration']", "<strong>Регистрация</strong><span>3 страницы: контакты, сегментация, согласия</span>");
     setHtml("[data-wizard-preset='event-feedback']", "<strong>Фидбек события</strong><span>3 страницы: впечатление, программа, организация</span>");
     setHtml("[data-wizard-preset='product-discovery']", "<strong>Проверка идеи</strong><span>3 страницы: задача, процесс, критерии выбора</span>");
@@ -566,34 +553,14 @@
   function cacheRefs() {
     [
       "logoutBtn",
-      "topbarSurveyTitle",
-      "topbarSaveStatus",
-      "topbarUndoBtn",
-      "topbarRedoBtn",
-      "topbarPreviewBtn",
-      "topbarPublishBtn",
-      "topbarDesktopPreviewBtn",
-      "topbarMobilePreviewBtn",
       "pagesList",
       "pagesPanelMeta",
-      "builderSidebarQuestionProgress",
-      "builderSidebarProgressBar",
-      "builderSidebarProgressText",
-      "builderSidebarLogicCount",
       "renamePageBtn",
       "duplicatePageBtn",
       "removePageBtn",
       "addPageBtn",
       "surveyTitle",
       "surveyDescription",
-      "welcomeCoverImageInput",
-      "welcomeCoverUploadBtn",
-      "welcomeCoverUploadInput",
-      "welcomeLayoutInput",
-      "welcomeImageOpacityInput",
-      "welcomeImageOpacityValue",
-      "welcomeImageEnabledInput",
-      "welcomePreviewCard",
       "questionsStep",
       "surveySettingsStep",
       "publishStep",
@@ -621,6 +588,7 @@
       "heroMetaQuestions",
       "heroMetaLogic",
       "heroMetaTime",
+      "previewSurveyBtn",
       "shareSurveyBtn",
       "saveState",
       "saveStateText",
@@ -655,6 +623,10 @@
       "bulkDockClearBtn",
       "hotkeysHint",
       "questionList",
+      "surveyPreviewList",
+      "previewModeLabel",
+      "previewDesktopBtn",
+      "previewMobileBtn",
       "logicMapCount",
       "logicMapList",
       "statusText",
@@ -680,10 +652,7 @@
       "emptyEditor",
       "questionTitleInput",
       "questionDescriptionInput",
-      "questionPanelOpacityInput",
-      "questionPanelOpacityValue",
       "questionRequiredInput",
-      "questionRequiredQuickBtn",
       "questionTypeInput",
       "ratingEditor",
       "ratingLabelMin",
@@ -693,6 +662,11 @@
       "questionLogicHint",
       "optionsList",
       "addOptionBtn",
+      "normalizeOptionsBtn",
+      "bulkOptionsToggleBtn",
+      "bulkOptionsWrap",
+      "bulkOptionsInput",
+      "applyBulkOptionsBtn",
       "removeQuestionBtn",
       "questionTypeOverlay",
       "closeQuestionTypeModalBtn",
@@ -719,13 +693,10 @@
       "questionsPanel",
       "settingsPanel",
       "settingsTabQuestion",
-      "settingsTabDesign",
-      "settingsTabLogic",
       "settingsQuestionPane",
       "closeInspectorBtn",
       "openDesignSettingsBtn",
       "designSettingsOverlay",
-      "designSettingsPanel",
       "closeDesignSettingsBtn",
       "openThemePickerBtn",
       "activeThemeBadge",
@@ -765,6 +736,7 @@
     refs.wizardPresetButtons = Array.from(document.querySelectorAll("[data-wizard-preset]"));
     refs.editorSectionShortcutButtons = Array.from(document.querySelectorAll("[data-editor-section-shortcut]"));
     refs.heroTemplateButtons = Array.from(document.querySelectorAll("[data-hero-template]"));
+    refs.previewModeButtons = Array.from(document.querySelectorAll("[data-preview-mode]"));
 
     must(refs.pagesList, "pagesList");
     must(refs.questionList, "questionList");
@@ -776,9 +748,7 @@
 
     const titleRow = refs.questionTitleInput?.closest(".form-row");
     const descriptionRow = refs.questionDescriptionInput?.closest(".form-row");
-    const opacityRow = refs.questionPanelOpacityInput?.closest(".form-row");
     const requiredRow = refs.questionRequiredInput?.closest(".inline-check");
-    const requiredQuickBtn = refs.questionRequiredQuickBtn;
     const typeRow = refs.questionTypeInput?.closest(".form-row");
     const ratingSection = refs.ratingEditor;
     const optionsSection = refs.optionsEditor;
@@ -796,15 +766,13 @@
       return section;
     };
 
-    const mainGroup = createGroup("Content");
+    const mainGroup = createGroup("Текст вопроса");
     mainGroup.dataset.editorSection = "content";
-    const behaviorGroup = createGroup("Behavior & validation");
-    behaviorGroup.dataset.editorSection = "content";
-    const optionsGroup = createGroup("Options & media");
+    const optionsGroup = createGroup("Варианты");
     optionsGroup.dataset.editorSection = "options";
-    const logicGroup = createGroup("Logic");
+    const logicGroup = createGroup("Логика");
     logicGroup.dataset.editorSection = "logic";
-    const actionGroup = createGroup("Advanced", "constructor-editor-group--danger");
+    const actionGroup = createGroup("Удаление вопроса", "constructor-editor-group--danger");
     actionGroup.dataset.editorSection = "logic";
     const typeHint = document.createElement("div");
     typeHint.id = "questionTypeHint";
@@ -814,11 +782,11 @@
     [titleRow, descriptionRow].forEach((node) => {
       if (node) mainGroup.appendChild(node);
     });
-    [typeRow, requiredRow, requiredQuickBtn, ratingSection, opacityRow].forEach((node) => {
-      if (node) behaviorGroup.appendChild(node);
+    [requiredRow, typeRow, ratingSection].forEach((node) => {
+      if (node) mainGroup.appendChild(node);
     });
     [typeHint].forEach((node) => {
-      if (node) behaviorGroup.appendChild(node);
+      if (node) mainGroup.appendChild(node);
     });
     if (logicRow && logicRow.parentElement === optionsSection) logicGroup.appendChild(logicRow);
     if (logicHint && logicHint.parentElement === optionsSection) logicGroup.appendChild(logicHint);
@@ -826,7 +794,7 @@
     if (removeButton) actionGroup.appendChild(removeButton);
 
     editor.innerHTML = "";
-    [mainGroup, behaviorGroup, optionsGroup, logicGroup, actionGroup].forEach((group) => {
+    [mainGroup, optionsGroup, logicGroup, actionGroup].forEach((group) => {
       if (group.children.length > 1) editor.appendChild(group);
     });
 
@@ -850,7 +818,6 @@
     refs.editorSectionShortcutButtons.forEach((node) => {
       node.classList.toggle("is-active", node.dataset.editorSectionShortcut === normalized);
     });
-    updatePropertiesTabs(normalized === "logic" ? "logic" : "question");
   }
 
   function getQuestionTypeHint(type) {
@@ -858,50 +825,10 @@
       text: "Свободный ответ. Используйте для обратной связи и длинных комментариев.",
       single: "Один вариант ответа. Лучший выбор для быстрых и однозначных решений.",
       multiple: "Несколько вариантов. Подходит для чек-листов и составных предпочтений.",
-      image: "Карточки с изображениями. Доступны загрузка фото, Cover/Contain и безопасный масштаб.",
       select: "Компактный список. Удобно, когда вариантов много и нужен чистый интерфейс.",
       rating: "Оценка по шкале. Идеально для измерения удовлетворенности и качества."
     };
-    return hints[String(type || "").trim().toLowerCase()] || hints[normalizeType(type)] || hints.text;
-  }
-
-  function mountDesignSidebar() {
-    const sidebar = refs.settingsPanel;
-    if (!sidebar || sidebar.dataset.propertiesMounted === "1") return;
-    sidebar.dataset.propertiesMounted = "1";
-    sidebar.classList.remove("constructor-editor--design");
-    sidebar.classList.add("constructor-properties-panel");
-    sidebar.setAttribute("aria-label", "Свойства выбранного элемента");
-
-    const designPanel = refs.designSettingsPanel;
-    if (designPanel && designPanel.dataset.sidebarMounted !== "1") {
-      designPanel.dataset.sidebarMounted = "1";
-      designPanel.classList.remove("constructor-modal", "constructor-modal--design");
-      designPanel.classList.add("constructor-design--sidebar", "constructor-properties-design");
-      designPanel.removeAttribute("role");
-      designPanel.removeAttribute("aria-modal");
-      designPanel.removeAttribute("aria-labelledby");
-      refs.closeDesignSettingsBtn?.setAttribute("hidden", "");
-
-      const themeMount = document.createElement("section");
-      themeMount.id = "inlineThemePanel";
-      themeMount.className = "constructor-inline-themes";
-      themeMount.innerHTML = `
-        <div class="constructor-inline-themes__head">
-          <div>
-            <span>Theme library</span>
-            <strong>Готовые стили</strong>
-          </div>
-          <small>Live preview</small>
-        </div>
-        <div class="constructor-inline-themes__categories" data-inline-theme-categories></div>
-        <div class="constructor-inline-themes__grid" data-inline-theme-grid></div>
-      `;
-      designPanel.appendChild(themeMount);
-      sidebar.appendChild(designPanel);
-      refs.designSettingsOverlay?.setAttribute("hidden", "");
-      renderInlineThemePanel();
-    }
+    return hints[normalizeType(type)] || hints.text;
   }
 
   function applyOptionPreset(presetKey) {
@@ -1048,6 +975,13 @@
       const action = String(actionBtn.dataset.healthAction || "").trim();
       if (!action) return;
       runHealthAction(action);
+    });
+    refs.previewModeButtons?.forEach((button) => {
+      button.addEventListener("click", () => {
+        const mode = String(button.dataset.previewMode || "desktop").trim();
+        state.previewMode = mode === "mobile" ? "mobile" : "desktop";
+        renderSurveyPreview();
+      });
     });
     refs.undoBtn?.addEventListener("click", undoChange);
     refs.redoBtn?.addEventListener("click", redoChange);
@@ -1209,6 +1143,14 @@
         setStatus(error.message || "Ошибка публикации", true);
       });
     });
+    refs.previewSurveyBtn?.addEventListener("click", () => {
+      if (!surveyId) {
+        setStatus("Сначала сохраните анкету", true);
+        return;
+      }
+      window.open(`/s/${encodeURIComponent(surveyId)}`, "_blank", "noopener,noreferrer");
+    });
+
     refs.shareSurveyBtn?.addEventListener("click", async () => {
       if (!surveyId) {
         setStatus("Сначала сохраните анкету", true);
@@ -1226,66 +1168,19 @@
     refs.surveyTitle?.addEventListener("input", (event) => {
       state.survey.title = event.target.value;
       if (refs.worktopSurveyTitle) refs.worktopSurveyTitle.textContent = state.survey.title || "Новая анкета";
-      renderWelcomeSettings();
       markDirty();
     });
 
     refs.surveyDescription?.addEventListener("input", (event) => {
       state.survey.description = event.target.value;
-      renderWelcomeSettings();
       markDirty();
-    });
-
-    refs.welcomeCoverImageInput?.addEventListener("input", (event) => {
-      updateWelcomeSettings({ coverImage: String(event.target.value || "").trim() || WELCOME_DEFAULT_COVER });
-    });
-
-    refs.welcomeCoverUploadBtn?.addEventListener("click", () => {
-      refs.welcomeCoverUploadInput?.click();
-    });
-
-    refs.welcomeCoverUploadInput?.addEventListener("change", async (event) => {
-      const input = event.target;
-      const file = input?.files?.[0];
-      if (!file) return;
-      refs.welcomeCoverUploadBtn.disabled = true;
-      setStatus("Загрузка обложки...");
-      try {
-        const uploadedPath = await uploadImageFile(file);
-        updateWelcomeSettings({ coverImage: uploadedPath, imageEnabled: true });
-        toast("Обложка вступления загружена");
-      } catch (error) {
-        setStatus(error.message || "Не удалось загрузить обложку", true);
-      } finally {
-        refs.welcomeCoverUploadBtn.disabled = false;
-        input.value = "";
-      }
-    });
-
-    refs.welcomeLayoutInput?.addEventListener("change", (event) => {
-      const layout = String(event.target.value || "image-right");
-      updateWelcomeSettings({
-        layout,
-        imageEnabled: layout === "typographic" ? false : getWelcomeSettings().imageEnabled
-      });
-    });
-
-    refs.welcomeImageOpacityInput?.addEventListener("input", (event) => {
-      updateWelcomeSettings({ imageOpacity: Number(event.target.value || 86) });
-    });
-
-    refs.welcomeImageEnabledInput?.addEventListener("change", (event) => {
-      updateWelcomeSettings({
-        imageEnabled: Boolean(event.target.checked),
-        layout: event.target.checked && getWelcomeSettings().layout === "typographic" ? "image-right" : getWelcomeSettings().layout
-      });
     });
 
     refs.questionTitleInput?.addEventListener("input", (event) => {
       const question = getSelectedQuestion();
       if (!question) return;
       question.title = event.target.value;
-      refreshQuestionCard(question);
+      renderQuestions();
       renderSurveyPreview();
       markDirty();
     });
@@ -1294,18 +1189,6 @@
       const question = getSelectedQuestion();
       if (!question) return;
       question.description = event.target.value;
-      refreshQuestionCard(question);
-      renderSurveyPreview();
-      markDirty();
-    });
-
-    refs.questionPanelOpacityInput?.addEventListener("input", (event) => {
-      const question = getSelectedQuestion();
-      if (!question) return;
-      question.panelOpacity = normalizeQuestionPanelOpacity(event.target.value);
-      if (refs.questionPanelOpacityValue) refs.questionPanelOpacityValue.textContent = `${question.panelOpacity}%`;
-      renderQuestions();
-      renderSurveyPreview();
       markDirty();
     });
 
@@ -1315,27 +1198,13 @@
       question.required = event.target.checked;
       renderQuestions();
       renderSurveyPreview();
-      renderEditor();
       markDirty();
-    });
-
-    refs.questionRequiredQuickBtn?.addEventListener("click", () => {
-      const question = getSelectedQuestion();
-      if (!question) return;
-      question.required = !Boolean(question.required);
-      renderQuestions();
-      renderSurveyPreview();
-      renderEditor();
-      markDirty(question.required ? "Вопрос стал обязательным" : "Обязательность убрана");
     });
 
     refs.questionTypeInput?.addEventListener("change", (event) => {
       const question = getSelectedQuestion();
       if (!question) return;
-      const selectedType = String(event.target.value || "text").trim().toLowerCase();
-      const imageMode = selectedType === "image";
-      question.type = normalizeType(imageMode ? "single" : selectedType);
-      question.imageChoice = imageMode;
+      question.type = normalizeType(event.target.value);
 
       if (question.type === "rating") {
         question.ratingLabels = ensureRatingLabels(question);
@@ -1343,28 +1212,12 @@
         question.options = [];
         question.logicEnabled = false;
       } else if (CHOICE_TYPES.has(question.type)) {
-        question.options = normalizeOptions(imageMode && !question.options?.length ? getImagePollPreset().options : question.options);
+        question.options = normalizeOptions(question.options);
         if (question.options.length < 2) {
           question.options = [createOption("Вариант 1"), createOption("Вариант 2")];
         }
-        if (imageMode) {
-          applyQuestionImageSettings(question);
-        } else {
-          question.imageChoice = false;
-          question.imageFit = "";
-          question.imageScale = 100;
-          question.options = question.options.map((option) => ({
-            ...option,
-            imageUrl: "",
-            imageFit: "cover",
-            imageScale: 100
-          }));
-        }
         question.logicEnabled = Boolean(question.logicEnabled);
       } else {
-        question.imageChoice = false;
-        question.imageFit = "";
-        question.imageScale = 100;
         question.options = [];
         question.ratingLabels = null;
         question.rating = null;
@@ -1410,6 +1263,58 @@
       markDirty();
     });
 
+    refs.normalizeOptionsBtn?.addEventListener("click", () => {
+      const question = getSelectedQuestion();
+      if (!question || !CHOICE_TYPES.has(question.type)) return;
+      question.options = normalizeOptions(question.options);
+      if (!question.options.length) {
+        question.options = [createOption("Вариант 1"), createOption("Вариант 2")];
+      } else {
+        question.options = question.options.map((option, index) => ({
+          ...option,
+          text: `Вариант ${index + 1}`
+        }));
+      }
+      renderOptions(question);
+      renderSurveyPreview();
+      markDirty("Варианты обновлены");
+    });
+
+    refs.bulkOptionsToggleBtn?.addEventListener("click", () => {
+      const question = getSelectedQuestion();
+      if (!question || !CHOICE_TYPES.has(question.type) || !refs.bulkOptionsWrap || !refs.bulkOptionsInput) return;
+      const opening = refs.bulkOptionsWrap.hidden;
+      refs.bulkOptionsWrap.hidden = !opening;
+      if (opening) {
+        refs.bulkOptionsInput.value = normalizeOptions(question.options).map((option) => option.text).join("\n");
+        refs.bulkOptionsInput.focus();
+      }
+    });
+
+    refs.applyBulkOptionsBtn?.addEventListener("click", () => {
+      const question = getSelectedQuestion();
+      if (!question || !CHOICE_TYPES.has(question.type) || !refs.bulkOptionsInput) return;
+      const lines = String(refs.bulkOptionsInput.value || "")
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      if (lines.length < 2) {
+        setStatus("Для выбора нужно минимум 2 варианта", true);
+        return;
+      }
+      question.options = lines.map((line) => createOption(line));
+      renderOptions(question);
+      renderSurveyPreview();
+      markDirty("Варианты применены");
+    });
+    refs.optionsEditor?.addEventListener("click", (event) => {
+      const presetButton = event.target.closest("[data-option-preset]");
+      if (!presetButton) return;
+      const presetKey = String(presetButton.dataset.optionPreset || "").trim();
+      if (!presetKey) return;
+      applyOptionPreset(presetKey);
+    });
+
     refs.questionLogicEnabledInput?.addEventListener("change", (event) => {
       const question = getSelectedQuestion();
       if (!question || !CHOICE_TYPES.has(question.type)) return;
@@ -1420,39 +1325,6 @@
 
     refs.removeQuestionBtn?.addEventListener("click", () => {
       removeSelectedQuestions();
-    });
-
-    refs.topbarUndoBtn?.addEventListener("click", () => refs.undoBtn?.click());
-    refs.topbarRedoBtn?.addEventListener("click", () => refs.redoBtn?.click());
-    refs.topbarPublishBtn?.addEventListener("click", () => refs.publishBtn?.click());
-    refs.topbarPreviewBtn?.addEventListener("click", async () => {
-      try {
-        if (!surveyId) await saveRemote();
-        const id = surveyId || state.survey.id;
-        if (!id) {
-          setStatus("Сначала сохраните анкету", true);
-          return;
-        }
-        window.open(`/s/${encodeURIComponent(id)}?preview=1`, "_blank", "noopener,noreferrer");
-      } catch (error) {
-        setStatus(error.message || "Не удалось открыть предпросмотр", true);
-      }
-    });
-    refs.topbarDesktopPreviewBtn?.addEventListener("click", () => setBuilderPreviewMode("desktop"));
-    refs.topbarMobilePreviewBtn?.addEventListener("click", () => setBuilderPreviewMode("mobile"));
-    refs.settingsTabQuestion?.addEventListener("click", () => {
-      setEditorSection("content");
-      updatePropertiesTabs("question");
-    });
-    refs.settingsTabDesign?.addEventListener("click", () => {
-      updateDesignEditor();
-      updatePropertiesTabs("design");
-      document.getElementById("designSettingsPanel")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
-    refs.settingsTabLogic?.addEventListener("click", () => {
-      setEditorSection("logic");
-      updatePropertiesTabs("logic");
-      refs.logicMapList?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
 
     bindModal(refs.questionTypeOverlay, refs.closeQuestionTypeModalBtn, closeQuestionTypeModal);
@@ -1689,7 +1561,6 @@
     if (refs.accessPasswordEnabledInput) refs.accessPasswordEnabledInput.checked = Boolean(state.survey.accessPasswordEnabled);
     if (refs.responseLimitInput) refs.responseLimitInput.value = state.survey.responseLimit == null ? "" : String(state.survey.responseLimit);
     if (refs.worktopSurveyTitle) refs.worktopSurveyTitle.textContent = state.survey.title || "Новая анкета";
-    if (refs.topbarSurveyTitle) refs.topbarSurveyTitle.textContent = state.survey.title || "Новая анкета";
     if (refs.questionSearchInput) refs.questionSearchInput.value = state.questionFilter || "";
     updateQuestionActionButtons();
     updateBuilderMeta();
@@ -1707,10 +1578,8 @@
     updateDesignEditor();
     renderSurveyPreview();
     renderLogicMap();
-    renderWelcomeSettings();
     activateBuilderSection(state.builderSection || "questions");
     updateSharePanel();
-    setBuilderPreviewMode(state.previewDevice || "desktop");
 
     if (window.innerWidth <= 1100) {
       setMobilePanel(state.mobilePanel);
@@ -1763,14 +1632,6 @@
     if (refs.heroMetaQuestions) refs.heroMetaQuestions.textContent = String(questions);
     if (refs.heroMetaLogic) refs.heroMetaLogic.textContent = String(logicRoutes);
     if (refs.heroMetaTime) refs.heroMetaTime.textContent = `~${estimatedMinutes} мин`;
-    if (refs.builderSidebarQuestionProgress) refs.builderSidebarQuestionProgress.textContent = `${questions} / 18`;
-    if (refs.builderSidebarProgressBar) refs.builderSidebarProgressBar.style.width = `${Math.min(100, Math.round((questions / 18) * 100))}%`;
-    if (refs.builderSidebarProgressText) {
-      refs.builderSidebarProgressText.textContent = questions >= 18
-        ? "Структура выглядит насыщенной."
-        : `${Math.max(0, 18 - questions)} ${declOfNum(Math.max(0, 18 - questions), ["вопрос", "вопроса", "вопросов"])} до полного сценария.`;
-    }
-    if (refs.builderSidebarLogicCount) refs.builderSidebarLogicCount.textContent = `${logicRoutes} ${declOfNum(logicRoutes, ["переход", "перехода", "переходов"])}`;
     updateBuilderHealth({ pages, questions, logicRoutes });
   }
 
@@ -2277,28 +2138,8 @@
     const pageTotal = Array.isArray(state.survey.pages) ? state.survey.pages.length : 0;
     const questionTotal = (state.survey.pages || []).reduce((sum, page) => sum + (page.questions?.length || 0), 0);
     if (refs.pagesPanelMeta) {
-      refs.pagesPanelMeta.textContent = `${pageTotal + 1} ${declOfNum(pageTotal + 1, ["стр.", "стр.", "стр."])} · ${questionTotal} ${declOfNum(questionTotal, ["вопрос", "вопроса", "вопросов"])}`;
+      refs.pagesPanelMeta.textContent = `${pageTotal} ${declOfNum(pageTotal, ["стр.", "стр.", "стр."])} · ${questionTotal} ${declOfNum(questionTotal, ["вопрос", "вопроса", "вопросов"])}`;
     }
-    const welcome = getWelcomeSettings();
-    const welcomeButton = document.createElement("button");
-    welcomeButton.type = "button";
-    welcomeButton.className = `constructor-page-item constructor-page-item--welcome${state.builderSection === "survey" ? " is-active" : ""}`;
-    welcomeButton.innerHTML = `
-      <span class="constructor-page-item__index">00</span>
-      <span class="constructor-page-item__thumb constructor-page-item__thumb--welcome" style="background-image:url('${sanitizeCssUrl(welcome.coverImage)}')"></span>
-      <span class="constructor-page-item__body">
-        <span class="constructor-page-item__title">Welcome</span>
-        <span class="constructor-page-item__meta">Заглавная · intro</span>
-      </span>
-      <span class="constructor-page-item__menu">...</span>
-    `;
-    welcomeButton.addEventListener("click", () => {
-      activateBuilderSection("survey");
-      renderPages();
-      refs.surveyTitle?.focus();
-    });
-    refs.pagesList.appendChild(welcomeButton);
-
     state.survey.pages.forEach((page, index) => {
       const design = normalizePageDesign(page.design);
       const questionCount = Array.isArray(page.questions) ? page.questions.length : 0;
@@ -2308,13 +2149,9 @@
       button.className = `constructor-page-item${String(page.id) === String(state.selectedPageId) ? " is-active" : ""}`;
       button.dataset.pageId = page.id;
       button.innerHTML = `
-        <span class="constructor-page-item__index">${String(index + 1).padStart(2, "0")}</span>
         <span class="constructor-page-item__thumb" style="${buildPageBackgroundStyle(design)}"></span>
-        <span class="constructor-page-item__body">
-          <span class="constructor-page-item__title">${escapeHtml(page.title || `Страница ${index + 1}`)}</span>
-          <span class="constructor-page-item__meta">${questionCount} ${declOfNum(questionCount, ["вопрос", "вопроса", "вопросов"])}</span>
-        </span>
-        <span class="constructor-page-item__menu">...</span>
+        <span class="constructor-page-item__title">${escapeHtml(page.title || `Страница ${index + 1}`)}</span>
+        <span class="constructor-page-item__meta">${questionCount} ${declOfNum(questionCount, ["вопрос", "вопроса", "вопросов"])}</span>
       `;
       button.addEventListener("click", () => {
         state.selectedPageId = String(page.id);
@@ -2414,24 +2251,6 @@
 
       refs.pagesList.appendChild(button);
     });
-
-    const thanksButton = document.createElement("button");
-    thanksButton.type = "button";
-    thanksButton.className = "constructor-page-item constructor-page-item--thanks";
-    thanksButton.innerHTML = `
-      <span class="constructor-page-item__index">${String(pageTotal + 1).padStart(2, "0")}</span>
-      <span class="constructor-page-item__thumb constructor-page-item__thumb--thanks">✓</span>
-      <span class="constructor-page-item__body">
-        <span class="constructor-page-item__title">Спасибо</span>
-        <span class="constructor-page-item__meta">Success screen</span>
-      </span>
-      <span class="constructor-page-item__menu">...</span>
-    `;
-    thanksButton.addEventListener("click", () => {
-      activateBuilderSection("publish");
-      updateSharePanel();
-    });
-    refs.pagesList.appendChild(thanksButton);
 
     const hasPage = Boolean(getSelectedPage());
     if (refs.renamePageBtn) refs.renamePageBtn.disabled = !hasPage;
@@ -2857,40 +2676,26 @@
       return;
     }
 
-    const selectedPageIndex = state.survey.pages.findIndex((item) => String(item.id) === String(page.id));
-    const pageHeader = document.createElement("section");
-    pageHeader.className = "constructor-canvas-page-head";
-    pageHeader.innerHTML = `
-      <div>
-        <span>${String(Math.max(0, selectedPageIndex) + 1).padStart(2, "0")}. ${escapeHtml(page.title || "Основные вопросы")}</span>
-        <strong>${visibleQuestions.length} ${declOfNum(visibleQuestions.length, ["вопрос", "вопроса", "вопросов"])}</strong>
-      </div>
-      <em>${escapeHtml(normalizePageDesign(page.design).themeId || state.activeThemeId)}</em>
-    `;
-    refs.questionList.appendChild(pageHeader);
-
     visibleQuestions.forEach(({ question, index }) => {
       const card = document.createElement("article");
       const isSelected = isQuestionSelected(question.id, page);
       card.className = `question-card${question.id === state.selectedQuestionId ? " is-active" : ""}${isSelected ? " is-selected" : ""}`;
       card.dataset.questionId = question.id;
       card.dataset.questionIndex = String(index);
-      card.style.setProperty("--question-panel-alpha", (normalizeQuestionPanelOpacity(question.panelOpacity) / 100).toFixed(2));
       if (state.simpleMode) {
         card.innerHTML = `
           <div class="question-card__head question-card__head--simple">
             <div class="question-card__left">
-              <span class="question-card__type-icon">${escapeHtml(getQuestionIcon(question))}</span>
               <div class="question-card__title-wrap">
                 <h4 class="q-title">${highlightQuestionText(`${index + 1}. ${question.title || "Новый вопрос"}`, state.questionFilter)}</h4>
-                <div class="q-meta">${renderQuestionBadges(question)}</div>
+                <div class="q-meta">${escapeHtml(getMetaText(question))}</div>
               </div>
             </div>
             <div class="question-card__actions">
-              <button type="button" class="question-card__icon" data-action="drag" draggable="true" title="Переместить">::</button>
-              <button type="button" class="question-card__icon" data-action="focus" title="Свойства">⚙</button>
-              <button type="button" class="question-card__icon" data-action="duplicate" title="Дублировать">⧉</button>
-              <button type="button" class="question-card__icon danger" data-action="delete" title="Удалить">✕</button>
+              <button type="button" class="btn btn--ghost btn--xs" data-action="select" aria-pressed="${isSelected ? "true" : "false"}">Выбрать</button>
+              <button type="button" class="btn btn--ghost btn--xs" data-action="focus">Редактировать</button>
+              <button type="button" class="btn btn--ghost btn--xs question-card__action-extra" data-action="duplicate">Копия</button>
+              <button type="button" class="btn btn--ghost btn--xs question-card__action-extra" data-action="delete">Удалить</button>
             </div>
           </div>
           <div class="question-card__preview">${renderQuestionCardPreview(question)}</div>
@@ -2901,10 +2706,9 @@
             <div class="question-card__left">
               <button type="button" class="question-card__drag" data-action="drag" draggable="true" title="Перетащить вопрос">≡</button>
               <button type="button" class="question-card__select${isSelected ? " is-on" : ""}" data-action="select" aria-pressed="${isSelected ? "true" : "false"}" title="Выделить вопрос">✓</button>
-              <span class="question-card__type-icon">${escapeHtml(getQuestionIcon(question))}</span>
               <div class="question-card__title-wrap">
                 <h4 class="q-title">${highlightQuestionText(`${index + 1}. ${question.title || "Новый вопрос"}`, state.questionFilter)}</h4>
-                <div class="q-meta">${renderQuestionBadges(question)}</div>
+                <div class="q-meta">${escapeHtml(getMetaText(question))}</div>
               </div>
             </div>
             <div class="question-card__actions">
@@ -3078,24 +2882,6 @@
     updateQuestionActionButtons(page);
   }
 
-  function refreshQuestionCard(question = getSelectedQuestion()) {
-    if (!question || !refs.questionList) return;
-    const card = refs.questionList.querySelector(`[data-question-id="${cssEscape(question.id)}"]`);
-    if (!card) return;
-    const page = getSelectedPage();
-    const questionIndex = page?.questions?.findIndex((item) => item.id === question.id) ?? -1;
-    const title = card.querySelector(".q-title");
-    const meta = card.querySelector(".q-meta");
-    const preview = card.querySelector(".question-card__preview");
-    if (title) {
-      const prefix = questionIndex >= 0 ? `${questionIndex + 1}. ` : "";
-      title.innerHTML = highlightQuestionText(`${prefix}${question.title || "Новый вопрос"}`, state.questionFilter);
-    }
-    if (meta) meta.innerHTML = renderQuestionBadges(question);
-    if (preview) preview.innerHTML = renderQuestionCardPreview(question, state.survey.pages.findIndex((item) => item.id === page?.id));
-    card.style.setProperty("--question-panel-alpha", (normalizeQuestionPanelOpacity(question.panelOpacity) / 100).toFixed(2));
-  }
-
   function renderEditor() {
     const question = getSelectedQuestion();
     refs.questionEditor.hidden = !question;
@@ -3104,25 +2890,12 @@
 
     if (!question) return;
 
-    const questionModal = document.querySelector(".question-settings-modal");
-    if (questionModal) {
-      questionModal.dataset.questionType = normalizeType(question.type);
-      const heading = questionModal.querySelector(".constructor-editor-top h3");
-      if (heading) heading.textContent = `Настройки: ${TYPE_LABELS[normalizeType(question.type)] || "Вопрос"}`;
-    }
-
     refs.questionTitleInput.value = question.title || "";
     refs.questionDescriptionInput.value = question.description || "";
-    question.panelOpacity = normalizeQuestionPanelOpacity(question.panelOpacity);
-    if (refs.questionPanelOpacityInput) refs.questionPanelOpacityInput.value = String(question.panelOpacity);
-    if (refs.questionPanelOpacityValue) refs.questionPanelOpacityValue.textContent = `${question.panelOpacity}%`;
     refs.questionRequiredInput.checked = Boolean(question.required);
-    if (refs.questionRequiredQuickBtn) {
-      refs.questionRequiredQuickBtn.textContent = question.required ? "Убрать обязательность" : "Сделать обязательным";
-    }
-    refs.questionTypeInput.value = isImageChoiceQuestion(question) ? "image" : normalizeType(question.type);
+    refs.questionTypeInput.value = normalizeType(question.type);
     const typeHint = document.getElementById("questionTypeHint");
-    if (typeHint) typeHint.textContent = getQuestionTypeHint(isImageChoiceQuestion(question) ? "image" : question.type);
+    if (typeHint) typeHint.textContent = getQuestionTypeHint(question.type);
 
     refs.optionsEditor.hidden = !CHOICE_TYPES.has(question.type);
     refs.ratingEditor.hidden = question.type !== "rating";
@@ -3136,9 +2909,15 @@
     }
 
     if (CHOICE_TYPES.has(question.type)) {
+      if (refs.bulkOptionsWrap) refs.bulkOptionsWrap.hidden = true;
+      if (refs.bulkOptionsInput) {
+        refs.bulkOptionsInput.value = normalizeOptions(question.options).map((option) => option.text).join("\n");
+      }
       renderOptions(question);
     } else {
       refs.optionsList.innerHTML = "";
+      if (refs.bulkOptionsWrap) refs.bulkOptionsWrap.hidden = true;
+      if (refs.bulkOptionsInput) refs.bulkOptionsInput.value = "";
     }
     const optionsGroup = refs.questionEditor?.querySelector("[data-editor-section='options']");
     const logicGroup = refs.questionEditor?.querySelector("[data-editor-section='logic']");
@@ -3164,8 +2943,6 @@
   function renderOptions(question) {
     refs.optionsList.innerHTML = "";
     question.options = normalizeOptions(question.options);
-    const imageMode = isImageChoiceQuestion(question);
-    if (imageMode) applyQuestionImageSettings(question);
     const currentPage = getSelectedPage();
     const showLogic = Boolean(question.logicEnabled) && (question.type === "single" || question.type === "select" || question.type === "multiple");
     const jumpChoices = state.survey.pages
@@ -3176,52 +2953,6 @@
       })
       .join("");
 
-    if (imageMode) {
-      const controls = document.createElement("section");
-      controls.className = "constructor-image-controls";
-      controls.innerHTML = `
-        <div class="constructor-image-controls__head">
-          <div>
-            <strong>Image Fit & Scale</strong>
-            <span>Ограничивает фото внутри карточек вариантов.</span>
-          </div>
-        </div>
-        <label class="form-row">
-          <span>Заполнение изображения</span>
-          <select data-role="questionImageFit">
-            <option value="cover">Cover - заполнить карточку</option>
-            <option value="contain">Contain - показать полностью</option>
-          </select>
-        </label>
-        <label class="form-row">
-          <span>Масштаб фото: <strong data-role="questionImageScaleValue">${getQuestionImageScale(question)}%</strong></span>
-          <input data-role="questionImageScale" type="range" min="60" max="130" step="5" value="${getQuestionImageScale(question)}" />
-        </label>
-      `;
-      const fitSelect = controls.querySelector("[data-role='questionImageFit']");
-      const scaleInput = controls.querySelector("[data-role='questionImageScale']");
-      const scaleValue = controls.querySelector("[data-role='questionImageScaleValue']");
-      if (fitSelect) fitSelect.value = getQuestionImageFit(question);
-      fitSelect?.addEventListener("change", (event) => {
-        applyQuestionImageSettings(question, { imageFit: event.target.value });
-        refs.optionsList.querySelectorAll("[data-role='previewImg']").forEach((img) => {
-          img.style.objectFit = getQuestionImageFit(question);
-        });
-        refreshQuestionCard(question);
-        markDirty("Настройки изображений обновлены");
-      });
-      scaleInput?.addEventListener("input", (event) => {
-        applyQuestionImageSettings(question, { imageScale: Number(event.target.value || 100) });
-        if (scaleValue) scaleValue.textContent = `${getQuestionImageScale(question)}%`;
-        refs.optionsList.querySelectorAll("[data-role='preview']").forEach((preview) => {
-          preview.style.setProperty("--option-image-scale", String(getQuestionImageScale(question) / 100));
-        });
-        refreshQuestionCard(question);
-        markDirty("Масштаб изображений обновлён");
-      });
-      refs.optionsList.appendChild(controls);
-    }
-
     question.options.forEach((option, index) => {
       const row = document.createElement("div");
       row.className = "constructor-option-row";
@@ -3230,20 +2961,14 @@
           <span>Вариант ${index + 1}</span>
           <input data-role="text" type="text" value="${escapeAttr(option.text || "")}" />
         </label>
-        ${
-          imageMode
-            ? `
         <label class="form-row">
-          <span>Изображение варианта</span>
+          <span>URL картинки (необязательно)</span>
           <input data-role="imageUrl" type="url" value="${escapeAttr(option.imageUrl || "")}" placeholder="https://..." />
         </label>
         <div class="constructor-option-actions">
-          <button type="button" class="btn btn--ghost btn--xs" data-role="uploadImage">Загрузить фото</button>
+          <button type="button" class="btn btn--ghost btn--xs" data-role="uploadImage">Загрузить с устройства</button>
           <input data-role="uploadImageInput" type="file" accept="image/*" hidden />
         </div>
-        `
-            : ""
-        }
         ${
           showLogic
             ? `
@@ -3257,8 +2982,8 @@
         `
             : ""
         }
-        <div class="constructor-option-preview${imageMode ? " constructor-option-preview--image-choice" : ""}" data-role="preview" hidden>
-          <img alt="Изображение варианта" data-role="previewImg" />
+        <div class="constructor-option-preview" data-role="preview" hidden>
+          <img alt="Превью" data-role="previewImg" />
           <span data-role="previewError" hidden>Не удалось загрузить изображение</span>
         </div>
         <div class="constructor-option-actions">
@@ -3277,12 +3002,9 @@
       const preview = row.querySelector("[data-role='preview']");
       const previewImg = row.querySelector("[data-role='previewImg']");
       const previewError = row.querySelector("[data-role='previewError']");
-      if (preview) preview.style.setProperty("--option-image-scale", String(getQuestionImageScale(question) / 100));
-      if (previewImg) previewImg.style.objectFit = getQuestionImageFit(question);
 
       textInput?.addEventListener("input", (event) => {
         option.text = event.target.value;
-        refreshQuestionCard(question);
         markDirty();
       });
 
@@ -3297,19 +3019,14 @@
       });
 
       imageInput?.addEventListener("input", (event) => {
-        if (!imageMode) return;
         option.imageUrl = event.target.value.trim();
-        applyQuestionImageSettings(question);
         updateOptionPreview(preview, previewImg, previewError, option.imageUrl);
-        refreshQuestionCard(question);
         markDirty();
       });
       uploadImageBtn?.addEventListener("click", () => {
-        if (!imageMode) return;
         uploadImageInput?.click();
       });
       uploadImageInput?.addEventListener("change", async (event) => {
-        if (!imageMode) return;
         const file = event.target?.files?.[0];
         if (!file) return;
         uploadImageBtn.disabled = true;
@@ -3317,10 +3034,8 @@
         try {
           const uploadedPath = await uploadImageFile(file);
           option.imageUrl = uploadedPath;
-          applyQuestionImageSettings(question);
           if (imageInput) imageInput.value = uploadedPath;
           updateOptionPreview(preview, previewImg, previewError, option.imageUrl);
-          refreshQuestionCard(question);
           renderSurveyPreview();
           markDirty("Картинка варианта загружена");
           toast("Картинка загружена");
@@ -3374,13 +3089,64 @@
         markDirty();
       });
 
-      updateOptionPreview(preview, previewImg, previewError, imageMode ? option.imageUrl : "");
+      updateOptionPreview(preview, previewImg, previewError, option.imageUrl);
       refs.optionsList.appendChild(row);
     });
   }
 
   function renderSurveyPreview() {
-    return;
+    if (!refs.surveyPreviewList) return;
+    const pages = Array.isArray(state.survey.pages) ? state.survey.pages : [];
+    const selectedPage = getSelectedPage();
+    refs.surveyPreviewList.innerHTML = "";
+    refs.surveyPreviewList.classList.toggle("constructor-live-preview__list--mobile", state.previewMode === "mobile");
+    refs.surveyPreviewList.classList.toggle("constructor-live-preview__list--desktop", state.previewMode !== "mobile");
+    if (refs.previewModeLabel) refs.previewModeLabel.textContent = state.previewMode === "mobile" ? "Телефон" : "Экран";
+    refs.previewModeButtons?.forEach((button) => {
+      const isActive = String(button.dataset.previewMode || "") === state.previewMode;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+
+    if (!pages.length || !pages.some((page) => Array.isArray(page.questions) && page.questions.length)) {
+      refs.surveyPreviewList.innerHTML = `
+        <div class="constructor-preview-empty">
+          <p>Пока нет вопросов для предпросмотра.</p>
+        </div>
+      `;
+      return;
+    }
+
+    pages.forEach((page, pageIndex) => {
+      const questions = Array.isArray(page.questions) ? page.questions : [];
+      const section = document.createElement("section");
+      section.className = "constructor-live-preview__page";
+      section.classList.toggle("is-current", selectedPage?.id === page.id);
+      section.innerHTML = `
+        <div class="constructor-live-preview__page-head">
+          <span>${pageIndex + 1}</span>
+          <strong>${escapeHtml(page.title || `Страница ${pageIndex + 1}`)}</strong>
+          <em>${questions.length} ${declOfNum(questions.length, ["вопрос", "вопроса", "вопросов"])}</em>
+        </div>
+      `;
+
+      if (!questions.length) {
+        section.insertAdjacentHTML("beforeend", `<div class="constructor-preview-empty"><p>На странице пока нет вопросов.</p></div>`);
+      } else {
+        questions.forEach((question, index) => {
+          const block = document.createElement("article");
+          block.className = "preview-question";
+          block.innerHTML = `
+            <h4>${escapeHtml(`${index + 1}. ${question.title || "Новый вопрос"}`)}${question.required !== false ? `<span>*</span>` : ""}</h4>
+            ${question.description ? `<p>${escapeHtml(question.description)}</p>` : ""}
+            <div class="preview-question__body">${renderQuestionCardPreview(question, pageIndex)}</div>
+          `;
+          section.appendChild(block);
+        });
+      }
+
+      refs.surveyPreviewList.appendChild(section);
+    });
   }
 
   function renderLogicMap() {
@@ -3447,18 +3213,14 @@
 
   function renderQuestionCardPreview(question, pageIndex = null) {
     const type = normalizeType(question.type);
-    const hint = String(question.description || "").trim()
-      ? `<p class="preview-question-hint">${escapeHtml(question.description)}</p>`
-      : "";
 
     if (type === "text") {
-      return `${hint}<div class="preview-control preview-control--text">Ответ участника...</div>`;
+      return `<div class="preview-control preview-control--text">Ответ участника...</div>`;
     }
 
     if (type === "rating") {
       const labels = ensureRatingLabels(question);
       return `
-        ${hint}
         <div class="preview-control preview-control--rating">
           <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
         </div>
@@ -3469,44 +3231,15 @@
     if (type === "select") {
       const options = normalizeOptions(question.options);
       const rendered = options.map((opt) => `<option>${escapeHtml(opt.text)}</option>`).join("");
-      return `${hint}<select class="preview-control preview-control--select" disabled><option>Выберите вариант</option>${rendered}</select>`;
-    }
-
-    if (isImageChoiceQuestion(question)) {
-      const imageFit = getQuestionImageFit(question);
-      const imageScale = getQuestionImageScale(question);
-      const options = normalizeOptions(question.options).slice(0, 4);
-      if (!options.length) {
-        return `${hint}<div class="preview-control preview-control--text">Добавьте изображения вариантов</div>`;
-      }
-      return `
-        ${hint}
-        <div class="preview-image-choice-grid" style="--preview-image-scale:${imageScale / 100}">
-          ${options
-            .map(
-              (opt) => `
-                <div class="preview-image-choice">
-                  ${
-                    opt.imageUrl
-                      ? `<img src="${escapeAttr(opt.imageUrl)}" alt="${escapeAttr(opt.text || "Вариант")}" style="object-fit:${escapeAttr(imageFit)}" />`
-                      : `<span class="preview-image-choice__empty">Фото</span>`
-                  }
-                  <strong>${escapeHtml(opt.text || "Вариант")}</strong>
-                </div>
-              `
-            )
-            .join("")}
-        </div>
-      `;
+      return `<select class="preview-control preview-control--select" disabled><option>Выберите вариант</option>${rendered}</select>`;
     }
 
     const options = normalizeOptions(question.options).slice(0, 3);
     const inputType = type === "single" ? "radio" : "checkbox";
     if (!options.length) {
-      return `${hint}<div class="preview-control preview-control--text">Добавьте варианты ответа</div>`;
+      return `<div class="preview-control preview-control--text">Добавьте варианты ответа</div>`;
     }
     return `
-      ${hint}
       <div class="preview-choice-list">
         ${options
           .map(
@@ -3528,7 +3261,6 @@
   }
 
   function updateOptionPreview(previewWrap, imgNode, errorNode, url) {
-    if (!previewWrap || !imgNode || !errorNode) return;
     const safe = isValidHttpUrl(url);
     if (!safe) {
       previewWrap.hidden = true;
@@ -3678,12 +3410,6 @@
   }
 
   function openThemePickerModal() {
-    const inlinePanel = document.getElementById("inlineThemePanel");
-    if (inlinePanel) {
-      renderInlineThemePanel();
-      inlinePanel.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      return;
-    }
     if (!refs.themePickerOverlay || !refs.themePickerOverlay.hidden) return;
     state.previewThemeId = state.activeThemeId;
     renderThemePicker();
@@ -3698,13 +3424,6 @@
   }
 
   function openDesignSettingsModal() {
-    if (refs.designSettingsPanel?.dataset.sidebarMounted === "1") {
-      updateDesignEditor();
-      renderInlineThemePanel();
-      refs.settingsPanel?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      refs.pageBgColorInput?.focus();
-      return;
-    }
     if (!refs.designSettingsOverlay || !refs.designSettingsOverlay.hidden) return;
     updateDesignEditor();
     refs.designSettingsOverlay.hidden = false;
@@ -3725,12 +3444,7 @@
     state.wizard.title = String(state.survey.title || "Новая анкета").trim() || "Новая анкета";
 
     if (refs.wizardSurveyTitleInput) refs.wizardSurveyTitleInput.value = state.wizard.title;
-    if (refs.wizardThemeSelect) {
-      refs.wizardThemeSelect.innerHTML = BUILDER_THEMES
-        .map((theme) => `<option value="${escapeAttr(theme.id)}">${escapeHtml(theme.name)}</option>`)
-        .join("");
-      refs.wizardThemeSelect.value = getThemeById(state.wizard.themeId).id;
-    }
+    if (refs.wizardThemeSelect) refs.wizardThemeSelect.value = state.wizard.themeId;
     refs.wizardPresetButtons.forEach((button) => {
       button.classList.toggle("is-active", button.dataset.wizardPreset === state.wizard.preset);
     });
@@ -3919,9 +3633,8 @@
       btn.type = "button";
       btn.className = `constructor-theme-item${theme.id === state.previewThemeId ? " is-active" : ""}`;
       btn.innerHTML = `
-        <span class="constructor-theme-item__preview" style="background:${escapeAttr(theme.preview || theme.bgColor)}"></span>
+        <span class="constructor-theme-item__preview" style="background:${theme.bgColor}"></span>
         <span class="constructor-theme-item__label">${escapeHtml(theme.name)}</span>
-        <span class="constructor-theme-item__desc">${escapeHtml(theme.bgImage ? "Фото-фон" : "Цветовая тема")}</span>
       `;
       btn.addEventListener("click", () => {
         state.previewThemeId = theme.id;
@@ -3931,65 +3644,10 @@
     });
 
     const preview = getThemeById(state.previewThemeId);
-    refs.themePreviewCard.style.background = preview.bgImage
-      ? `linear-gradient(rgba(15,23,42,${Math.max(0.08, Number(preview.overlay || 0) / 100)}), rgba(15,23,42,${Math.max(0.08, Number(preview.overlay || 0) / 100)})), url('${sanitizeCssUrl(preview.bgImage)}') center/cover no-repeat, ${preview.bgColor}`
-      : preview.preview || preview.bgColor;
+    refs.themePreviewCard.style.background = preview.bgColor;
     refs.themePreviewCard.style.setProperty("--theme-accent", preview.accent);
     refs.themePreviewName.textContent = preview.name;
     refs.themePreviewDescription.textContent = preview.description;
-  }
-
-  function getThemeCategory(theme) {
-    const id = String(theme?.id || "").toLowerCase();
-    const name = String(theme?.name || "").toLowerCase();
-    if (id.includes("graphite") || id.includes("dark") || id.includes("boardroom") || name.includes("dark")) return "Dark";
-    if (id.includes("academy") || id.includes("school") || id.includes("course")) return "Academic";
-    if (id.includes("forest") || id.includes("mint") || id.includes("clinic") || id.includes("ice")) return "Nature";
-    if (id.includes("event") || id.includes("rose") || id.includes("violet") || id.includes("peach") || id.includes("restaurant")) return "Creative";
-    if (id.includes("skyline") || id.includes("support") || id.includes("product") || id.includes("sea")) return "SaaS";
-    return "Corporate";
-  }
-
-  function renderInlineThemePanel() {
-    const panel = document.getElementById("inlineThemePanel");
-    if (!panel) return;
-    const categoriesNode = panel.querySelector("[data-inline-theme-categories]");
-    const gridNode = panel.querySelector("[data-inline-theme-grid]");
-    if (!categoriesNode || !gridNode) return;
-
-    const categories = ["All", "SaaS", "Corporate", "Academic", "Creative", "Dark", "Nature"];
-    const activeCategory = state.inlineThemeCategory || "All";
-    categoriesNode.innerHTML = categories
-      .map((category) => `
-        <button class="${category === activeCategory ? "is-active" : ""}" type="button" data-inline-theme-category="${escapeAttr(category)}">${escapeHtml(category)}</button>
-      `)
-      .join("");
-
-    const visibleThemes = BUILDER_THEMES.filter((theme) => activeCategory === "All" || getThemeCategory(theme) === activeCategory);
-    gridNode.innerHTML = visibleThemes
-      .map((theme) => {
-        const isActive = theme.id === state.activeThemeId;
-        const category = getThemeCategory(theme);
-        return `
-          <button class="constructor-inline-theme${isActive ? " is-active" : ""}" type="button" data-inline-theme-id="${escapeAttr(theme.id)}">
-            <span class="constructor-inline-theme__preview" style="background:${escapeAttr(theme.preview || theme.bgColor)}"></span>
-            <span class="constructor-inline-theme__screens" aria-hidden="true"><i></i><i></i><i></i></span>
-            <strong>${escapeHtml(theme.name)}</strong>
-            <em>${escapeHtml(category)}</em>
-          </button>
-        `;
-      })
-      .join("");
-
-    categoriesNode.querySelectorAll("[data-inline-theme-category]").forEach((button) => {
-      button.addEventListener("click", () => {
-        state.inlineThemeCategory = button.dataset.inlineThemeCategory || "All";
-        renderInlineThemePanel();
-      });
-    });
-    gridNode.querySelectorAll("[data-inline-theme-id]").forEach((button) => {
-      button.addEventListener("click", () => applyThemeToCurrentPage(String(button.dataset.inlineThemeId || "")));
-    });
   }
 
   function applyThemeToCurrentPage(themeId) {
@@ -3998,17 +3656,13 @@
     page.design = normalizePageDesign({
       ...(page.design || {}),
       themeId: theme.id,
-      bgColor: theme.bgColor,
-      bgImage: theme.bgImage || "",
-      layout: theme.layout || "full",
-      overlay: Number.isFinite(Number(theme.overlay)) ? Number(theme.overlay) : 0
+      bgColor: theme.bgColor
     });
     state.activeThemeId = theme.id;
     state.previewThemeId = theme.id;
     renderPages();
     renderQuestions();
     updateDesignEditor();
-    renderInlineThemePanel();
     markDirty("Тема применена");
   }
 
@@ -4031,15 +3685,8 @@
 
   function renderTemplateCatalogGrid() {
     if (!refs.templateCatalogGrid) return;
-    const seenTemplates = new Set();
     const templates = Object.entries(window.ASKING_TEMPLATES || {})
       .filter(([key]) => !["event", "vote", "feedback", "education", "hr", "marketing", "service", "events", "voting", "ecommerce", "healthcare", "onboarding", "conference", "nps"].includes(key))
-      .filter(([, template]) => {
-        const fingerprint = `${String(template?.title || "")}|${String(template?.description || "")}|${Array.isArray(template?.pages) ? template.pages.length : 0}`;
-        if (!template || seenTemplates.has(fingerprint)) return false;
-        seenTemplates.add(fingerprint);
-        return true;
-      })
       .sort((a, b) => String(a[1]?.title || a[0]).localeCompare(String(b[1]?.title || b[0]), "ru"));
     const selectedCategory = state.selectedTemplateCategory;
     const search = state.templateSearch;
@@ -4059,10 +3706,6 @@
       .map(([key, template]) => {
         const category = resolveTemplateCategory(key);
         const tintClass = `constructor-template-card--${String(key).replace(/[^a-z0-9_-]/gi, "")}`;
-        const coverImage = template.pages?.[0]?.design?.welcome?.coverImage || template.pages?.[0]?.design?.bgImage || "";
-        const coverStyle = coverImage
-          ? ` style="background-image:url('${sanitizeCssUrl(coverImage)}')"`
-          : "";
         const pagesCount = Array.isArray(template.pages) ? template.pages.length : 0;
         const questionsCount = Array.isArray(template.pages)
           ? template.pages.reduce(
@@ -4072,7 +3715,7 @@
           : 0;
         return `
           <article class="constructor-template-card ${tintClass}">
-            <div class="constructor-template-card__image"${coverStyle}></div>
+            <div class="constructor-template-card__image"></div>
             <div class="constructor-template-card__body">
               <span class="constructor-template-card__cat">${escapeHtml(category)}</span>
               <h4>${escapeHtml(template.title || key)}</h4>
@@ -4082,7 +3725,7 @@
                 <span>${questionsCount} вопр.</span>
               </div>
               <div class="constructor-template-card__actions">
-                <button type="button" class="btn btn--outline btn--xs" data-template-preview="${escapeHtml(key)}">Состав</button>
+                <button type="button" class="btn btn--outline btn--xs" data-template-preview="${escapeHtml(key)}">Предпросмотр</button>
                 <button type="button" class="btn btn--primary btn--xs" data-template-apply="${escapeHtml(key)}">Использовать</button>
               </div>
             </div>
@@ -4153,21 +3796,6 @@
     return Boolean(node && !node.hidden);
   }
 
-  function hasAnyModalOpen() {
-    return Boolean(
-      isModalVisible(refs.questionTypeOverlay) ||
-      isModalVisible(refs.creationEntryOverlay) ||
-      isModalVisible(refs.templateCatalogOverlay) ||
-      isModalVisible(refs.templatePreviewOverlay) ||
-      isModalVisible(refs.designSettingsOverlay) ||
-      isModalVisible(refs.themePickerOverlay) ||
-      isModalVisible(refs.commandPaletteOverlay) ||
-      isModalVisible(refs.quickStartWizardOverlay) ||
-      isModalVisible(refs.versionHistoryOverlay) ||
-      isModalVisible(document.getElementById("questionSettingsArchive"))
-    );
-  }
-
   function applyTemplate(templateId, notify = true) {
     const template = (window.ASKING_TEMPLATES || {})[templateId];
     if (!template) {
@@ -4180,7 +3808,7 @@
     state.survey.pages = (template.pages || []).map((page, index) => ({
       id: createId(),
       title: String(page.title || `Страница ${index + 1}`),
-      design: normalizePageDesign({ themeId: state.activeThemeId, ...(page.design || {}) }),
+      design: normalizePageDesign({ themeId: state.activeThemeId }),
       questions: Array.isArray(page.questions)
         ? page.questions.map((q) => fromTemplateQuestion(q))
         : []
@@ -4202,21 +3830,14 @@
 
   function fromTemplateQuestion(source) {
     const type = normalizeType(source.type);
-    const options = CHOICE_TYPES.has(type) ? normalizeOptions(source.options) : [];
-    const sourceType = String(source.type || "").trim().toLowerCase();
-    const imageChoice = source.imageChoice === true || sourceType.includes("image") || (type === "single" && options.some(optionHasImage));
     return {
       id: createId(),
       type,
       title: String(source.title || source.text || "Новый вопрос"),
       description: String(source.description || source.help || ""),
-      panelOpacity: normalizeQuestionPanelOpacity(source.panelOpacity),
       required: Boolean(source.required),
       logicEnabled: Boolean(source.logicEnabled),
-      imageChoice,
-      imageFit: normalizeImageFit(source.imageFit || options.find((option) => option.imageFit)?.imageFit),
-      imageScale: normalizeImageScale(source.imageScale ?? options.find((option) => option.imageScale)?.imageScale),
-      options,
+      options: CHOICE_TYPES.has(type) ? normalizeOptions(source.options) : [],
       ratingLabels: type === "rating" ? { low: "", high: "" } : null,
       rating: type === "rating" ? { minLabel: "", maxLabel: "" } : null
     };
@@ -4224,23 +3845,16 @@
 
   function createQuestionFromPreset(preset) {
     const normalizedType = normalizeType(preset.type);
-    const options = CHOICE_TYPES.has(normalizedType)
-      ? normalizeOptions(preset.options || [createOption("Вариант 1"), createOption("Вариант 2")])
-      : [];
-    const presetType = String(preset.type || "").trim().toLowerCase();
-    const imageChoice = preset.imageChoice === true || presetType.includes("image") || (normalizedType === "single" && options.some(optionHasImage));
     return {
       id: createId(),
       type: normalizedType,
       title: String(preset.title || "Новый вопрос"),
       description: String(preset.description || ""),
-      panelOpacity: normalizeQuestionPanelOpacity(preset.panelOpacity),
       required: Boolean(preset.required),
       logicEnabled: false,
-      imageChoice,
-      imageFit: normalizeImageFit(preset.imageFit || options.find((option) => option.imageFit)?.imageFit),
-      imageScale: normalizeImageScale(preset.imageScale ?? options.find((option) => option.imageScale)?.imageScale),
-      options,
+      options: CHOICE_TYPES.has(normalizedType)
+        ? normalizeOptions(preset.options || [createOption("Вариант 1"), createOption("Вариант 2")])
+        : [],
       ratingLabels: normalizedType === "rating" ? { low: "", high: "" } : null,
       rating: normalizedType === "rating" ? { minLabel: "", maxLabel: "" } : null
     };
@@ -4383,19 +3997,14 @@
       type: normalizedType,
       title: String(resolvedPreset?.title || "Новый вопрос"),
       description: String(resolvedPreset?.description || ""),
-      panelOpacity: normalizeQuestionPanelOpacity(resolvedPreset?.panelOpacity ?? (88 - page.questions.length * 8)),
       required: Boolean(resolvedPreset?.required),
       logicEnabled: false,
-      imageChoice: imageMode,
-      imageFit: normalizeImageFit(resolvedPreset?.imageFit),
-      imageScale: normalizeImageScale(resolvedPreset?.imageScale),
       options: CHOICE_TYPES.has(normalizedType)
         ? normalizeOptions(resolvedPreset?.options || [createOption("Вариант 1"), createOption("Вариант 2")])
         : [],
       ratingLabels: normalizedType === "rating" ? { low: "", high: "" } : null,
       rating: normalizedType === "rating" ? { minLabel: "", maxLabel: "" } : null
     };
-    if (imageMode) applyQuestionImageSettings(question);
 
     const insertIndex = Number.isInteger(pendingQuestionInsertIndex)
       ? Math.max(0, Math.min(pendingQuestionInsertIndex, page.questions.length))
@@ -4526,43 +4135,26 @@
       title: String(state.survey.title || "").trim() || "Новая анкета",
       description: String(state.survey.description || "").trim(),
       pages: state.survey.pages.map((page, pageIndex) => ({
-        id: String(page.id || ""),
         title: String(page.title || `Страница ${pageIndex + 1}`),
-        order: pageIndex,
-        order_index: pageIndex,
         design: normalizePageDesign(page.design || {}),
-        questions: page.questions.map((q, qIndex) => {
-          const questionType = normalizeType(q.type);
-          return {
-            id: String(q.id || ""),
-            pageId: String(page.id || ""),
-            order: qIndex,
-            question_order: qIndex,
-            text: String(q.title || `Вопрос ${qIndex + 1}`),
-            helpText: String(q.description || ""),
-            panelOpacity: normalizeQuestionPanelOpacity(q.panelOpacity),
-            type: toApiType(questionType),
-            required: Boolean(q.required),
-            logicEnabled: Boolean(q.logicEnabled),
-            options: CHOICE_TYPES.has(questionType)
-              ? normalizeOptions(q.options).map((opt) => {
-                  const jumpIndex = resolveOptionJumpIndex(opt);
-                  return {
-                    id: String(opt.id || ""),
-                    text: String(opt.text || ""),
-                    imageUrl: String(opt.imageUrl || ""),
-                    imageFit: normalizeImageFit(opt.imageFit || q.imageFit),
-                    imageScale: normalizeImageScale(opt.imageScale ?? q.imageScale),
-                    jumpToPageIndex: Number.isInteger(jumpIndex) ? jumpIndex : null,
-                    jumpToPageId:
-                      Number.isInteger(jumpIndex) && state.survey.pages[jumpIndex]
-                        ? String(state.survey.pages[jumpIndex].id)
-                        : String(opt.jumpToPageId || "")
-                  };
-                })
-              : []
-          };
-        })
+        questions: page.questions.map((q, qIndex) => ({
+          text: String(q.title || `Вопрос ${qIndex + 1}`),
+          helpText: String(q.description || ""),
+          type: toApiType(q.type),
+          required: Boolean(q.required),
+          logicEnabled: Boolean(q.logicEnabled),
+          options: CHOICE_TYPES.has(q.type)
+            ? normalizeOptions(q.options).map((opt) => ({
+                text: opt.text,
+                imageUrl: opt.imageUrl || "",
+                jumpToPageIndex: Number.isInteger(resolveOptionJumpIndex(opt)) ? resolveOptionJumpIndex(opt) : null,
+                jumpToPageId:
+                  Number.isInteger(resolveOptionJumpIndex(opt)) && state.survey.pages[resolveOptionJumpIndex(opt)]
+                    ? String(state.survey.pages[resolveOptionJumpIndex(opt)].id)
+                    : String(opt.jumpToPageId || "")
+              }))
+            : []
+        }))
       }))
     };
   }
@@ -4628,7 +4220,6 @@
           type: normalizeType(question.type),
           title: String(question.title || ""),
           description: String(question.description || ""),
-          panelOpacity: normalizeQuestionPanelOpacity(question.panelOpacity),
           required: Boolean(question.required),
           logicEnabled: Boolean(question.logicEnabled),
           options: CHOICE_TYPES.has(normalizeType(question.type)) ? normalizeOptions(question.options) : [],
@@ -4647,7 +4238,6 @@
     refs.saveState.classList.remove("is-saved", "is-saving", "is-error");
     refs.saveState.classList.add(type === "error" ? "is-error" : type === "saving" ? "is-saving" : "is-saved");
     refs.saveStateText.textContent = text;
-    if (refs.topbarSaveStatus) refs.topbarSaveStatus.textContent = text;
   }
 
   function toast(message) {
@@ -4696,37 +4286,7 @@
   }
 
   function setInspectorOpen(open) {
-    const shouldOpen = Boolean(open) && Boolean(getSelectedQuestion());
-    document.body.classList.toggle("builder-inspector-open", shouldOpen);
-    document.body.classList.toggle("modal-open", hasAnyModalOpen());
-    if (shouldOpen) {
-      renderEditor();
-      requestAnimationFrame(() => {
-        if (window.innerWidth <= 1100) refs.questionTitleInput?.focus();
-      });
-    }
-  }
-
-  function setBuilderPreviewMode(mode = "desktop") {
-    const normalized = mode === "mobile" ? "mobile" : "desktop";
-    state.previewDevice = normalized;
-    document.body.dataset.builderPreview = normalized;
-    refs.topbarDesktopPreviewBtn?.classList.toggle("is-active", normalized === "desktop");
-    refs.topbarMobilePreviewBtn?.classList.toggle("is-active", normalized === "mobile");
-  }
-
-  function updatePropertiesTabs(active = "question") {
-    const map = {
-      question: refs.settingsTabQuestion,
-      design: refs.settingsTabDesign,
-      logic: refs.settingsTabLogic
-    };
-    Object.entries(map).forEach(([key, button]) => {
-      if (!button) return;
-      const isActive = key === active;
-      button.classList.toggle("is-active", isActive);
-      button.setAttribute("aria-selected", isActive ? "true" : "false");
-    });
+    document.body.classList.toggle("builder-inspector-open", Boolean(open));
   }
 
   function activateBuilderSection(section) {
@@ -4749,10 +4309,6 @@
           ? "Продолжить"
           : "Опубликовать";
       refs.publishBtn.disabled = Boolean(state.survey.published && normalized === "publish");
-    }
-    if (refs.topbarPublishBtn) {
-      refs.topbarPublishBtn.textContent = state.survey.published ? "Опубликовано" : "Опубликовать";
-      refs.topbarPublishBtn.disabled = Boolean(state.survey.published && normalized === "publish");
     }
     if (normalized === "publish") updateSharePanel();
   }
@@ -4866,7 +4422,8 @@
       { id: "toggleDensity", label: state.densityMode === "compact" ? "Обычная плотность" : "Компактная плотность", hint: "-", run: () => setDensityMode(state.densityMode === "compact" ? "cozy" : "compact", true) },
       { id: "openTemplates", label: "Открыть каталог шаблонов", hint: "-", run: () => openTemplateCatalogModal() },
       { id: "publish", label: "Опубликовать анкету", hint: "-", run: () => refs.publishBtn?.click() },
-      { id: "save", label: "Сохранить", hint: "Ctrl+S", run: () => saveRemote().then(() => toast("Сохранено")) }
+      { id: "save", label: "Сохранить", hint: "Ctrl+S", run: () => saveRemote().then(() => toast("Сохранено")) },
+      { id: "openPreview", label: "Открыть предпросмотр", hint: "-", run: () => refs.previewSurveyBtn?.click() }
     ];
   }
 
@@ -5008,20 +4565,14 @@
       if (!page) return;
 
       const type = normalizeType(row.type);
-      const options = CHOICE_TYPES.has(type) ? normalizeOptions(row.options) : [];
-      const imageChoice = Boolean(row.imageChoice || row.image_choice) || (type === "single" && options.some(optionHasImage));
       const question = {
         id: String(row.id || createId()),
         type,
         title: String(row.text || row.question_text || `Вопрос ${index + 1}`),
         description: String(row.helpText || row.help_text || ""),
-        panelOpacity: normalizeQuestionPanelOpacity(row.panelOpacity || row.panel_opacity),
         required: Boolean(row.required),
         logicEnabled: Boolean(row.logicEnabled || row.logic_enabled),
-        imageChoice,
-        imageFit: normalizeImageFit(row.imageFit || options.find((option) => option.imageFit)?.imageFit),
-        imageScale: normalizeImageScale(row.imageScale ?? options.find((option) => option.imageScale)?.imageScale),
-        options,
+        options: CHOICE_TYPES.has(type) ? normalizeOptions(row.options) : [],
         rating: type === "rating" ? { minLabel: "", maxLabel: "" } : null
       };
 
@@ -5126,8 +4677,6 @@
   function updateHistoryControls() {
     if (refs.undoBtn) refs.undoBtn.disabled = historyState.undoStack.length <= 1;
     if (refs.redoBtn) refs.redoBtn.disabled = historyState.redoStack.length === 0;
-    if (refs.topbarUndoBtn) refs.topbarUndoBtn.disabled = historyState.undoStack.length <= 1;
-    if (refs.topbarRedoBtn) refs.topbarRedoBtn.disabled = historyState.redoStack.length === 0;
   }
 
   function normalizeDraft(survey) {
@@ -5143,20 +4692,14 @@
             design: normalizePageDesign(page.design || {}),
             questions: questions.map((question, qIdx) => {
               const type = normalizeType(question.type);
-              const options = CHOICE_TYPES.has(type) ? normalizeOptions(question.options) : [];
-              const imageChoice = Boolean(question.imageChoice) || (type === "single" && options.some(optionHasImage));
               return {
                 id: String(question.id || createId()),
                 type,
                 title: String(question.title || `Вопрос ${qIdx + 1}`),
                 description: String(question.description || ""),
-                panelOpacity: normalizeQuestionPanelOpacity(question.panelOpacity || question.panel_opacity),
                 required: Boolean(question.required),
                 logicEnabled: Boolean(question.logicEnabled),
-                imageChoice,
-                imageFit: normalizeImageFit(question.imageFit || options.find((option) => option.imageFit)?.imageFit),
-                imageScale: normalizeImageScale(question.imageScale ?? options.find((option) => option.imageScale)?.imageScale),
-                options,
+                options: CHOICE_TYPES.has(type) ? normalizeOptions(question.options) : [],
                 ratingLabels: type === "rating"
                   ? {
                       low: String(question?.ratingLabels?.low || question?.rating?.minLabel || ""),
@@ -5189,7 +4732,6 @@
     const normalized = String(type || "text").trim().toLowerCase();
     if (normalized === "multi") return "multiple";
     if (normalized === "dropdown") return "select";
-    if (normalized === "image" || normalized === "image-choice" || normalized === "image_choice") return "single";
     if (["text", "single", "multiple", "rating", "select"].includes(normalized)) return normalized;
     return "text";
   }
@@ -5218,8 +4760,6 @@
             id: String(item.id || createId()),
             text: text || "Option",
             imageUrl,
-            imageFit: normalizeImageFit(item.imageFit),
-            imageScale: normalizeImageScale(item.imageScale),
             jumpToPageId: String(item.jumpToPageId || item.targetPageId || ""),
             jumpToPageIndex: parsedJumpIndex
           };
@@ -5228,53 +4768,6 @@
         return null;
       })
       .filter(Boolean);
-  }
-
-  function normalizeImageFit(value) {
-    const fit = String(value || "cover").trim().toLowerCase();
-    return IMAGE_FIT_VALUES.has(fit) ? fit : "cover";
-  }
-
-  function normalizeImageScale(value) {
-    const scale = Number(value);
-    return Number.isFinite(scale) ? Math.max(60, Math.min(130, Math.round(scale))) : 100;
-  }
-
-  function optionHasImage(option) {
-    return Boolean(String(option?.imageUrl || "").trim());
-  }
-
-  function isImageChoiceQuestion(question) {
-    if (!question) return false;
-    if (question.imageChoice === true) return true;
-    const type = normalizeType(question.type);
-    return type === "single" && normalizeOptions(question.options).some(optionHasImage);
-  }
-
-  function getQuestionImageFit(question) {
-    if (!question) return "cover";
-    if (question.imageFit) return normalizeImageFit(question.imageFit);
-    const option = normalizeOptions(question.options).find((item) => item.imageFit);
-    return normalizeImageFit(option?.imageFit);
-  }
-
-  function getQuestionImageScale(question) {
-    if (!question) return 100;
-    if (question.imageScale) return normalizeImageScale(question.imageScale);
-    const option = normalizeOptions(question.options).find((item) => item.imageScale);
-    return normalizeImageScale(option?.imageScale);
-  }
-
-  function applyQuestionImageSettings(question, patch = {}) {
-    if (!question) return;
-    question.imageChoice = true;
-    question.imageFit = normalizeImageFit(patch.imageFit || question.imageFit || getQuestionImageFit(question));
-    question.imageScale = normalizeImageScale(patch.imageScale ?? question.imageScale ?? getQuestionImageScale(question));
-    question.options = normalizeOptions(question.options).map((option) => ({
-      ...option,
-      imageFit: question.imageFit,
-      imageScale: question.imageScale
-    }));
   }
 
   function resolveOptionJumpIndex(option) {
@@ -5330,62 +4823,6 @@
     };
   }
 
-  function normalizeWelcomeSettings(raw) {
-    const value = raw && typeof raw === "object" ? raw : {};
-    const layout = String(value.layout || "image-right");
-    const opacity = Number(value.imageOpacity);
-    const coverImage = String(value.coverImage || "").trim();
-    return {
-      coverImage: coverImage || WELCOME_DEFAULT_COVER,
-      layout: WELCOME_LAYOUTS.has(layout) ? layout : "image-right",
-      imageOpacity: Number.isFinite(opacity) ? Math.max(20, Math.min(100, Math.round(opacity))) : 86,
-      imageEnabled: value.imageEnabled !== false
-    };
-  }
-
-  function getWelcomeSettings() {
-    const firstPage = state.survey.pages?.[0] || ensureSelectedPage();
-    const design = normalizePageDesign(firstPage.design || {});
-    firstPage.design = design;
-    return normalizeWelcomeSettings(design.welcome);
-  }
-
-  function updateWelcomeSettings(patch = {}) {
-    const firstPage = state.survey.pages?.[0] || ensureSelectedPage();
-    const currentDesign = normalizePageDesign(firstPage.design || {});
-    firstPage.design = normalizePageDesign({
-      ...currentDesign,
-      welcome: {
-        ...normalizeWelcomeSettings(currentDesign.welcome),
-        ...patch
-      }
-    });
-    renderPages();
-    renderWelcomeSettings();
-    markDirty("Заглавная страница обновлена");
-  }
-
-  function renderWelcomeSettings() {
-    const welcome = getWelcomeSettings();
-    if (refs.welcomeCoverImageInput) refs.welcomeCoverImageInput.value = welcome.coverImage;
-    if (refs.welcomeLayoutInput) refs.welcomeLayoutInput.value = welcome.layout;
-    if (refs.welcomeImageOpacityInput) refs.welcomeImageOpacityInput.value = String(welcome.imageOpacity);
-    if (refs.welcomeImageOpacityValue) refs.welcomeImageOpacityValue.textContent = `${welcome.imageOpacity}%`;
-    if (refs.welcomeImageEnabledInput) refs.welcomeImageEnabledInput.checked = Boolean(welcome.imageEnabled);
-    if (!refs.welcomePreviewCard) return;
-    refs.welcomePreviewCard.dataset.layout = welcome.layout;
-    refs.welcomePreviewCard.dataset.imageEnabled = welcome.imageEnabled ? "true" : "false";
-    refs.welcomePreviewCard.style.setProperty("--welcome-image-opacity", (welcome.imageOpacity / 100).toFixed(2));
-    refs.welcomePreviewCard.innerHTML = `
-      <div class="constructor-welcome-preview__media" style="background-image:url('${sanitizeCssUrl(welcome.coverImage)}')"></div>
-      <div class="constructor-welcome-preview__body">
-        <span>Asking</span>
-        <strong>${escapeHtml(state.survey.title || "Новая анкета")}</strong>
-        <p>${escapeHtml(state.survey.description || "Краткое описание анкеты")}</p>
-      </div>
-    `;
-  }
-
   function updateDesignEditor() {
     const page = getSelectedPage();
     if (!page) return;
@@ -5397,7 +4834,6 @@
     refs.pageLayoutInput.value = design.layout;
     refs.pageOverlayInput.value = String(design.overlay);
     refs.pageOverlayValue.textContent = `${design.overlay}%`;
-    renderInlineThemePanel();
   }
 
   function normalizePageDesign(raw) {
@@ -5411,8 +4847,7 @@
       layout: ["full", "split-right-image", "split-left-image", "cover-top-image", "center-card"].includes(layoutRaw)
         ? layoutRaw
         : "full",
-      overlay: Number.isFinite(overlayValue) ? Math.max(0, Math.min(90, Math.round(overlayValue))) : 0,
-      welcome: normalizeWelcomeSettings(raw?.welcome)
+      overlay: Number.isFinite(overlayValue) ? Math.max(0, Math.min(90, Math.round(overlayValue))) : 0
     };
   }
 
@@ -5493,8 +4928,6 @@ function createOption(text = "") {
     id: createId(),
     text,
     imageUrl: "",
-    imageFit: "cover",
-    imageScale: 100,
     jumpToPageId: "",
     jumpToPageIndex: null
   };
@@ -5525,12 +4958,6 @@ function createOption(text = "") {
     return uploadedPath;
   }
 
-  function normalizeQuestionPanelOpacity(value) {
-    const number = Number(value);
-    if (!Number.isFinite(number)) return 72;
-    return Math.max(28, Math.min(100, Math.round(number)));
-  }
-
   function parseJumpIndex(value) {
     if (value === null || value === undefined || value === "") return null;
     const parsed = Number(value);
@@ -5545,29 +4972,8 @@ function createOption(text = "") {
   }
 
   function getMetaText(question) {
-    const label = isImageChoiceQuestion(question) ? "Опрос с изображениями" : TYPE_LABELS[normalizeType(question.type)] || "Текст";
+    const label = TYPE_LABELS[normalizeType(question.type)] || "Текст";
     return question.required ? `${label} • Обязательный` : label;
-  }
-
-  function getQuestionIcon(question) {
-    if (isImageChoiceQuestion(question)) return "IMG";
-    const icons = {
-      text: "T",
-      single: "1",
-      multiple: "M",
-      select: "V",
-      rating: "5"
-    };
-    return icons[normalizeType(question?.type)] || "Q";
-  }
-
-  function renderQuestionBadges(question) {
-    const typeLabel = isImageChoiceQuestion(question) ? "Фото-выбор" : TYPE_LABELS[normalizeType(question.type)] || "Текст";
-    const badges = [`<span class="q-badge q-badge--type">${escapeHtml(typeLabel)}</span>`];
-    if (question.required) badges.push(`<span class="q-badge q-badge--required">Обязательный</span>`);
-    if (question.logicEnabled) badges.push(`<span class="q-badge q-badge--logic">Логика</span>`);
-    if (isImageChoiceQuestion(question)) badges.push(`<span class="q-badge q-badge--image">Изображения</span>`);
-    return badges.join("");
   }
 
   function ensureRatingLabels(question) {

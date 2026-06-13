@@ -109,6 +109,7 @@
     if (normalized === "dropdown") return "select";
     if (normalized === "long_text" || normalized === "textarea") return "text";
     if (normalized === "email") return "text";
+    if (normalized === "participant_name" || normalized === "participant_email") return normalized;
     if (normalized === "nps") return "rating";
     if (normalized === "image_choice" || normalized === "image") return "single";
     if (["text", "single", "multiple", "rating", "select"].includes(normalized)) return normalized;
@@ -242,7 +243,7 @@
     if (normalized === "multiple") return "multi";
     if (normalized === "select") return "dropdown";
     if (normalized === "textarea") return "long_text";
-    if (["text", "long_text", "email", "single", "multi", "dropdown", "image_choice", "rating", "nps", "info"].includes(normalized)) {
+    if (["text", "long_text", "email", "participant_name", "participant_email", "single", "multi", "dropdown", "image_choice", "rating", "nps", "info"].includes(normalized)) {
       return normalized;
     }
     return "text";
@@ -296,13 +297,25 @@
     const value = raw && typeof raw === "object" ? raw : {};
     const layout = String(value.layout || "image-right");
     const opacity = Number(value.imageOpacity);
-    const coverImage = String(value.coverImage || "").trim();
+    const coverImage = String(value.welcomeCoverImage || value.coverImage || "").trim();
+    const backgroundImage = String(value.welcomeBackgroundImage || value.backgroundImage || "").trim();
     const allowedImage =
       /^https?:\/\//i.test(coverImage) || coverImage.startsWith("/uploads/")
         ? coverImage
         : "";
+    const allowedBackground =
+      /^https?:\/\//i.test(backgroundImage) || backgroundImage.startsWith("/uploads/")
+        ? backgroundImage
+        : "";
+    const overlay = Number(value.welcomeOverlayStrength ?? value.overlay);
     return {
+      title: String(value.welcomeTitle || value.title || "").trim(),
+      subtitle: String(value.welcomeSubtitle || value.subtitle || "").trim(),
+      description: String(value.welcomeDescription || value.description || "").trim(),
+      buttonText: String(value.welcomeButtonText || value.buttonText || "").trim(),
       coverImage: allowedImage,
+      backgroundImage: allowedBackground,
+      overlay: Number.isFinite(overlay) ? Math.max(0, Math.min(90, Math.round(overlay))) : 24,
       layout: WELCOME_LAYOUTS.has(layout) ? layout : "image-right",
       imageOpacity: Number.isFinite(opacity) ? Math.max(20, Math.min(100, Math.round(opacity))) : 86,
       imageEnabled: value.imageEnabled !== false && Boolean(allowedImage)
@@ -311,11 +324,17 @@
 
   function normalizePublicPageDesign(raw) {
     const value = raw && typeof raw === "object" ? raw : {};
-    const bgImage = String(value.bgImage || "").trim();
+    const builder = value.builderV2Design && typeof value.builderV2Design === "object" ? value.builderV2Design : {};
+    const bgImage = String(value.bgImage || builder.backgroundImage || "").trim();
+    const bgColor = String(value.bgColor || builder.backgroundColor || "").trim();
+    const backgroundType = String(builder.backgroundType || (bgImage ? "image" : "color")).trim();
+    const gradientStyle = String(builder.gradientStyle || "soft").trim();
     return {
       themeId: String(value.themeId || value.theme_id || inferPublicThemeId(value)).trim() || "corporate",
-      bgColor: /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(value.bgColor || "").trim()) ? String(value.bgColor).trim() : "#eaf3fb",
+      bgColor: /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(bgColor) ? bgColor : "#eaf3fb",
       bgImage: /^https?:\/\//i.test(bgImage) || bgImage.startsWith("/uploads/") ? bgImage : "",
+      backgroundType: ["color", "gradient", "image"].includes(backgroundType) ? backgroundType : "color",
+      gradientStyle,
       layout: ["full", "split-right-image", "split-left-image", "cover-top-image", "center-card"].includes(String(value.layout || "").trim())
         ? String(value.layout).trim()
         : "full",
@@ -336,6 +355,7 @@
 
   function getRequiredValidationMessage(question) {
     const type = normalizeType(question?.type);
+    if (type === "participant_email") return "Введите корректный email";
     if (type === "text") return "Пожалуйста, введите ответ";
     if (type === "rating") return "Пожалуйста, выберите оценку";
     if (type === "multiple") return "Пожалуйста, выберите один или несколько вариантов ответа";
@@ -383,8 +403,11 @@
       if (!question.required) return;
 
       const valid = isQuestionAnswered(form, question);
+      const type = normalizeType(question?.type);
+      const value = getQuestionValue(form, question);
+      const emailValid = type !== "participant_email" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 
-      if (!valid) {
+      if (!valid || !emailValid) {
         setQuestionValidationError(row, question, true);
         if (!firstInvalid) firstInvalid = row;
       }
@@ -404,6 +427,13 @@
     const overlayAlpha = Math.max(0.15, (d.overlay || 0) / 100);
     if (d.bgImage) {
       return `linear-gradient(rgba(15, 23, 42, ${overlayAlpha}), rgba(15, 23, 42, ${overlayAlpha})), url("${d.bgImage}") center / cover no-repeat, ${d.bgColor}`;
+    }
+    if (d.backgroundType === "gradient") {
+      if (d.gradientStyle === "dark") return "linear-gradient(135deg, #111827, #312E81)";
+      if (d.gradientStyle === "sunset") return "linear-gradient(135deg, #FFF7ED, #FDBA74, #DB2777)";
+      if (d.gradientStyle === "forest") return "linear-gradient(135deg, #F0FDF4, #86EFAC, #0F766E)";
+      if (d.gradientStyle === "academic") return "linear-gradient(135deg, #EFF6FF, #DBEAFE, #2563EB)";
+      return `radial-gradient(circle at 18% 0%, rgba(108, 99, 255, 0.16), transparent 34%), ${d.bgColor}`;
     }
     return `radial-gradient(circle at 12% 0%, rgba(59, 130, 246, 0.2), transparent 32%), linear-gradient(180deg, ${d.bgColor} 0%, #f8fbff 100%)`;
   }
@@ -1491,7 +1521,10 @@
   function validateCurrentStep(state) {
     const step = state.steps[state.currentIndex];
     if (!step?.question) return true;
-    if (normalizeRuntimeType(step.question.type) === "info" || !step.question.required || isPublicQuestionAnswered(state, step.question)) {
+    const type = normalizeRuntimeType(step.question.type);
+    const value = String(getPublicAnswer(state, step.question) || "").trim();
+    const emailValid = type !== "participant_email" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    if (type === "info" || (!step.question.required && !value) || (isPublicQuestionAnswered(state, step.question) && emailValid)) {
       state.errors.delete(String(step.question.id));
       return true;
     }
@@ -1560,11 +1593,11 @@
     };
     root.dataset.storyTheme = d.themeId || "corporate";
     const welcome = normalizeWelcomeSettings(d.welcome);
-    const image = isIntro && welcome.imageEnabled ? welcome.coverImage : d.bgImage;
-    const overlay = Math.max(0, Math.min(90, Number(d.overlay || 0))) / 100;
+    const image = isIntro && welcome.backgroundImage ? welcome.backgroundImage : d.bgImage;
+    const overlay = Math.max(0, Math.min(90, Number(isIntro ? welcome.overlay : d.overlay))) / 100;
     const background = image
       ? `linear-gradient(rgba(17,24,39,${overlay}), rgba(17,24,39,${overlay})), url("${image}"), ${previewDesign.backgroundColor}`
-      : `radial-gradient(circle at 18% 0%, rgba(108,99,255,0.14), transparent 34%), ${previewDesign.backgroundColor}`;
+      : buildPublicPageBackgroundStyle(design || {});
     root.style.setProperty("--preview-bg", background);
     document.body.dataset.cardStyle = previewDesign.cardStyle;
     document.body.dataset.progressStyle = previewDesign.progressStyle;
@@ -1585,10 +1618,46 @@
     if (counter) counter.textContent = `${Math.min(state.currentIndex + 1, state.steps.length)} / ${state.steps.length}`;
   }
 
+  function getTimeLimitSeconds(survey) {
+    const value = Number(survey?.time_limit_seconds || survey?.timeLimitSeconds || 0);
+    return Number.isFinite(value) && value > 0 ? Math.round(value) : 0;
+  }
+
+  function formatTimer(seconds) {
+    const value = Math.max(0, Math.round(Number(seconds || 0)));
+    const mins = Math.floor(value / 60);
+    const secs = value % 60;
+    return `${mins}:${String(secs).padStart(2, "0")}`;
+  }
+
+  function startRuntimeTimer(state) {
+    const limit = getTimeLimitSeconds(state.survey);
+    state.startedAt = new Date().toISOString();
+    if (!limit) return;
+    clearInterval(state.timerId);
+    state.timerId = setInterval(() => {
+      const elapsed = Math.max(0, Math.round((Date.now() - Date.parse(state.startedAt)) / 1000));
+      const remaining = limit - elapsed;
+      const node = state.root.querySelector("[data-runtime-timer]");
+      if (node) node.textContent = `Осталось ${formatTimer(remaining)}`;
+      if (remaining <= 0) {
+        clearInterval(state.timerId);
+        state.timedOut = true;
+        showToast("Время прохождения истекло. Ответ не сохранен.", true);
+        const next = state.root.querySelector("[data-action='next']");
+        if (next) next.disabled = true;
+      }
+    }, 500);
+  }
+
   function renderIntro(state) {
     const introDesign = state.pages[0]?.design || {};
     const welcome = normalizeWelcomeSettings(introDesign.welcome);
     const needsPassword = Boolean(state.survey?.has_access_password);
+    const welcomeTitle = welcome.title || state.survey.title || "Анкета";
+    const welcomeSubtitle = welcome.subtitle || "Asking";
+    const welcomeDescription = welcome.description || state.survey.description || "Ответьте на несколько вопросов. Это займет немного времени.";
+    const welcomeButton = welcome.buttonText || "Начать опрос";
     applyRunnerBackground(state.root, introDesign, true);
     const viewport = state.root.querySelector(".asking-runner__viewport");
     renderStorySidebar(state);
@@ -1599,9 +1668,9 @@
         ${state.testMode ? `<span class="bv2-test-badge">Тестовый режим</span>` : ""}
         ${welcome.imageEnabled && welcome.coverImage ? `<img class="bv2-preview-welcome-image" src="${escapeAttr(welcome.coverImage)}" alt="" />` : ""}
         <div class="bv2-preview-runtime-head">
-          <span>Asking</span>
-          <h1>${escapeHtml(state.survey.title || "Анкета")}</h1>
-          <p>${escapeHtml(state.survey.description || "Ответьте на несколько вопросов. Это займет немного времени.")}</p>
+          <span>${escapeHtml(welcomeSubtitle)}</span>
+          <h1>${escapeHtml(welcomeTitle)}</h1>
+          <p>${escapeHtml(welcomeDescription)}</p>
         </div>
         <div class="bv2-preview-start-meta" aria-label="Параметры анкеты">
           <span><strong>${estimated} мин</strong>примерное время</span>
@@ -1614,14 +1683,29 @@
               <input type="password" name="surveyAccessPassword" value="${escapeAttr(state.accessPassword || "")}" placeholder="Введите пароль" autocomplete="current-password" />
             </label>
           ` : ""}
-          <button class="bv2-btn bv2-btn--primary asking-intro__start" type="button">Начать опрос</button>
+          <button class="bv2-btn bv2-btn--primary asking-intro__start" type="button">${escapeHtml(welcomeButton)}</button>
         </div>
       </section>
     `;
     viewport.querySelector("[name='surveyAccessPassword']")?.addEventListener("input", (event) => {
       state.accessPassword = String(event.target.value || "");
     });
-    viewport.querySelector(".asking-intro__start")?.addEventListener("click", () => {
+    viewport.querySelector(".asking-intro__start")?.addEventListener("click", async () => {
+      const password = String(state.accessPassword || viewport.querySelector("[name='surveyAccessPassword']")?.value || "").trim();
+      if (needsPassword) {
+        try {
+          await api.request(`/api/surveys/${state.survey.id}/access-check`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password })
+          });
+          state.accessPassword = password;
+        } catch (error) {
+          showToast(error.message || "Неверный пароль", true);
+          return;
+        }
+      }
+      startRuntimeTimer(state);
       state.currentIndex = 0;
       state.history = [0];
       renderQuestionStep(state, "forward");
@@ -1643,6 +1727,9 @@
     const error = state.errors.get(String(question.id)) || "";
     const type = getPublicQuestionKind(question);
     const required = question.required && type !== "info" ? `<span class="bv2-badge bv2-badge--required">Обязательный</span>` : "";
+    const timeLimit = getTimeLimitSeconds(state.survey);
+    const elapsed = state.startedAt ? Math.max(0, Math.round((Date.now() - Date.parse(state.startedAt)) / 1000)) : 0;
+    const timer = timeLimit ? `<span data-runtime-timer>Осталось ${formatTimer(timeLimit - elapsed)}</span>` : "";
     const progress = Math.round(((state.currentIndex + 1) / Math.max(1, state.steps.length)) * 100);
     state.root.dataset.previewDirection = direction === "back" ? "back" : "next";
     viewport.innerHTML = `
@@ -1651,6 +1738,7 @@
         <div class="bv2-preview-progress"><i style="width:${progress}%"></i></div>
         <div class="bv2-preview-runtime-meta">
           <span>${state.currentIndex + 1} / ${state.steps.length}</span>
+          ${timer}
           ${required}
         </div>
         <div class="bv2-preview-runtime-head">
@@ -1708,7 +1796,7 @@
     const kind = getPublicQuestionKind(question);
     if (kind === "info") return renderInfoQuestion(state, question, mount);
     if (kind === "image_choice") return renderImageChoice(state, question, mount);
-    if (kind === "text" || kind === "long_text" || kind === "email") return renderTextQuestion(state, question, mount);
+    if (kind === "text" || kind === "long_text" || kind === "email" || kind === "participant_name" || kind === "participant_email") return renderTextQuestion(state, question, mount);
     if (kind === "rating") return renderRatingQuestion(state, question, mount);
     if (kind === "nps") return renderNpsQuestion(state, question, mount);
     if (kind === "dropdown") return renderSelectQuestion(state, question, mount);
@@ -1719,10 +1807,10 @@
     const value = String(getPublicAnswer(state, question) || "");
     const type = normalizeRuntimeType(question.type);
     const settings = question.settings || {};
-    const placeholder = settings.placeholder || "Введите ответ...";
+    const placeholder = settings.placeholder || (type === "participant_email" ? "name@example.com" : type === "participant_name" ? "Имя и фамилия" : "Введите ответ...");
     mount.innerHTML = type === "long_text"
       ? `<textarea class="bv2-preview-input" data-preview-answer="${escapeAttr(question.id)}" rows="5" maxlength="2000" placeholder="${escapeAttr(placeholder)}">${escapeHtml(value)}</textarea>`
-      : `<input class="bv2-preview-input" data-preview-answer="${escapeAttr(question.id)}" type="${type === "email" ? "email" : "text"}" value="${escapeAttr(value)}" maxlength="2000" placeholder="${escapeAttr(placeholder)}" />`;
+      : `<input class="bv2-preview-input" data-preview-answer="${escapeAttr(question.id)}" type="${type === "email" || type === "participant_email" ? "email" : "text"}" value="${escapeAttr(value)}" maxlength="2000" placeholder="${escapeAttr(placeholder)}" />`;
     mount.querySelector("[data-preview-answer]")?.addEventListener("input", (event) => {
       setPublicAnswer(state, question, event.target.value);
       clearInlineError(state.root, question);
@@ -1864,6 +1952,13 @@
 
   async function submitSurvey(state) {
     if (state.isSubmitting) return;
+    const timeLimit = getTimeLimitSeconds(state.survey);
+    const duration = Math.max(0, Math.round((Date.now() - Date.parse(state.startedAt || new Date().toISOString())) / 1000));
+    if (state.timedOut || (timeLimit && duration > timeLimit)) {
+      state.timedOut = true;
+      showToast("Время прохождения истекло. Ответ не сохранен.", true);
+      return;
+    }
     state.isSubmitting = true;
     const button = state.root.querySelector("[data-action='next']");
     if (button) {
@@ -1883,11 +1978,12 @@
           submissionId,
           startedAt: state.startedAt,
           completedAt: new Date().toISOString(),
-          durationSeconds: Math.max(0, Math.round((Date.now() - Date.parse(state.startedAt || new Date().toISOString())) / 1000)),
+          durationSeconds: duration,
           status: "completed",
           testMode: Boolean(state.testMode)
         })
       });
+      clearInterval(state.timerId);
       renderSuccess(state);
     } catch (error) {
       state.isSubmitting = false;
@@ -1935,8 +2031,10 @@
       testMode: Boolean(publicState.testMode),
       isSubmitting: false,
       submissionId: "",
-      startedAt: new Date().toISOString(),
-      accessPassword: ""
+      startedAt: "",
+      accessPassword: "",
+      timerId: null,
+      timedOut: false
     };
     if (!state.steps.length) {
       root.querySelector(".asking-runner__viewport").innerHTML = `

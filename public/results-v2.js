@@ -153,6 +153,14 @@
   }
 
   function respondentFor(response) {
+    const storedName = String(response.respondentName || response.respondent_name || "").trim();
+    const storedEmail = String(response.respondentEmail || response.respondent_email || "").trim();
+    if (storedName || storedEmail) {
+      return {
+        name: storedName || `Участник #${response.id}`,
+        email: storedEmail || "Email не указан"
+      };
+    }
     const map = responseAnswerMap(response);
     const nameQuestion = findQuestionByHint(["name", "имя", "как вас зовут"]);
     const emailQuestion = findQuestionByHint(["email", "e-mail", "почта"]);
@@ -283,6 +291,8 @@
   function typeLabel(type) {
     return {
       text: "Текст",
+      participant_name: "Имя участника",
+      participant_email: "Email участника",
       long_text: "Длинный текст",
       email: "Email",
       single: "Один выбор",
@@ -406,6 +416,7 @@
     els.drawerBody.innerHTML = `
       <div class="rv2-detail-grid">
         <div><span>Участник</span><strong>${escapeHtml(respondent.name)}</strong></div>
+        <div><span>Email</span><strong>${escapeHtml(respondent.email)}</strong></div>
         <div><span>Отправлено</span><strong>${escapeHtml(formatDateTime(response.submittedAt || response.completedAt || response.createdAt))}</strong></div>
         <div><span>Время прохождения</span><strong>${escapeHtml(formatDuration(response.durationSeconds))}</strong></div>
       </div>

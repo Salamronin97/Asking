@@ -45,7 +45,7 @@ function sendHtmlUtf8(res, filePath) {
   res.sendFile(filePath);
 }
 
-const QUESTION_TYPES = new Set(["text", "single", "multi", "multiple", "rating", "dropdown", "select"]);
+const QUESTION_TYPES = new Set(["text", "single", "multi", "multiple", "rating", "dropdown", "select", "participant_name", "participant_email"]);
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const SESSION_COOKIE = "asking_sid";
 const SESSION_TTL_DAYS = 30;
@@ -175,10 +175,19 @@ function parseResponseLimit(value) {
   return Math.min(parsed, 1000000);
 }
 
+function parseTimeLimitSeconds(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.min(Math.round(parsed), 24 * 60 * 60);
+}
+
 function normalizeStoredQuestionType(type) {
   const value = String(type || "").trim().toLowerCase();
   if (value === "multiple") return "multi";
   if (value === "select") return "dropdown";
+  if (value === "name" || value === "respondent_name") return "participant_name";
+  if (value === "respondent_email") return "participant_email";
   return value;
 }
 
@@ -187,6 +196,20 @@ function isNpsLikeQuestion(question, value = null) {
   if (/nps|recommend|порекоменду|рекоменд|0\s*[-–—]\s*10|10/i.test(source)) return true;
   const numeric = Number(value);
   return Number.isFinite(numeric) && numeric >= 0 && numeric <= 10 && numeric > 5;
+}
+
+function isEmailLike(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
+
+function identityFieldForQuestion(question) {
+  const type = normalizeStoredQuestionType(question?.type);
+  const source = `${question?.question_text || question?.text || ""} ${question?.help_text || question?.helpText || ""}`.toLowerCase();
+  if (type === "participant_name") return "name";
+  if (type === "participant_email") return "email";
+  if (type === "email" || source.includes("email") || source.includes("e-mail") || source.includes("почта")) return "email";
+  if (source.includes("имя участника") || source.includes("ваше имя") || source.includes("как вас зовут")) return "name";
+  return "";
 }
 
 function parseClientIso(value, fallback = null) {
@@ -204,28 +227,85 @@ function isAllowedMediaPath(value) {
   return raw.startsWith("/uploads/");
 }
 
+function normalizeHexColor(value, fallback) {
+  const raw = String(value || "").trim();
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw) ? raw : fallback;
+}
+
+function normalizeDesignString(value, fallback = "", maxLength = 120) {
+  const raw = String(value || "").trim();
+  return raw ? raw.slice(0, maxLength) : fallback;
+}
+
+function normalizeBuilderV2Design(raw) {
+  const obj = raw && typeof raw === "object" ? raw : {};
+  const backgroundImageRaw = String(obj.backgroundImage || obj.bgImage || "").trim();
+  const backgroundTypeRaw = String(obj.backgroundType || "").trim();
+  const gradientStyleRaw = String(obj.gradientStyle || "").trim();
+  const overlayRaw = Number(obj.overlay);
+  const allowedBackgroundTypes = new Set(["color", "gradient", "image"]);
+  const allowedGradientStyles = new Set(["soft", "contrast", "dark", "sunset", "forest", "academic", "none"]);
+
+  return {
+    theme: normalizeDesignString(obj.theme, "corporate"),
+    primaryColor: normalizeHexColor(obj.primaryColor, "#6C63FF"),
+    secondaryColor: normalizeHexColor(obj.secondaryColor, "#22C55E"),
+    accentColor: normalizeHexColor(obj.accentColor, "#F97316"),
+    textColor: normalizeHexColor(obj.textColor, "#111827"),
+    backgroundColor: normalizeHexColor(obj.backgroundColor || obj.bgColor, "#eaf3fb"),
+    backgroundImage: isAllowedMediaPath(backgroundImageRaw) ? backgroundImageRaw.slice(0, 1200) : "",
+    backgroundType: allowedBackgroundTypes.has(backgroundTypeRaw) ? backgroundTypeRaw : "color",
+    gradientStyle: allowedGradientStyles.has(gradientStyleRaw) ? gradientStyleRaw : "soft",
+    overlay: Number.isFinite(overlayRaw) ? Math.max(0, Math.min(90, Math.round(overlayRaw))) : 0,
+    layout: normalizeDesignString(obj.layout, "full"),
+    cardStyle: normalizeDesignString(obj.cardStyle, "shadow"),
+    buttonStyle: normalizeDesignString(obj.buttonStyle, "filled"),
+    progressStyle: normalizeDesignString(obj.progressStyle, "top"),
+    questionNumbers: normalizeDesignString(obj.questionNumbers, "auto"),
+    animationStyle: normalizeDesignString(obj.animationStyle, "fade")
+  };
+}
+
 function normalizePageDesign(raw) {
   const obj = raw && typeof raw === "object" ? raw : {};
+  const builderRaw = obj.builderV2Design && typeof obj.builderV2Design === "object" ? obj.builderV2Design : obj;
+  const builderDesign = normalizeBuilderV2Design(builderRaw);
   const allowedLayouts = new Set(["full", "split-right-image", "split-left-image", "cover-top-image", "center-card"]);
   const allowedWelcomeLayouts = new Set(["image-right", "image-left", "image-top", "background", "typographic"]);
-  const bgColorRaw = String(obj.bgColor || "").trim();
-  const bgImageRaw = String(obj.bgImage || "").trim();
-  const layoutRaw = String(obj.layout || "").trim();
+  const bgColorRaw = String(obj.bgColor || builderDesign.backgroundColor || "").trim();
+  const bgImageRaw = String(obj.bgImage || builderDesign.backgroundImage || "").trim();
+  const layoutRaw = String(obj.layout || builderDesign.layout || "").trim();
   const themeIdRaw = String(obj.themeId || "").trim();
-  const overlayRaw = Number(obj.overlay);
+  const overlayRaw = Number(obj.overlay ?? builderDesign.overlay);
   const welcomeRaw = obj.welcome && typeof obj.welcome === "object" ? obj.welcome : {};
-  const welcomeCoverRaw = String(welcomeRaw.coverImage || "").trim();
+  const welcomeCoverRaw = String(welcomeRaw.welcomeCoverImage || welcomeRaw.coverImage || "").trim();
+  const welcomeBgRaw = String(welcomeRaw.welcomeBackgroundImage || welcomeRaw.backgroundImage || "").trim();
   const welcomeOpacityRaw = Number(welcomeRaw.imageOpacity);
   const welcomeLayoutRaw = String(welcomeRaw.layout || "").trim();
+  const welcomeOverlayRaw = Number(welcomeRaw.welcomeOverlayStrength ?? welcomeRaw.overlay);
 
   return {
     themeId: themeIdRaw ? themeIdRaw.slice(0, 80) : "",
-    bgColor: /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(bgColorRaw) ? bgColorRaw : "#eaf3fb",
+    bgColor: normalizeHexColor(bgColorRaw, "#eaf3fb"),
     bgImage: isAllowedMediaPath(bgImageRaw) ? bgImageRaw.slice(0, 1200) : "",
     layout: allowedLayouts.has(layoutRaw) ? layoutRaw : "full",
     overlay: Number.isFinite(overlayRaw) ? Math.max(0, Math.min(90, Math.round(overlayRaw))) : 0,
+    builderV2Design: builderDesign,
     welcome: {
+      welcomeTitle: normalizeDesignString(welcomeRaw.welcomeTitle || welcomeRaw.title, "", 180),
+      welcomeSubtitle: normalizeDesignString(welcomeRaw.welcomeSubtitle || welcomeRaw.subtitle, "", 180),
+      welcomeDescription: normalizeDesignString(welcomeRaw.welcomeDescription || welcomeRaw.description, "", 600),
+      welcomeButtonText: normalizeDesignString(welcomeRaw.welcomeButtonText || welcomeRaw.buttonText, "", 80),
+      title: normalizeDesignString(welcomeRaw.welcomeTitle || welcomeRaw.title, "", 180),
+      subtitle: normalizeDesignString(welcomeRaw.welcomeSubtitle || welcomeRaw.subtitle, "", 180),
+      description: normalizeDesignString(welcomeRaw.welcomeDescription || welcomeRaw.description, "", 600),
+      buttonText: normalizeDesignString(welcomeRaw.welcomeButtonText || welcomeRaw.buttonText, "", 80),
+      welcomeCoverImage: isAllowedMediaPath(welcomeCoverRaw) ? welcomeCoverRaw.slice(0, 1200) : "",
+      welcomeBackgroundImage: isAllowedMediaPath(welcomeBgRaw) ? welcomeBgRaw.slice(0, 1200) : "",
       coverImage: isAllowedMediaPath(welcomeCoverRaw) ? welcomeCoverRaw.slice(0, 1200) : "",
+      backgroundImage: isAllowedMediaPath(welcomeBgRaw) ? welcomeBgRaw.slice(0, 1200) : "",
+      welcomeOverlayStrength: Number.isFinite(welcomeOverlayRaw) ? Math.max(0, Math.min(90, Math.round(welcomeOverlayRaw))) : 24,
+      overlay: Number.isFinite(welcomeOverlayRaw) ? Math.max(0, Math.min(90, Math.round(welcomeOverlayRaw))) : 24,
       layout: allowedWelcomeLayouts.has(welcomeLayoutRaw) ? welcomeLayoutRaw : "image-right",
       imageOpacity: Number.isFinite(welcomeOpacityRaw) ? Math.max(20, Math.min(100, Math.round(welcomeOpacityRaw))) : 86,
       imageEnabled: welcomeRaw.imageEnabled !== false
@@ -783,6 +863,8 @@ function validateSurveyPayload(payload) {
   const startsAt = payload?.startsAt ? String(payload.startsAt).trim() : null;
   const endsAt = payload?.endsAt ? String(payload.endsAt).trim() : null;
   const allowMultipleResponses = parseBool(payload?.allowMultipleResponses, false) ? 1 : 0;
+  const responseLimit = parseResponseLimit(payload?.responseLimit);
+  const timeLimitSeconds = parseTimeLimitSeconds(payload?.timeLimitSeconds);
 
   if (title.length < 3) fields.push("title");
 
@@ -827,7 +909,7 @@ function validateSurveyPayload(payload) {
 
   return {
     fields,
-    payload: { title, description, audience, startsAt, endsAt, allowMultipleResponses, questions, pages: normalizedPages }
+    payload: { title, description, audience, startsAt, endsAt, allowMultipleResponses, responseLimit, timeLimitSeconds, questions, pages: normalizedPages }
   };
 }
 
@@ -1768,15 +1850,35 @@ app.get("/api/templates", (_req, res) => {
 app.post("/api/surveys/from-template", requireAuth, async (req, res, next) => {
   try {
     const key = String(req.body?.templateId || req.body?.templateKey || req.body?.template || "").trim().toLowerCase();
-    const template = QUICK_TEMPLATES_RU[key];
+    const template = QUICK_TEMPLATES_RU[key] || Object.values(QUICK_TEMPLATES_RU).find((item) => {
+      return String(item?.id || "").trim().toLowerCase() === key;
+    });
     if (!template) return res.status(404).json({ error: "Template not found" });
 
     const createdAt = nowIso();
+    const allowMultipleResponses = parseBool(
+      template.allowMultipleResponses ?? template.allow_multiple_responses ?? template.settings?.allowMultipleResponses,
+      false
+    ) ? 1 : 0;
+    const startsAt = parseClientIso(template.startsAt || template.starts_at, null);
+    const endsAt = parseClientIso(template.endsAt || template.ends_at, null);
     const created = await run(
       `INSERT INTO surveys
-        (owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'draft', 0, NULL, NULL, ?, ?)`,
-      [req.user.id, template.title, template.description, template.audience, createdAt, createdAt]
+        (owner_user_id, title, description, audience, status, allow_multiple_responses, response_limit, time_limit_seconds, starts_at, ends_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        req.user.id,
+        String(template.title || "Новая анкета").trim() || "Новая анкета",
+        String(template.description || "").trim(),
+        String(template.audience || "").trim(),
+        allowMultipleResponses,
+        parseResponseLimit(template.responseLimit ?? template.response_limit ?? template.settings?.responseLimit),
+        parseTimeLimitSeconds(template.timeLimitSeconds ?? template.time_limit_seconds ?? template.settings?.timeLimitSeconds),
+        startsAt,
+        endsAt,
+        createdAt,
+        createdAt
+      ]
     );
     const surveyId = created.lastID;
     let order = 0;
@@ -1876,7 +1978,7 @@ app.get("/api/public/surveys/:id", async (req, res, next) => {
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
-      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, access_password_hash, response_limit
+      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, access_password_hash, response_limit, time_limit_seconds
        FROM surveys
        WHERE id = ?`,
       [surveyId]
@@ -1907,6 +2009,7 @@ app.get("/api/public/surveys/:id", async (req, res, next) => {
       starts_at: survey.starts_at,
       ends_at: survey.ends_at,
       response_limit: Number.isInteger(Number(survey.response_limit)) ? Number(survey.response_limit) : null,
+      time_limit_seconds: Number.isInteger(Number(survey.time_limit_seconds)) ? Number(survey.time_limit_seconds) : null,
       has_access_password: Boolean(survey.access_password_hash)
     };
 
@@ -1930,7 +2033,7 @@ app.post("/api/surveys/:id/duplicate", requireAuth, async (req, res, next) => {
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
-      `SELECT id, title, description, audience, allow_multiple_responses, starts_at, ends_at
+      `SELECT id, title, description, audience, allow_multiple_responses, response_limit, time_limit_seconds, starts_at, ends_at
        FROM surveys
        WHERE id = ? AND owner_user_id = ?`,
       [surveyId, req.user.id]
@@ -1942,14 +2045,16 @@ app.post("/api/surveys/:id/duplicate", requireAuth, async (req, res, next) => {
     const createdAt = nowIso();
     const clone = await run(
       `INSERT INTO surveys
-        (owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?)`,
+        (owner_user_id, title, description, audience, status, allow_multiple_responses, response_limit, time_limit_seconds, starts_at, ends_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.user.id,
         `${survey.title} (Copy)`,
         survey.description,
         survey.audience,
         survey.allow_multiple_responses,
+        survey.response_limit,
+        survey.time_limit_seconds,
         survey.starts_at,
         survey.ends_at,
         createdAt,
@@ -2013,7 +2118,7 @@ app.get("/api/surveys/:id", async (req, res, next) => {
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
-      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, access_password_hash, response_limit, created_at, updated_at
+      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, access_password_hash, response_limit, time_limit_seconds, created_at, updated_at
        FROM surveys
        WHERE id = ?`,
       [surveyId]
@@ -2048,14 +2153,16 @@ app.post("/api/surveys", requireAuth, async (req, res, next) => {
     const createdAt = nowIso();
     const created = await run(
       `INSERT INTO surveys
-        (owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?)`,
+        (owner_user_id, title, description, audience, status, allow_multiple_responses, response_limit, time_limit_seconds, starts_at, ends_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.user.id,
         payload.title,
         payload.description,
         payload.audience,
         payload.allowMultipleResponses,
+        payload.responseLimit,
+        payload.timeLimitSeconds,
         payload.startsAt,
         payload.endsAt,
         createdAt,
@@ -2114,13 +2221,15 @@ app.put("/api/surveys/:id", requireAuth, async (req, res, next) => {
 
     await run(
       `UPDATE surveys
-       SET title = ?, description = ?, audience = ?, allow_multiple_responses = ?, starts_at = ?, ends_at = ?, updated_at = ?
+       SET title = ?, description = ?, audience = ?, allow_multiple_responses = ?, response_limit = ?, time_limit_seconds = ?, starts_at = ?, ends_at = ?, updated_at = ?
        WHERE id = ?`,
       [
         payload.title,
         payload.description,
         payload.audience,
         payload.allowMultipleResponses,
+        payload.responseLimit,
+        payload.timeLimitSeconds,
         payload.startsAt,
         payload.endsAt,
         nowIso(),
@@ -2183,13 +2292,15 @@ app.patch("/api/surveys/:id", requireAuth, async (req, res, next) => {
 
     await run(
       `UPDATE surveys
-       SET title = ?, description = ?, audience = ?, allow_multiple_responses = ?, starts_at = ?, ends_at = ?, updated_at = ?
+       SET title = ?, description = ?, audience = ?, allow_multiple_responses = ?, response_limit = ?, time_limit_seconds = ?, starts_at = ?, ends_at = ?, updated_at = ?
        WHERE id = ?`,
       [
         payload.title,
         payload.description,
         payload.audience,
         payload.allowMultipleResponses,
+        payload.responseLimit,
+        payload.timeLimitSeconds,
         payload.startsAt,
         payload.endsAt,
         nowIso(),
@@ -2248,6 +2359,7 @@ app.put("/api/surveys/:id/access", requireAuth, async (req, res, next) => {
     const passwordEnabled = parseBool(req.body?.passwordEnabled, false);
     const passwordRaw = String(req.body?.password || "");
     const responseLimit = parseResponseLimit(req.body?.responseLimit);
+    const timeLimitSeconds = parseTimeLimitSeconds(req.body?.timeLimitSeconds);
     let accessPasswordHash = null;
     if (passwordEnabled) {
       const password = passwordRaw.trim();
@@ -2263,18 +2375,36 @@ app.put("/api/surveys/:id/access", requireAuth, async (req, res, next) => {
 
     await run(
       `UPDATE surveys
-       SET access_password_hash = ?, response_limit = ?, updated_at = ?
+       SET access_password_hash = ?, response_limit = ?, time_limit_seconds = ?, updated_at = ?
        WHERE id = ?`,
-      [accessPasswordHash, responseLimit, nowIso(), surveyId]
+      [accessPasswordHash, responseLimit, timeLimitSeconds, nowIso(), surveyId]
     );
 
     res.json({
       ok: true,
       access: {
         passwordEnabled: Boolean(accessPasswordHash),
-        responseLimit
+        responseLimit,
+        timeLimitSeconds
       }
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/surveys/:id/access-check", async (req, res, next) => {
+  try {
+    const surveyId = Number(req.params.id);
+    if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
+    const survey = await get("SELECT id, access_password_hash FROM surveys WHERE id = ?", [surveyId]);
+    if (!survey) return res.status(404).json({ error: "Survey not found" });
+    if (!survey.access_password_hash) return res.json({ ok: true, passwordRequired: false });
+    const password = String(req.body?.password || "");
+    if (!password || !verifyPassword(password, survey.access_password_hash)) {
+      return res.status(403).json({ error: "Неверный пароль" });
+    }
+    res.json({ ok: true, passwordRequired: true });
   } catch (error) {
     next(error);
   }
@@ -2366,7 +2496,7 @@ async function handleSurveySubmit(req, res, next, surveyIdRaw) {
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
-      `SELECT id, status, allow_multiple_responses, starts_at, ends_at, access_password_hash, response_limit
+      `SELECT id, status, allow_multiple_responses, starts_at, ends_at, access_password_hash, response_limit, time_limit_seconds
        FROM surveys WHERE id = ?`,
       [surveyId]
     );
@@ -2463,7 +2593,10 @@ async function handleSurveySubmit(req, res, next, surveyIdRaw) {
         if (!Number.isFinite(numeric) || numeric < minRating || numeric > maxRating) invalidQuestions.push(q.id);
       }
 
-      if (normalizedType === "text" && String(value).trim().length > 2000) {
+      if ((normalizedType === "text" || normalizedType === "participant_name" || normalizedType === "participant_email") && String(value).trim().length > 2000) {
+        invalidQuestions.push(q.id);
+      }
+      if ((normalizedType === "participant_email" || identityFieldForQuestion(q) === "email") && !isEmailLike(value)) {
         invalidQuestions.push(q.id);
       }
     }
@@ -2483,6 +2616,19 @@ async function handleSurveySubmit(req, res, next, surveyIdRaw) {
     const durationSeconds = Number.isFinite(durationSecondsRaw) && durationSecondsRaw >= 0
       ? Math.min(Math.round(durationSecondsRaw), 60 * 60 * 24)
       : derivedDurationSeconds;
+    const timeLimitSeconds = parseTimeLimitSeconds(survey.time_limit_seconds);
+    if (timeLimitSeconds && durationSeconds > timeLimitSeconds) {
+      return res.status(408).json({ error: "Время прохождения истекло. Ответ не сохранен." });
+    }
+    let respondentName = "";
+    let respondentEmail = "";
+    for (const q of questions) {
+      const field = identityFieldForQuestion(q);
+      if (!field || !answersByQuestion.has(q.id)) continue;
+      const value = String(answersByQuestion.get(q.id) || "").trim();
+      if (field === "name" && !respondentName) respondentName = value.slice(0, 180);
+      if (field === "email" && !respondentEmail && isEmailLike(value)) respondentEmail = value.toLowerCase().slice(0, 254);
+    }
     const responseStatusRaw = String(req.body?.status || "completed").trim().toLowerCase();
     const responseStatus = responseStatusRaw === "partial" ? "partial" : "completed";
     const submissionId = String(req.body?.submissionId || req.headers["x-asking-submission-id"] || "")
@@ -2529,9 +2675,9 @@ async function handleSurveySubmit(req, res, next, surveyIdRaw) {
 
       const response = await run(
         `INSERT INTO responses
-          (survey_id, participant_hash, respondent_hash, created_at, started_at, completed_at, duration_seconds, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [surveyId, participantHash, respondentHash, completedAt, startedAt, completedAt, durationSeconds, responseStatus]
+          (survey_id, participant_hash, respondent_hash, respondent_name, respondent_email, created_at, started_at, completed_at, duration_seconds, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [surveyId, participantHash, respondentHash, respondentName, respondentEmail, completedAt, startedAt, completedAt, durationSeconds, responseStatus]
       );
 
       for (const q of questions) {
@@ -2854,7 +3000,7 @@ app.get("/api/surveys/:id/results", requireAuth, async (req, res, next) => {
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
-      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at
+      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, time_limit_seconds, created_at, updated_at
        FROM surveys WHERE id = ?`,
       [surveyId]
     );
@@ -2957,7 +3103,7 @@ app.get("/api/surveys/:id/results-v2", requireAuth, async (req, res, next) => {
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
-      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, created_at, updated_at
+      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, time_limit_seconds, created_at, updated_at
        FROM surveys WHERE id = ?`,
       [surveyId]
     );
@@ -2967,7 +3113,7 @@ app.get("/api/surveys/:id/results-v2", requireAuth, async (req, res, next) => {
     const [questions, responsesRaw] = await Promise.all([
       getSurveyQuestionsDetailed(surveyId),
       all(
-        `SELECT id, created_at, started_at, completed_at, duration_seconds, status, respondent_hash
+        `SELECT id, created_at, started_at, completed_at, duration_seconds, status, respondent_hash, respondent_name, respondent_email
          FROM responses
          WHERE survey_id = ?
          ORDER BY created_at DESC, id DESC`,
@@ -3012,6 +3158,8 @@ app.get("/api/surveys/:id/results-v2", requireAuth, async (req, res, next) => {
         submittedAt: completedAt,
         durationSeconds,
         respondentHash: response.respondent_hash || "",
+        respondentName: response.respondent_name || "",
+        respondentEmail: response.respondent_email || "",
         answers: answersByResponse.get(response.id) || []
       };
     });

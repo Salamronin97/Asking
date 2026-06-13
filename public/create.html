@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260607-reference-ui-1" />
+    <link rel="stylesheet" href="/styles.css?v=20260518-builder-refresh-2" />
     <style>
       body.create-new {
         visibility: hidden;
@@ -17,28 +17,14 @@
     </style>
   </head>
   <body class="workspace-page create-new">
-    <header class="topbar constructor-product-topbar">
+    <header class="topbar">
       <div class="container topbar__inner">
-        <a class="brand constructor-product-brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
-        <div class="constructor-product-title">
-          <span>Survey builder</span>
-          <strong id="topbarSurveyTitle">Новая анкета</strong>
-        </div>
-        <div class="constructor-product-status">
-          <span class="save-indicator__dot"></span>
-          <strong id="topbarSaveStatus">Сохранено</strong>
-        </div>
-        <div class="constructor-product-preview" aria-label="Режим предпросмотра">
-          <button id="topbarDesktopPreviewBtn" class="is-active" type="button">Desktop</button>
-          <button id="topbarMobilePreviewBtn" type="button">Mobile</button>
-        </div>
-        <div class="topbar__actions constructor-product-actions">
-          <button id="topbarUndoBtn" class="btn btn--ghost btn--xs" type="button" title="Отменить">Undo</button>
-          <button id="topbarRedoBtn" class="btn btn--ghost btn--xs" type="button" title="Повторить">Redo</button>
-          <button id="topbarPreviewBtn" class="btn btn--outline btn--xs" type="button">Предпросмотр</button>
-          <button id="topbarPublishBtn" class="btn btn--primary btn--xs" type="button">Опубликовать</button>
-          <a class="constructor-product-avatar" href="/account" aria-label="Аккаунт">A</a>
-          <button id="logoutBtn" class="btn btn--ghost btn--xs" type="button">Выйти</button>
+        <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span><span class="brand__context">Конструктор</span></a>
+        <div class="topbar__actions">
+          <a class="btn btn--ghost" href="/guide">Инструкция</a>
+          <a class="btn btn--ghost" href="/cabinet">Кабинет</a>
+          <a class="btn btn--ghost" href="/account">Аккаунт</a>
+          <button id="logoutBtn" class="btn btn--outline" type="button">Выйти</button>
         </div>
       </div>
     </header>
@@ -65,25 +51,12 @@
           <span id="pagesPanelMeta" class="constructor-pages-meta">1 стр. · 1 вопрос</span>
         </div>
         <div id="pagesList" class="constructor-pages-list"></div>
-        <button id="addPageBtn" class="btn btn--outline constructor-add-page-btn" type="button">+ Добавить страницу</button>
-        <section class="constructor-sidebar-progress">
-          <div class="constructor-sidebar-progress__head">
-            <span>Прогресс анкеты</span>
-            <strong id="builderSidebarQuestionProgress">0 / 18</strong>
-          </div>
-          <div class="constructor-sidebar-progress__bar"><span id="builderSidebarProgressBar"></span></div>
-          <p id="builderSidebarProgressText">Добавьте вопросы, чтобы собрать сценарий.</p>
-        </section>
-        <section class="constructor-sidebar-logic">
-          <span>Логика переходов</span>
-          <strong id="builderSidebarLogicCount">0 переходов</strong>
-          <p>Маршруты появятся после настройки условий в правой панели.</p>
-        </section>
         <div class="constructor-pages-actions">
           <button id="renamePageBtn" class="btn btn--ghost btn--xs" type="button">Переименовать</button>
           <button id="duplicatePageBtn" class="btn btn--ghost btn--xs" type="button">Дублировать</button>
           <button id="removePageBtn" class="btn btn--ghost btn--xs" type="button">Удалить</button>
         </div>
+        <button id="addPageBtn" class="btn btn--outline" type="button">+ Страница</button>
 
         <section class="constructor-bank">
           <div class="constructor-bank__head">
@@ -239,10 +212,11 @@
           <div class="constructor-step-card__head">
             <div>
               <h3>Настройки анкеты</h3>
-              <p>Название, описание и доступ перед публикацией.</p>
+              <p>Название, описание, доступ и предпросмотр перед публикацией.</p>
             </div>
             <div class="constructor-step-card__actions">
               <button id="openDesignSettingsBtn" class="btn btn--outline btn--xs" type="button">Дизайн</button>
+              <button id="previewSurveyBtn" class="btn btn--outline btn--xs" type="button">Предпросмотр</button>
             </div>
           </div>
           <div class="constructor-settings-grid">
@@ -254,42 +228,6 @@
               <span>Описание</span>
               <textarea id="surveyDescription" class="constructor-description-input" placeholder="Краткое описание анкеты"></textarea>
             </label>
-            <section class="constructor-welcome-settings">
-              <div class="constructor-welcome-settings__head">
-                <div>
-                  <span>Страница 0</span>
-                  <h4>Заглавная страница</h4>
-                </div>
-                <strong>Не удаляется</strong>
-              </div>
-              <div id="welcomePreviewCard" class="constructor-welcome-preview" aria-hidden="true"></div>
-              <label class="inline-check">
-                <input id="welcomeImageEnabledInput" type="checkbox" checked />
-                <span>Показывать изображение на вступительной странице</span>
-              </label>
-              <label class="form-row">
-                <span>Обложка вступления</span>
-                <input id="welcomeCoverImageInput" type="url" placeholder="https://..." />
-                <div class="constructor-option-actions">
-                  <button id="welcomeCoverUploadBtn" class="btn btn--ghost btn--xs" type="button">Загрузить обложку</button>
-                  <input id="welcomeCoverUploadInput" type="file" accept="image/*" hidden />
-                </div>
-              </label>
-              <label class="form-row">
-                <span>Перспектива макета</span>
-                <select id="welcomeLayoutInput">
-                  <option value="image-right">Фото справа</option>
-                  <option value="image-left">Фото слева</option>
-                  <option value="image-top">Фото сверху</option>
-                  <option value="background">Фото на фоне</option>
-                  <option value="typographic">Только текст</option>
-                </select>
-              </label>
-              <label class="form-row">
-                <span>Прозрачность изображения: <strong id="welcomeImageOpacityValue">86%</strong></span>
-                <input id="welcomeImageOpacityInput" type="range" min="20" max="100" step="5" value="86" />
-              </label>
-            </section>
             <label class="inline-check constructor-access-toggle">
               <input id="accessPasswordEnabledInput" type="checkbox" />
               <span>Закрыть анкету паролем</span>
@@ -346,15 +284,13 @@
         </div>
         <div class="constructor-settings-tabs constructor-settings-tabs--steps" role="tablist" aria-label="Секции настроек">
           <button id="settingsTabQuestion" class="constructor-settings-tab is-active" type="button" role="tab" aria-selected="true">Вопрос</button>
-          <button id="settingsTabDesign" class="constructor-settings-tab" type="button" role="tab" aria-selected="false">Дизайн</button>
-          <button id="settingsTabLogic" class="constructor-settings-tab" type="button" role="tab" aria-selected="false">Логика</button>
         </div>
 
         <div id="settingsQuestionPane">
           <div class="constructor-editor-shortcuts" aria-label="Навигатор секций">
-            <button class="constructor-editor-shortcut is-active" type="button" data-editor-section-shortcut="content">Content</button>
-            <button class="constructor-editor-shortcut" type="button" data-editor-section-shortcut="options">Options</button>
-            <button class="constructor-editor-shortcut" type="button" data-editor-section-shortcut="logic">Logic</button>
+            <button class="constructor-editor-shortcut is-active" type="button" data-editor-section-shortcut="content">1. Вопрос</button>
+            <button class="constructor-editor-shortcut" type="button" data-editor-section-shortcut="options">2. Варианты</button>
+            <button class="constructor-editor-shortcut" type="button" data-editor-section-shortcut="logic">3. Логика</button>
           </div>
           <div id="emptyEditor" class="constructor-empty-editor">
             <p>Выберите вопрос в центре, чтобы изменить его параметры.</p>
@@ -371,16 +307,10 @@
               <textarea id="questionDescriptionInput" placeholder="Дополнительный текст под вопросом"></textarea>
             </label>
 
-            <label class="form-row">
-              <span>Прозрачность панели: <strong id="questionPanelOpacityValue">72%</strong></span>
-              <input id="questionPanelOpacityInput" type="range" min="28" max="100" step="4" value="72" />
-            </label>
-
             <label class="inline-check">
               <input id="questionRequiredInput" type="checkbox" />
               <span>Обязательный вопрос</span>
             </label>
-            <button id="questionRequiredQuickBtn" class="btn btn--outline btn--xs constructor-required-quick" type="button">Сделать обязательным</button>
 
             <label class="form-row">
               <span>Тип вопроса</span>
@@ -388,7 +318,6 @@
                 <option value="text">Текст</option>
                 <option value="single">Один выбор</option>
                 <option value="multiple">Множественный</option>
-                <option value="image">Опрос с изображениями</option>
                 <option value="rating">Рейтинг</option>
                 <option value="select">Список</option>
               </select>
@@ -417,15 +346,44 @@
               <p id="questionLogicHint" class="constructor-logic-hint" hidden>
                 Выберите, на какую страницу перейдёт участник после каждого варианта.
               </p>
+              <div class="constructor-option-presets" aria-label="Option presets">
+                <span class="constructor-option-presets__label">Готовые варианты:</span>
+                <button class="btn btn--ghost btn--xs" type="button" data-option-preset="yes-no">Да / Нет</button>
+                <button class="btn btn--ghost btn--xs" type="button" data-option-preset="agree">Степень согласия</button>
+                <button class="btn btn--ghost btn--xs" type="button" data-option-preset="satisfaction">Оценка 1-5</button>
+                <button class="btn btn--ghost btn--xs" type="button" data-option-preset="nps">NPS 0-10</button>
+              </div>
+
               <div id="optionsList" class="constructor-options-list"></div>
               <div class="constructor-options-tools">
                 <button id="addOptionBtn" class="btn btn--outline btn--xs" type="button">+ Добавить вариант</button>
+                <button id="normalizeOptionsBtn" class="btn btn--ghost btn--xs" type="button">Нормализовать</button>
+                <button id="bulkOptionsToggleBtn" class="btn btn--ghost btn--xs" type="button">Массовый ввод</button>
+              </div>
+              <div id="bulkOptionsWrap" class="constructor-bulk-options" hidden>
+                <label class="form-row">
+                  <span>Один вариант на строку</span>
+                  <textarea id="bulkOptionsInput" placeholder="Вариант 1&#10;Вариант 2&#10;Вариант 3"></textarea>
+                </label>
+                <button id="applyBulkOptionsBtn" class="btn btn--primary btn--xs" type="button">Применить список</button>
               </div>
             </section>
 
             <button id="removeQuestionBtn" class="btn btn--danger" type="button">Удалить вопрос</button>
           </div>
         </div>
+
+        <details class="constructor-live-preview card" open>
+          <summary class="constructor-fold__summary">
+            <span>Предпросмотр</span>
+            <strong id="previewModeLabel">Экран</strong>
+          </summary>
+          <div class="constructor-live-preview__tools" role="group" aria-label="Размер предпросмотра">
+            <button id="previewDesktopBtn" class="constructor-preview-mode is-active" type="button" data-preview-mode="desktop" aria-pressed="true">Экран</button>
+            <button id="previewMobileBtn" class="constructor-preview-mode" type="button" data-preview-mode="mobile" aria-pressed="false">Телефон</button>
+          </div>
+          <div id="surveyPreviewList" class="constructor-live-preview__list constructor-live-preview__list--desktop"></div>
+        </details>
 
         <details class="constructor-logic-map card" open>
           <summary class="constructor-fold__summary">
@@ -523,6 +481,12 @@
               <button class="constructor-type-item" type="button" data-question-type="rating"><strong>NPS-оценка</strong><span>Быстрая шкала лояльности</span></button>
             </div>
           </section>
+          <section class="constructor-type-group">
+            <h4>Элементы</h4>
+            <div class="constructor-type-list">
+              <button class="constructor-type-item" type="button" data-question-type="text"><strong>Собственный текст</strong><span>Информационный блок</span></button>
+            </div>
+          </section>
         </div>
       </div>
     </div>
@@ -576,7 +540,7 @@
     <div id="templatePreviewOverlay" class="constructor-modal-overlay" hidden>
       <div class="constructor-modal constructor-modal--preview" role="dialog" aria-modal="true" aria-labelledby="templatePreviewTitle">
         <div class="constructor-modal-head">
-          <h3 id="templatePreviewTitle">Состав шаблона</h3>
+          <h3 id="templatePreviewTitle">Предпросмотр шаблона</h3>
           <button id="closeTemplatePreviewBtn" class="constructor-modal-close" type="button" aria-label="Закрыть">×</button>
         </div>
         <div class="constructor-preview-layout">
@@ -682,8 +646,8 @@
     </div>
 
     <script src="/lang.js?v=20260429-1"></script>
-    <script src="/templates.js?v=20260607-phase6-templates-1"></script>
-    <script src="/create.js?v=20260607-reference-ui-1"></script>
+    <script src="/templates.js?v=20260518-builder-refresh-2"></script>
+    <script src="/create.js?v=20260518-builder-refresh-2"></script>
   </body>
 </html>
 

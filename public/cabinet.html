@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
@@ -7,90 +7,50 @@
     <title>Кабинет | Asking</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260429-gradient-results-1" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css?v=20260613-cabinet-v2-simple-restore-1" />
   </head>
-  <body class="workspace-page svdash-page">
-    <header class="topbar">
-      <div class="container topbar__inner">
-        <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
-        <div class="topbar__actions">
-          <a class="btn btn--ghost" href="/guide">Инструкция</a>
-          <a class="btn btn--ghost" href="/create">Создать</a>
-          <a class="btn btn--ghost" href="/cabinet">Кабинет</a>
-          <a class="btn btn--ghost" href="/account">Аккаунт</a>
-          <button id="logoutBtn" class="btn btn--outline" type="button">Выйти</button>
-        </div>
+  <body class="svdash-page">
+    <header class="svdash-topbar">
+      <a class="svdash-brand" href="/cabinet" aria-label="Кабинет Asking">
+        <span class="svdash-brand__mark">A</span>
+        <span>Asking</span>
+      </a>
+      <nav class="svdash-topnav" aria-label="Основная навигация">
+        <a class="is-active" href="/cabinet">Кабинет</a>
+        <a href="/create-v2">Конструктор</a>
+        <a href="/account">Аккаунт</a>
+        <a href="/guide">Справка</a>
+      </nav>
+      <div class="svdash-topbar__actions">
+        <button id="refreshBtn" class="svdash-icon-btn" type="button" aria-label="Обновить список">↻</button>
+        <button id="logoutBtn" class="svdash-btn svdash-btn--ghost" type="button">Выйти</button>
+        <a class="svdash-btn svdash-btn--primary" href="/create-v2">Создать анкету</a>
       </div>
     </header>
 
-    <main class="svdash-shell workspace-shell">
-      <aside class="svdash-side workspace-side card">
-        <div class="svdash-side__brand">
-          <span class="svdash-side__logo">A</span>
+    <main class="svdash-shell svdash-shell--surveys-first">
+      <section class="svdash-panel svdash-panel--primary" aria-label="Мои анкеты">
+        <div class="svdash-section-head svdash-section-head--split">
           <div>
-            <strong>Asking Workspace</strong>
-            <p>Панель опросов</p>
+            <span>Библиотека</span>
+            <h2>Мои анкеты</h2>
           </div>
-        </div>
-        <nav class="svdash-side__nav" aria-label="Навигация кабинета">
-          <a class="is-active" href="/cabinet">Мои опросы</a>
-          <a href="/create">Создать опрос</a>
-          <a href="/account">Профиль</a>
-          <a href="/guide">Справка</a>
-        </nav>
-      </aside>
-
-      <section class="svdash-main workspace-main card">
-        <header class="svdash-head">
-          <div>
-            <h1>Мои опросы</h1>
-            <p>Управляйте анкетами, публикацией и ответами из единой панели.</p>
-          </div>
-          <a class="btn btn--primary" href="/create">+ Новый опрос</a>
-        </header>
-
-        <section class="svdash-toolbar" aria-label="Быстрые действия">
-          <div class="svdash-toolbar__title">
-            <strong>Быстрые действия</strong>
-            <span>Обновляйте список и переключайте вид карточек.</span>
-          </div>
-          <div class="svdash-toolbar__actions">
-            <button id="refreshBtn" class="btn btn--outline btn--xs" type="button">Обновить</button>
-            <button id="viewToggleBtn" class="btn btn--ghost btn--xs" type="button" aria-pressed="false">Компактный вид</button>
-          </div>
-        </section>
-
-        <div class="svdash-mobile-chips" aria-label="Фильтр статуса">
-          <button class="svdash-side__chip is-active" type="button" data-status-chip="all">Все</button>
-          <button class="svdash-side__chip" type="button" data-status-chip="published">Опубликованные</button>
-          <button class="svdash-side__chip" type="button" data-status-chip="draft">Черновики</button>
-          <button class="svdash-side__chip" type="button" data-status-chip="archived">Архив</button>
+          <p id="resultsCount" class="svdash-results-count"></p>
         </div>
 
-        <section class="svdash-stats" id="statsGrid">
-          <article class="svdash-stat"><span>Всего</span><strong id="statTotal">0</strong></article>
-          <article class="svdash-stat"><span>Опубликовано</span><strong id="statActive">0</strong></article>
-          <article class="svdash-stat"><span>Черновики</span><strong id="statDraft">0</strong></article>
-          <article class="svdash-stat"><span>В архиве</span><strong id="statArchived">0</strong></article>
-          <article class="svdash-stat"><span>Всего ответов</span><strong id="statResponses">0</strong></article>
-        </section>
-
-        <section class="svdash-filters">
-          <label class="control-field control-field--grow" for="searchInput">
-            <span>Поиск</span>
-            <input id="searchInput" type="search" placeholder="Название или описание" />
+        <section class="svdash-filters" aria-label="Поиск и фильтры">
+          <label class="svdash-search" for="searchInput">
+            <span>Поиск анкет</span>
+            <input id="searchInput" type="search" placeholder="Введите название или описание" />
           </label>
-          <label class="control-field" for="statusFilter">
-            <span>Статус</span>
-            <select id="statusFilter">
-              <option value="all">Все</option>
-              <option value="published">Опубликованные</option>
-              <option value="draft">Черновики</option>
-              <option value="archived">Архив</option>
-            </select>
-          </label>
-          <label class="control-field" for="sortSelect">
+          <div class="svdash-filter-tabs" aria-label="Фильтр статуса">
+            <button class="svdash-filter-tab is-active" type="button" data-status-chip="all">Все <span id="statActive">0</span></button>
+            <button class="svdash-filter-tab" type="button" data-status-chip="draft">Черновики <span id="statDraft">0</span></button>
+            <button class="svdash-filter-tab" type="button" data-status-chip="published">Опубликованные <span id="statPublished">0</span></button>
+            <button class="svdash-filter-tab" type="button" data-status-chip="archived">Архив <span id="statArchived">0</span></button>
+          </div>
+          <label class="svdash-sort" for="sortSelect">
             <span>Сортировка</span>
             <select id="sortSelect">
               <option value="date">По дате</option>
@@ -98,31 +58,51 @@
               <option value="title">По названию</option>
             </select>
           </label>
+          <select id="statusFilter" class="svdash-native-filter" aria-label="Статус">
+            <option value="all">Все</option>
+            <option value="draft">Черновики</option>
+            <option value="published">Опубликованные</option>
+            <option value="archived">Архив</option>
+          </select>
         </section>
 
-        <p id="resultsCount" class="svdash-results-count"></p>
         <p id="cabinetStatusLine" class="svdash-status-line" aria-live="polite"></p>
 
         <section id="bulkBar" class="svdash-bulkbar" hidden>
           <div class="svdash-bulkbar__left">
             <strong id="bulkCount" class="svdash-bulkbar__count">0 выбрано</strong>
-            <button id="selectAllFilteredBtn" class="btn btn--ghost btn--xs" type="button">Выбрать все</button>
-            <button id="clearSelectionBtn" class="btn btn--ghost btn--xs" type="button">Снять выделение</button>
+            <button id="selectAllFilteredBtn" class="svdash-btn svdash-btn--light svdash-btn--small" type="button">Выбрать все</button>
+            <button id="clearSelectionBtn" class="svdash-btn svdash-btn--light svdash-btn--small" type="button">Снять выделение</button>
           </div>
           <div class="svdash-bulkbar__right">
-            <button id="bulkPublishBtn" class="btn btn--outline btn--xs" type="button">Опубликовать</button>
-            <button id="bulkArchiveBtn" class="btn btn--outline btn--xs" type="button">Архивировать</button>
-            <button id="bulkDeleteBtn" class="btn btn--danger btn--xs" type="button">Удалить</button>
+            <button id="bulkPublishBtn" class="svdash-btn svdash-btn--light svdash-btn--small" type="button">Опубликовать</button>
+            <button id="bulkArchiveBtn" class="svdash-btn svdash-btn--light svdash-btn--small" type="button">Архивировать</button>
+            <button id="bulkDeleteBtn" class="svdash-btn svdash-btn--danger svdash-btn--small" type="button">Удалить</button>
           </div>
         </section>
 
         <section id="surveysGrid" class="svdash-grid"></section>
 
         <section id="emptyState" class="svdash-empty" hidden>
-          <h3>Пока нет опросов</h3>
-          <p>Создай первый опрос и запускай сбор ответов.</p>
-          <a class="btn btn--primary" href="/create">Создать опрос</a>
+          <div class="svdash-empty__art" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <h3>Здесь пока нет анкет</h3>
+          <p>Создайте первую анкету, чтобы начать сбор ответов</p>
+          <a class="svdash-btn svdash-btn--primary" href="/create-v2">Создать анкету</a>
         </section>
+      </section>
+
+      <section class="svdash-activity" aria-label="Последняя активность">
+        <div class="svdash-section-head">
+          <div>
+            <span>События</span>
+            <h2>Последняя активность</h2>
+          </div>
+        </div>
+        <div id="activityList" class="svdash-activity-list"></div>
       </section>
     </main>
 
@@ -133,8 +113,8 @@
         <p class="lead" id="qrLinkText"></p>
         <div class="qr-box"><img id="qrImage" alt="QR" /></div>
         <div class="modal-actions">
-          <a id="qrOpenLink" class="btn btn--outline" target="_blank" rel="noopener">Открыть ссылку</a>
-          <a id="qrDownloadLink" class="btn btn--primary" download="survey-qr.png">Скачать PNG</a>
+          <a id="qrOpenLink" class="svdash-btn svdash-btn--light" target="_blank" rel="noopener">Открыть ссылку</a>
+          <a id="qrDownloadLink" class="svdash-btn svdash-btn--primary" download="survey-qr.png">Скачать PNG</a>
         </div>
       </div>
     </div>
@@ -144,8 +124,8 @@
         <h3 id="confirmTitle">Подтвердите действие</h3>
         <p id="confirmText" class="lead"></p>
         <div class="modal-actions">
-          <button id="confirmCancel" class="btn btn--outline" type="button">Отмена</button>
-          <button id="confirmSubmit" class="btn btn--danger" type="button">Подтвердить</button>
+          <button id="confirmCancel" class="svdash-btn svdash-btn--light" type="button">Отмена</button>
+          <button id="confirmSubmit" class="svdash-btn svdash-btn--danger" type="button">Подтвердить</button>
         </div>
       </div>
     </div>
@@ -153,7 +133,6 @@
     <div id="toast" class="toast" hidden></div>
 
     <script src="/lang.js?v=20260429-1"></script>
-    <script src="/cabinet.js?v=20260315-cabinet-results-1"></script>
+    <script src="/cabinet.js?v=20260613-cabinet-v2-simple-restore-1"></script>
   </body>
 </html>
-

@@ -19,7 +19,7 @@
         } catch {}
       })();
     </script>
-    <link rel="stylesheet" href="/styles.css?v=20260429-gradient-results-1" />
+    <link rel="stylesheet" href="/styles.css?v=20260613-guide-v2-refine-1" />
   </head>
   <body class="workspace-page guide-page">
     <header class="topbar">
@@ -27,99 +27,82 @@
         <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
         <div class="topbar__actions">
           <a class="btn btn--ghost" href="/guide">Инструкция</a>
-          <a class="btn btn--ghost" href="/create">Создать</a>
+          <a class="btn btn--ghost" href="/create-v2">Создать</a>
           <a class="btn btn--ghost" href="/cabinet">Кабинет</a>
           <a class="btn btn--ghost" href="/account">Аккаунт</a>
         </div>
       </div>
     </header>
 
-    <main class="section">
-      <div class="container guide-container guide-layout">
-        <section class="card guide-hero guide-hero--pro">
-          <span class="guide-hero__badge">Help center</span>
-          <h1>Инструкция по Asking</h1>
-          <p>Практичный маршрут от идеи до готового отчёта: шаблон, конструктор, публикация, сбор ответов, аналитика и экспорт.</p>
-          <div class="guide-hero-actions">
-            <a class="btn btn--primary" href="/create">Создать опрос</a>
-            <a class="btn btn--outline" href="/cabinet">Открыть кабинет</a>
-          </div>
-        </section>
+    <main class="guide-doc-page">
+      <div class="guide-doc-shell">
+        <header class="guide-doc-hero guide-hero">
+          <span class="guide-doc-kicker">Документация</span>
+          <h1>Инструкция по работе с Asking</h1>
+          <p>Краткое описание основных этапов работы: от создания анкеты до просмотра результатов.</p>
+        </header>
 
-        <section class="guide-link-grid guide-link-grid--pro" aria-label="Основные разделы">
-          <a class="guide-link" href="/create"><strong>Конструктор</strong><span>Вопросы, страницы, дизайн и логика переходов.</span></a>
-          <a class="guide-link" href="/cabinet"><strong>Кабинет</strong><span>Управление публикацией, ссылками и состояниями опросов.</span></a>
-          <a class="guide-link" href="/survey"><strong>Результаты</strong><span>Сводка, детальные ответы и экспорт CSV/XLSX.</span></a>
-          <a class="guide-link" href="/account"><strong>Аккаунт</strong><span>Профиль, безопасность, язык и тема интерфейса.</span></a>
-        </section>
-
-        <section class="card guide-steps guide-quick">
-          <h2>Быстрый старт</h2>
-          <ol>
-            <li><strong>Выберите сценарий.</strong> Начните с шаблона или создайте пустую анкету.</li>
-            <li><strong>Соберите структуру.</strong> Разбейте вопросы на страницы и добавьте подсказки.</li>
-            <li><strong>Настройте запуск.</strong> Укажите пароль, лимит ответов и даты активности.</li>
-            <li><strong>Опубликуйте ссылку.</strong> Отправьте участникам или откройте QR-код из кабинета.</li>
-            <li><strong>Проверьте результат.</strong> Смотрите диаграммы, ответы и выгружайте отчёт.</li>
-          </ol>
-        </section>
-
-        <section class="card guide-search-card guide-faq-shell">
-          <div class="guide-faq-head">
-            <div>
-              <h2>FAQ</h2>
-              <p class="lead">Найдите нужный раздел по ключевому слову.</p>
+        <article class="guide-doc-content">
+          <section class="guide-doc-section">
+            <div class="guide-doc-text">
+              <span>1</span>
+              <h2>Создание анкеты</h2>
+              <p>Работа начинается в конструкторе. Пользователь задает структуру анкеты, добавляет страницы и размещает вопросы нужного типа: рейтинг, текстовый ответ, выбор варианта и другие элементы.</p>
             </div>
-            <label class="guide-search" for="guideSearchInput">
-              <span>Поиск по FAQ</span>
-              <input id="guideSearchInput" type="search" placeholder="Экспорт, пароль, картинки, шаблоны" />
-            </label>
-          </div>
-        </section>
+            <figure class="guide-doc-shot">
+              <img src="/assets/guide/create-survey.png" alt="Экран создания анкеты в конструкторе Asking" />
+            </figure>
+          </section>
 
-        <section id="guideFaqList" class="guide-faq">
-          <details class="card guide-faq-item" open>
-            <summary>Как создать анкету</summary>
-            <p>Перейдите в раздел «Создать», задайте название и добавьте вопросы нужного типа на страницу анкеты.</p>
-          </details>
+          <section class="guide-doc-section">
+            <div class="guide-doc-text">
+              <span>2</span>
+              <h2>Настройка анкеты</h2>
+              <p>После подготовки вопросов настраиваются название, описание, язык, стартовый экран и параметры прохождения. На этом этапе важно проверить, как анкета будет выглядеть для участника.</p>
+            </div>
+            <figure class="guide-doc-shot">
+              <img src="/assets/guide/settings-survey.png" alt="Экран настроек анкеты Asking" />
+            </figure>
+          </section>
 
-          <details class="card guide-faq-item">
-            <summary>Типы вопросов</summary>
-            <p>Доступны текст, одиночный выбор, множественный выбор, рейтинг, выпадающий список и карточки с изображениями.</p>
-          </details>
+          <section class="guide-doc-section">
+            <div class="guide-doc-text">
+              <span>3</span>
+              <h2>Публикация анкеты</h2>
+              <p>На странице публикации отображается статус анкеты, публичная ссылка и QR-код. Ссылку можно скопировать и отправить участникам любым удобным способом.</p>
+            </div>
+            <figure class="guide-doc-shot">
+              <img src="/assets/guide/publish-survey.png" alt="Экран публикации анкеты Asking" />
+            </figure>
+          </section>
 
-          <details class="card guide-faq-item">
-            <summary>Публикация и доступ</summary>
-            <p>Перед публикацией проверьте название, вопросы и при необходимости включите пароль доступа или лимит ответов.</p>
-          </details>
+          <section class="guide-doc-section">
+            <div class="guide-doc-text">
+              <span>4</span>
+              <h2>Прохождение анкеты</h2>
+              <p>Участник открывает публичную ссылку и проходит анкету в отдельном интерфейсе. Вопросы показываются последовательно, а обязательные поля помогают собрать полные ответы.</p>
+            </div>
+            <figure class="guide-doc-shot">
+              <img src="/assets/guide/runtime-survey.png" alt="Публичный экран прохождения анкеты Asking" />
+            </figure>
+          </section>
 
-          <details class="card guide-faq-item">
-            <summary>Ссылка и сбор ответов</summary>
-            <p>Скопируйте публичную ссылку из кабинета или карточки анкеты. Ответы появляются в статистике сразу после отправки формы.</p>
-          </details>
-
-          <details class="card guide-faq-item">
-            <summary>Результаты и экспорт</summary>
-            <p>В разделе результатов доступны сводка по вопросам и выгрузка в CSV/XLSX, в том числе для Excel.</p>
-          </details>
-
-          <details class="card guide-faq-item">
-            <summary>Изображения</summary>
-            <p>Картинки можно загрузить с устройства прямо в конструкторе. На Railway они сохраняются в persistent volume, если он подключён.</p>
-          </details>
-
-          <details class="card guide-faq-item">
-            <summary>Шаблоны</summary>
-            <p>Используйте готовые шаблоны для образования, HR, маркетинга, сервиса, событий и голосований.</p>
-          </details>
-        </section>
-
-        <p id="guideFaqEmpty" class="card guide-empty" hidden>По запросу ничего не найдено. Попробуйте другое слово.</p>
+          <section class="guide-doc-section">
+            <div class="guide-doc-text">
+              <span>5</span>
+              <h2>Просмотр результатов</h2>
+              <p>После отправки ответов результаты доступны в отдельном разделе. Здесь отображаются показатели по анкете, ответы участников и кнопки экспорта в CSV или Excel.</p>
+            </div>
+            <figure class="guide-doc-shot">
+              <img src="/assets/guide/results-survey.png" alt="Экран просмотра результатов анкеты Asking" />
+            </figure>
+          </section>
+        </article>
       </div>
     </main>
 
     <script src="/theme.js?v=20260315-theme-public-1"></script>
     <script src="/lang.js?v=20260429-1"></script>
-    <script src="/guide.js?v=20260315-theme-public-1"></script>
+    <script src="/guide.js?v=20260613-guide-v2-refine-1"></script>
   </body>
 </html>

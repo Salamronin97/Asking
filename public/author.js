@@ -6,6 +6,8 @@ const refs = {
   typeInput: document.getElementById("contactTypeInput"),
   messageInput: document.getElementById("contactMessageInput"),
   messageCounter: document.getElementById("contactMessageCounter"),
+  screenshotInput: document.getElementById("contactScreenshotInput"),
+  screenshotName: document.getElementById("contactScreenshotName"),
   pageUrlCheck: document.getElementById("contactPageUrlCheck"),
   websiteTrap: document.getElementById("contactWebsiteTrap"),
   submitBtn: document.getElementById("contactSubmitBtn"),
@@ -73,6 +75,11 @@ function updateMessageCounter() {
   refs.messageCounter.classList.toggle("is-warning", length > 4400);
 }
 
+function updateScreenshotName() {
+  if (!refs.screenshotInput || !refs.screenshotName) return;
+  refs.screenshotName.textContent = refs.screenshotInput.files?.[0]?.name || "Файл не выбран";
+}
+
 function applyTopicPreset(topic) {
   refs.topicInput.value = topic;
   if (refs.typeInput) {
@@ -135,6 +142,7 @@ async function submitForm(event) {
     setStatus("Сообщение отправлено. Спасибо, скоро вернемся с ответом.");
     refs.form.reset();
     refs.pageUrlCheck.checked = true;
+    updateScreenshotName();
     updateMessageCounter();
     syncMailtoLink();
   } catch (error) {
@@ -158,6 +166,7 @@ function bindEvents() {
       applyTopicPreset(String(button.dataset.topicPreset || ""));
     });
   });
+  refs.screenshotInput?.addEventListener("change", updateScreenshotName);
   refs.mailtoBtn?.addEventListener("click", (event) => {
     const href = buildMailtoLink();
     refs.mailtoBtn.setAttribute("href", href);
@@ -168,6 +177,7 @@ function bindEvents() {
     }
   });
   updateMessageCounter();
+  updateScreenshotName();
   syncMailtoLink();
 }
 

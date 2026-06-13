@@ -1,9 +1,12 @@
 (function () {
   const params = new URLSearchParams(window.location.search);
   const surveyIdFromUrl = params.get("surveyId");
+  const templateFromUrl = String(params.get("template") || params.get("templateId") || params.get("templateKey") || "").trim().toLowerCase();
 
   const QUESTION_TYPES = [
     { value: "text", label: "Текст", icon: "T", description: "Короткий ответ с подсказкой и лимитом символов." },
+    { value: "participant_name", label: "Имя участника", icon: "ID", description: "Имя респондента для результатов." },
+    { value: "participant_email", label: "Email участника", icon: "@", description: "Email респондента с проверкой формата." },
     { value: "long_text", label: "Длинный текст", icon: "TXT", description: "Большое поле для развернутого ответа." },
     { value: "email", label: "Email", icon: "@", description: "Поле для адреса электронной почты." },
     { value: "single", label: "Один выбор", icon: "○", description: "Один вариант из списка." },
@@ -298,6 +301,7 @@
     settingsHidden: document.getElementById("settingsHiddenInput"),
     settingsEndsAt: document.getElementById("settingsEndsAtInput"),
     settingsResponseLimit: document.getElementById("settingsResponseLimitInput"),
+    settingsTimeLimit: document.getElementById("settingsTimeLimitInput"),
     settingsShowProgress: document.getElementById("settingsShowProgressInput"),
     settingsAllowBack: document.getElementById("settingsAllowBackInput"),
     settingsShowNumbers: document.getElementById("settingsShowNumbersInput"),
@@ -315,7 +319,21 @@
     publishInfoGrid: document.getElementById("publishInfoGrid"),
     publishBack: document.getElementById("publishBackBtn"),
     openSurveyLink: document.getElementById("openSurveyLink"),
-    publishSurvey: document.getElementById("publishSurveyBtn")
+    publishSurvey: document.getElementById("publishSurveyBtn"),
+    onboardingStart: document.getElementById("onboardingStartBtn"),
+    onboarding: document.getElementById("builderOnboarding"),
+    onboardingSpotlight: document.getElementById("onboardingSpotlight"),
+    onboardingCard: document.getElementById("onboardingCard"),
+    onboardingStepLabel: document.getElementById("onboardingStepLabel"),
+    onboardingTitle: document.getElementById("onboardingTitle"),
+    onboardingText: document.getElementById("onboardingText"),
+    onboardingSubtext: document.getElementById("onboardingSubtext"),
+    onboardingDots: document.getElementById("onboardingDots"),
+    onboardingNext: document.getElementById("onboardingNextBtn"),
+    onboardingClose: document.getElementById("onboardingCloseBtn"),
+    onboardingDone: document.getElementById("onboardingDoneCard"),
+    onboardingCreateQuestion: document.getElementById("onboardingCreateQuestionBtn"),
+    onboardingDoneClose: document.getElementById("onboardingDoneCloseBtn")
   };
 
   const state = {
@@ -340,6 +358,7 @@
       startsAt: null,
       endsAt: null,
       responseLimit: null,
+      timeLimitSeconds: null,
       settings: {
         language: "ru",
         accessPassword: "",
@@ -361,6 +380,40 @@
       pages: [createPage("Страница 1")]
     }
   };
+
+  const ONBOARDING_STORAGE_KEY = "asking_builder_v2_onboarding_complete";
+  const onboardingState = {
+    active: false,
+    step: 0,
+    resizeTimer: null
+  };
+
+  const ONBOARDING_STEPS = [
+    {
+      selector: ".bv2-pages",
+      title: "Страницы",
+      text: "Страницы позволяют разделить анкету на логические блоки.",
+      subtext: "Можно создавать многостраничные сценарии прохождения."
+    },
+    {
+      selector: "#addQuestionBtn",
+      title: "Вопросы",
+      text: "Добавляйте вопросы разных типов.",
+      subtext: "Текст, выбор, рейтинг, изображения и другие варианты."
+    },
+    {
+      selector: ".bv2-design",
+      title: "Дизайн",
+      text: "Настройте внешний вид анкеты.",
+      subtext: "Темы, цвета, фоновые изображения и оформление."
+    },
+    {
+      selector: ".bv2-flow-nav",
+      title: "Настройки и публикация",
+      text: "После создания анкеты настройте доступ и опубликуйте ссылку для участников.",
+      subtext: ""
+    }
+  ];
 
   function createId(prefix) {
     return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -400,7 +453,7 @@
 
   function defaultSettings(type) {
     return {
-      placeholder: type === "email" ? "name@company.com" : "Введите ответ...",
+      placeholder: type === "email" || type === "participant_email" ? "name@company.com" : type === "participant_name" ? "Имя и фамилия" : "Введите ответ...",
       characterLimit: type === "long_text" ? 500 : 120,
       randomize: false,
       minSelections: 1,
@@ -418,6 +471,8 @@
   function defaultQuestionTitle(type) {
     return {
       text: "Как вас зовут?",
+      participant_name: "Имя участника",
+      participant_email: "Email участника",
       long_text: "Расскажите подробнее",
       email: "Укажите ваш Email",
       single: "Выберите один вариант",
@@ -436,12 +491,14 @@
     if (raw === "select") return "dropdown";
     if (raw === "image") return "image_choice";
     if (raw === "textarea") return "long_text";
+    if (raw === "name" || raw === "respondent_name") return "participant_name";
+    if (raw === "respondent_email") return "participant_email";
     return QUESTION_TYPES.some((item) => item.value === raw) ? raw : "single";
   }
 
   function apiType(type) {
     const normalized = normalizeType(type);
-    if (["single", "multi", "dropdown", "rating", "text"].includes(normalized)) return normalized;
+    if (["single", "multi", "dropdown", "rating", "text", "participant_name", "participant_email"].includes(normalized)) return normalized;
     if (normalized === "image_choice") return "single";
     if (normalized === "nps") return "rating";
     return "text";
@@ -641,9 +698,9 @@
     const type = normalizeType(question.type);
     const settings = question.settings || defaultSettings(type);
     const options = Array.isArray(question.options) ? question.options : [];
-    if (type === "text") return `<div class="bv2-input-preview">${escapeHtml(settings.placeholder || "Введите ответ...")}</div>`;
+    if (type === "text" || type === "participant_name") return `<div class="bv2-input-preview">${escapeHtml(settings.placeholder || "Введите ответ...")}</div>`;
     if (type === "long_text") return `<div class="bv2-textarea-preview">${escapeHtml(settings.placeholder || "Введите развернутый ответ...")}</div>`;
-    if (type === "email") return `<div class="bv2-input-preview bv2-input-preview--email">name@company.com</div>`;
+    if (type === "email" || type === "participant_email") return `<div class="bv2-input-preview bv2-input-preview--email">name@company.com</div>`;
     if (type === "single") return renderChoicePreview(options, "radio");
     if (type === "multi") return renderChoicePreview(options, "checkbox");
     if (type === "dropdown") return `<div class="bv2-select-preview">Выберите вариант <span>⌄</span></div>`;
@@ -773,14 +830,44 @@
     return `linear-gradient(rgba(17,24,39,${overlay}), rgba(17,24,39,${overlay})), url("${design.backgroundImage}"), ${base}`;
   }
 
+  function welcomeDesignFromSettings(existingWelcome = {}) {
+    const settings = state.survey.settings || {};
+    const overlay = Number(settings.welcomeOverlay);
+    const coverImage = String(settings.welcomeCover || existingWelcome.coverImage || "").trim();
+    return {
+      ...existingWelcome,
+      welcomeTitle: String(settings.welcomeTitle || state.survey.title || "").trim(),
+      welcomeSubtitle: String(settings.welcomeSubtitle || "Добро пожаловать").trim(),
+      welcomeDescription: String(settings.welcomeDescription || state.survey.description || "").trim(),
+      welcomeButtonText: String(settings.welcomeButtonText || "Начать опрос").trim(),
+      welcomeCoverImage: coverImage,
+      welcomeBackgroundImage: String(settings.welcomeBackground || existingWelcome.welcomeBackgroundImage || existingWelcome.backgroundImage || "").trim(),
+      welcomeOverlayStrength: Number.isFinite(overlay) ? Math.max(0, Math.min(90, Math.round(overlay))) : Math.max(0, Math.min(90, Number(state.design.overlay || 0))),
+      title: String(settings.welcomeTitle || state.survey.title || "").trim(),
+      subtitle: String(settings.welcomeSubtitle || "Добро пожаловать").trim(),
+      description: String(settings.welcomeDescription || state.survey.description || "").trim(),
+      buttonText: String(settings.welcomeButtonText || "Начать опрос").trim(),
+      coverImage,
+      backgroundImage: String(settings.welcomeBackground || existingWelcome.welcomeBackgroundImage || existingWelcome.backgroundImage || "").trim(),
+      overlay: Number.isFinite(overlay) ? Math.max(0, Math.min(90, Math.round(overlay))) : Math.max(0, Math.min(90, Number(state.design.overlay || 0))),
+      layout: existingWelcome.layout || "image-right",
+      imageOpacity: Number.isFinite(Number(existingWelcome.imageOpacity)) ? Number(existingWelcome.imageOpacity) : 86,
+      imageEnabled: existingWelcome.imageEnabled !== false && Boolean(coverImage)
+    };
+  }
+
   function persistDesignToPages() {
     state.survey.pages.forEach((page) => {
+      const previousDesign = page.design || {};
       page.design = {
-        ...(page.design || {}),
+        ...previousDesign,
         ...state.design,
         builderV2Design: { ...state.design },
         bgColor: state.design.backgroundColor,
-        bgImage: state.design.backgroundImage
+        bgImage: state.design.backgroundImage,
+        overlay: state.design.overlay,
+        layout: state.design.layout,
+        welcome: welcomeDesignFromSettings(previousDesign.welcome || {})
       };
     });
   }
@@ -947,6 +1034,7 @@
     els.settingsHidden.checked = Boolean(settings.isHidden);
     els.settingsEndsAt.value = state.survey.endsAt ? String(state.survey.endsAt).slice(0, 10) : "";
     els.settingsResponseLimit.value = state.survey.responseLimit || "";
+    if (els.settingsTimeLimit) els.settingsTimeLimit.value = state.survey.timeLimitSeconds ? String(Math.ceil(Number(state.survey.timeLimitSeconds) / 60)) : "";
     els.settingsShowProgress.checked = settings.showProgress !== false;
     els.settingsAllowBack.checked = settings.allowBack !== false;
     els.settingsShowNumbers.checked = settings.showQuestionNumbers !== false;
@@ -959,6 +1047,7 @@
     state.survey.description = els.settingsDescription.value.trim();
     state.survey.endsAt = els.settingsEndsAt.value ? `${els.settingsEndsAt.value}T23:59:59.000Z` : null;
     state.survey.responseLimit = els.settingsResponseLimit.value ? Math.max(1, Number(els.settingsResponseLimit.value)) : null;
+    state.survey.timeLimitSeconds = els.settingsTimeLimit?.value ? Math.max(60, Math.round(Number(els.settingsTimeLimit.value) * 60)) : null;
     state.survey.settings = {
       ...(state.survey.settings || {}),
       language: els.settingsLanguage.value || "ru",
@@ -978,6 +1067,8 @@
       allowBack: els.settingsAllowBack.checked,
       showQuestionNumbers: els.settingsShowNumbers.checked
     };
+    els.title.value = state.survey.title;
+    persistDesignToPages();
     markDirty();
     render();
     renderWelcomePreview();
@@ -993,7 +1084,11 @@
     els.welcomePreviewDescription.textContent = els.welcomeDescription?.value || state.survey.description || "Описание анкеты";
     els.welcomePreviewButton.textContent = els.welcomeButtonText?.value || "Начать опрос";
     els.welcomePreviewCard.style.setProperty("--welcome-overlay", `${overlay / 100}`);
-    els.welcomePreviewCard.style.backgroundImage = bg ? `linear-gradient(rgba(17,24,39,${overlay / 100}), rgba(17,24,39,${overlay / 100})), url("${bg}")` : "";
+    if (bg) {
+      els.welcomePreviewCard.style.backgroundImage = `linear-gradient(rgba(17,24,39,${overlay / 100}), rgba(17,24,39,${overlay / 100})), url("${bg}")`;
+    } else {
+      els.welcomePreviewCard.style.backgroundImage = designBackground(state.design);
+    }
     const media = els.welcomePreviewCard.querySelector(".bv2-welcome-card__media");
     if (media) {
       media.style.backgroundImage = cover ? `url("${cover}")` : "";
@@ -1032,7 +1127,7 @@
       <div><span>Количество страниц</span><strong>${pageCount}</strong></div>
       <div><span>Количество вопросов</span><strong>${questionCount}</strong></div>
       <div><span>Примерное время прохождения</span><strong>${estimated} мин</strong></div>
-      <div><span>Пароль</span><strong>${state.survey.settings?.accessPassword ? "включен" : "выключен"}</strong></div>
+      <div><span>Пароль</span><strong>${state.survey.settings?.accessPassword || state.survey.hasAccessPassword ? "включен" : "выключен"}</strong></div>
       <div><span>Дата окончания</span><strong>${state.survey.endsAt ? new Date(state.survey.endsAt).toLocaleDateString("ru-RU") : "не задана"}</strong></div>
     `;
   }
@@ -1189,6 +1284,8 @@
     `;
     const fields = {
       text: `${fieldInput("placeholder", "Подсказка", settings.placeholder)}${fieldInput("characterLimit", "Лимит символов", settings.characterLimit, "number", 1)}`,
+      participant_name: `${fieldInput("placeholder", "Подсказка", settings.placeholder)}${fieldInput("characterLimit", "Лимит символов", settings.characterLimit, "number", 1)}`,
+      participant_email: `${fieldInput("placeholder", "Подсказка", settings.placeholder)}${fieldInput("characterLimit", "Лимит символов", settings.characterLimit, "number", 1)}`,
       long_text: `${fieldInput("placeholder", "Подсказка", settings.placeholder)}${fieldInput("characterLimit", "Лимит символов", settings.characterLimit, "number", 1)}`,
       email: `${fieldInput("placeholder", "Подсказка", settings.placeholder)}${fieldInput("characterLimit", "Лимит символов", settings.characterLimit, "number", 1)}`,
       single: `${optionEditor(false)}${fieldCheckbox("randomize", "Перемешивать варианты", settings.randomize)}`,
@@ -1201,6 +1298,8 @@
     };
     const settingsTitle = {
       text: "Настройки текста",
+      participant_name: "Настройки имени участника",
+      participant_email: "Настройки Email участника",
       long_text: "Настройки длинного текста",
       email: "Настройки Email",
       single: "Настройки одного выбора",
@@ -1394,7 +1493,9 @@
     const required = current?.question.required && currentType !== "info" ? `<span class="bv2-badge bv2-badge--required">Обязательный</span>` : "";
     const cardMode = currentType === "image_choice" ? "image" : "standard";
     const progress = state.previewStep === "welcome" ? 0 : state.previewStep === "complete" ? 100 : Math.round(((state.previewQuestionIndex + 1) / total) * 100);
-    els.previewStage.style.setProperty("--preview-bg", designBackground(state.design));
+    const welcomeBackground = String(settings.welcomeBackground || "").trim();
+    const welcomeOverlay = Math.max(0, Math.min(90, Number(settings.welcomeOverlay || 0))) / 100;
+    els.previewStage.style.setProperty("--preview-bg", welcomeBackground ? `linear-gradient(rgba(17,24,39,${welcomeOverlay}), rgba(17,24,39,${welcomeOverlay})), url("${welcomeBackground}"), ${state.design.backgroundColor}` : designBackground(state.design));
     if (state.previewStep === "welcome") {
       els.previewStage.innerHTML = renderPreviewWelcomeV2(total);
       focusPreviewPrimaryAction();
@@ -1429,7 +1530,7 @@
 
   function renderPreviewWelcomeV2(questionCount = getPreviewQuestions().length) {
     const settings = state.survey.settings || {};
-    const cover = settings.welcomeCover || settings.welcomeBackground || "";
+    const cover = settings.welcomeCover || "";
     const estimated = previewEstimatedMinutes(questionCount);
     return `
       <section class="bv2-preview-runtime-card bv2-preview-runtime-card--welcome" data-preview-view>
@@ -1493,7 +1594,7 @@
   function renderPreviewAnswerV2(question, settings) {
     const type = normalizeType(question.type);
     const options = Array.isArray(question.options) ? question.options : [];
-    if (type === "text" || type === "email") return `<input class="bv2-preview-input" data-preview-answer="${escapeAttr(question.id)}" type="${type === "email" ? "email" : "text"}" placeholder="${escapeAttr(settings.placeholder || "Введите ответ...")}" />`;
+    if (type === "text" || type === "email" || type === "participant_name" || type === "participant_email") return `<input class="bv2-preview-input" data-preview-answer="${escapeAttr(question.id)}" type="${type === "email" || type === "participant_email" ? "email" : "text"}" placeholder="${escapeAttr(settings.placeholder || "Введите ответ...")}" />`;
     if (type === "long_text") return `<textarea class="bv2-preview-input" data-preview-answer="${escapeAttr(question.id)}" rows="5" placeholder="${escapeAttr(settings.placeholder || "Введите ответ...")}"></textarea>`;
     if (type === "single") return renderPreviewOptionsV2(question, options, "radio");
     if (type === "multi") return renderPreviewOptionsV2(question, options, "checkbox");
@@ -1630,7 +1731,7 @@
   function renderPreviewAnswer(question, settings) {
     const type = normalizeType(question.type);
     const options = Array.isArray(question.options) ? question.options : [];
-    if (type === "text" || type === "email") return `<input class="bv2-preview-input" data-preview-answer="${escapeAttr(question.id)}" type="${type === "email" ? "email" : "text"}" placeholder="${escapeAttr(settings.placeholder || "Введите ответ...")}" />`;
+    if (type === "text" || type === "email" || type === "participant_name" || type === "participant_email") return `<input class="bv2-preview-input" data-preview-answer="${escapeAttr(question.id)}" type="${type === "email" || type === "participant_email" ? "email" : "text"}" placeholder="${escapeAttr(settings.placeholder || "Введите ответ...")}" />`;
     if (type === "long_text") return `<textarea class="bv2-preview-input" data-preview-answer="${escapeAttr(question.id)}" rows="5" placeholder="${escapeAttr(settings.placeholder || "Введите ответ...")}"></textarea>`;
     if (type === "single") return renderPreviewOptions(question, options, "radio");
     if (type === "multi") return renderPreviewOptions(question, options, "checkbox");
@@ -1649,12 +1750,14 @@
   function toPayload() {
     persistDesignToPages();
     return {
-      title: (els.title.value || "").trim() || "Новая анкета",
+      title: (state.survey.title || els.title.value || "").trim() || "Новая анкета",
       description: state.survey.description || "",
       audience: state.survey.audience || "",
       allowMultipleResponses: Boolean(state.survey.allowMultipleResponses),
       startsAt: state.survey.startsAt || null,
       endsAt: state.survey.endsAt || null,
+      responseLimit: state.survey.responseLimit || null,
+      timeLimitSeconds: state.survey.timeLimitSeconds || null,
       pages: state.survey.pages.map((page) => ({
         title: page.title || "Страница",
         design: {
@@ -1681,6 +1784,7 @@
   }
 
   async function saveSurvey() {
+    if (currentStep() === "settings") applySettingsScreen();
     const payload = toPayload();
     const questionCount = payload.pages.reduce((sum, page) => sum + page.questions.length, 0);
     if (payload.title.length < 3) return showToast("Название анкеты должно быть не короче 3 символов", true);
@@ -1703,6 +1807,21 @@
         });
         state.surveyId = Number(created.id);
         window.history.replaceState({}, "", `/create-v2?surveyId=${encodeURIComponent(state.surveyId)}`);
+      }
+      if (state.surveyId && currentStep() === "settings") {
+        const typedPassword = String(state.survey.settings?.accessPassword || "").trim();
+        const passwordEnabled = Boolean(typedPassword) || Boolean(state.survey.hasAccessPassword);
+        await apiRequest(`/api/surveys/${state.surveyId}/access`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            passwordEnabled,
+            password: typedPassword,
+            responseLimit: state.survey.responseLimit || "",
+            timeLimitSeconds: state.survey.timeLimitSeconds || ""
+          })
+        });
+        state.survey.hasAccessPassword = passwordEnabled;
       }
       state.survey.title = payload.title;
       els.saveState.textContent = "Черновик сохранён";
@@ -1766,6 +1885,9 @@
     });
     state.surveyId = Number(id);
     state.status = survey.status || "draft";
+    const firstDesign = pages[0]?.design || {};
+    const firstWelcome = firstDesign.welcome && typeof firstDesign.welcome === "object" ? firstDesign.welcome : {};
+    const welcomeOverlay = Number(firstWelcome.welcomeOverlayStrength ?? firstWelcome.overlay);
     state.survey = {
       title: survey.title || "Новая анкета",
       description: survey.description || "",
@@ -1774,8 +1896,17 @@
       startsAt: survey.starts_at || null,
       endsAt: survey.ends_at || null,
       responseLimit: survey.response_limit || null,
+      timeLimitSeconds: survey.time_limit_seconds || null,
+      hasAccessPassword: Boolean(survey.has_access_password),
       settings: {
         ...(state.survey.settings || {}),
+        welcomeTitle: firstWelcome.welcomeTitle || firstWelcome.title || survey.title || "Название анкеты",
+        welcomeSubtitle: firstWelcome.welcomeSubtitle || firstWelcome.subtitle || "Добро пожаловать",
+        welcomeDescription: firstWelcome.welcomeDescription || firstWelcome.description || survey.description || "Описание анкеты",
+        welcomeButtonText: firstWelcome.welcomeButtonText || firstWelcome.buttonText || "Начать опрос",
+        welcomeCover: firstWelcome.welcomeCoverImage || firstWelcome.coverImage || "",
+        welcomeBackground: firstWelcome.welcomeBackgroundImage || firstWelcome.backgroundImage || "",
+        welcomeOverlay: Number.isFinite(welcomeOverlay) ? welcomeOverlay : Number(firstWelcome.welcomeOverlayStrength || firstDesign.overlay || 24),
         isPublic: survey.status !== "draft",
         isHidden: survey.status === "draft"
       },
@@ -1788,7 +1919,181 @@
     els.saveState.style.color = "#0f766e";
   }
 
+  async function createSurveyFromTemplate(templateId) {
+    const key = String(templateId || "").trim().toLowerCase();
+    if (!key) return null;
+    console.info("[Builder V2] Creating survey from template", key);
+    els.save.disabled = true;
+    els.saveState.textContent = "Создаём анкету из шаблона...";
+    els.saveState.style.color = "#4f46e5";
+    try {
+      const created = await apiRequest("/api/surveys/from-template", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId: key })
+      });
+      const surveyId = Number(created.surveyId || created.id);
+      if (!Number.isInteger(surveyId) || surveyId <= 0) {
+        throw new Error("Сервер не вернул id анкеты");
+      }
+      console.info("[Builder V2] Template survey created", { templateId: key, surveyId });
+      window.history.replaceState({}, "", `/create-v2?surveyId=${encodeURIComponent(surveyId)}`);
+      await loadExistingSurvey(surveyId);
+      showToast("Шаблон применён");
+      return surveyId;
+    } catch (error) {
+      console.error("[Builder V2] Template creation failed", { templateId: key, error });
+      throw error;
+    } finally {
+      els.save.disabled = false;
+    }
+  }
+
+  function hasCompletedOnboarding() {
+    try {
+      return localStorage.getItem(ONBOARDING_STORAGE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  }
+
+  function markOnboardingComplete() {
+    try {
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, "1");
+    } catch {}
+  }
+
+  function onboardingTarget(step) {
+    const selector = ONBOARDING_STEPS[step]?.selector;
+    return selector ? document.querySelector(selector) : null;
+  }
+
+  function renderOnboardingDots() {
+    if (!els.onboardingDots) return;
+    els.onboardingDots.innerHTML = ONBOARDING_STEPS.map((_, index) => `<span class="${index === onboardingState.step ? "is-active" : ""}"></span>`).join("");
+  }
+
+  function placeOnboardingCard(targetRect) {
+    if (!els.onboardingCard) return;
+    const margin = 18;
+    const cardRect = els.onboardingCard.getBoundingClientRect();
+    const availableRight = window.innerWidth - targetRect.right;
+    const availableLeft = targetRect.left;
+    let left = targetRect.right + margin;
+    let top = targetRect.top + Math.min(24, Math.max(0, targetRect.height * 0.18));
+
+    if (availableRight < cardRect.width + margin && availableLeft > cardRect.width + margin) {
+      left = targetRect.left - cardRect.width - margin;
+    }
+
+    if (window.innerWidth < cardRect.width + margin * 2 || targetRect.width > window.innerWidth * 0.72) {
+      left = Math.max(margin, Math.min(window.innerWidth - cardRect.width - margin, targetRect.left));
+      top = targetRect.bottom + margin;
+    }
+
+    top = Math.max(margin, Math.min(window.innerHeight - cardRect.height - margin, top));
+    left = Math.max(margin, Math.min(window.innerWidth - cardRect.width - margin, left));
+    els.onboardingCard.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)`;
+  }
+
+  function positionOnboarding() {
+    if (!onboardingState.active || !els.onboardingSpotlight) return;
+    const target = onboardingTarget(onboardingState.step);
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    const pad = 10;
+    const left = Math.max(8, rect.left - pad);
+    const top = Math.max(8, rect.top - pad);
+    const width = Math.min(window.innerWidth - left - 8, rect.width + pad * 2);
+    const height = Math.min(window.innerHeight - top - 8, rect.height + pad * 2);
+
+    els.onboardingSpotlight.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)`;
+    els.onboardingSpotlight.style.width = `${Math.round(width)}px`;
+    els.onboardingSpotlight.style.height = `${Math.round(height)}px`;
+    placeOnboardingCard({ left, top, right: left + width, bottom: top + height, width, height });
+  }
+
+  function renderOnboardingStep() {
+    const step = ONBOARDING_STEPS[onboardingState.step];
+    if (!step || !els.onboarding) return;
+    if (currentStep() !== "constructor") showStep("constructor");
+    const target = onboardingTarget(onboardingState.step);
+    target?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+
+    if (els.onboardingStepLabel) els.onboardingStepLabel.textContent = `Шаг ${onboardingState.step + 1} из ${ONBOARDING_STEPS.length}`;
+    if (els.onboardingTitle) els.onboardingTitle.textContent = step.title;
+    if (els.onboardingText) els.onboardingText.textContent = step.text;
+    if (els.onboardingSubtext) {
+      els.onboardingSubtext.textContent = step.subtext || "";
+      els.onboardingSubtext.hidden = !step.subtext;
+    }
+    if (els.onboardingNext) els.onboardingNext.textContent = onboardingState.step >= ONBOARDING_STEPS.length - 1 ? "Завершить" : "Далее";
+    renderOnboardingDots();
+    window.setTimeout(positionOnboarding, 220);
+  }
+
+  function startOnboarding({ force = false } = {}) {
+    if (!els.onboarding || (!force && hasCompletedOnboarding())) return;
+    closeTypeModal();
+    closeQuestionModal();
+    closeTemplatesModal();
+    closeTemplateConfirmModal();
+    if (els.previewModal && !els.previewModal.hidden) closePreviewModal();
+    onboardingState.active = true;
+    onboardingState.step = 0;
+    els.onboarding.hidden = false;
+    document.body.classList.add("bv2-onboarding-active");
+    renderOnboardingStep();
+  }
+
+  function closeOnboarding({ complete = false, showDone = false } = {}) {
+    onboardingState.active = false;
+    if (els.onboarding) els.onboarding.hidden = true;
+    document.body.classList.remove("bv2-onboarding-active");
+    if (complete) markOnboardingComplete();
+    if (showDone && els.onboardingDone) {
+      els.onboardingDone.hidden = false;
+      els.onboardingCreateQuestion?.focus();
+    }
+  }
+
+  function nextOnboardingStep() {
+    if (onboardingState.step >= ONBOARDING_STEPS.length - 1) {
+      closeOnboarding({ complete: true, showDone: true });
+      return;
+    }
+    onboardingState.step += 1;
+    renderOnboardingStep();
+  }
+
+  function closeOnboardingDone() {
+    if (els.onboardingDone) els.onboardingDone.hidden = true;
+  }
+
+  function bindOnboardingEvents() {
+    els.onboardingStart?.addEventListener("click", () => startOnboarding({ force: true }));
+    els.onboardingNext?.addEventListener("click", nextOnboardingStep);
+    els.onboardingClose?.addEventListener("click", () => closeOnboarding({ complete: true }));
+    els.onboardingDoneClose?.addEventListener("click", closeOnboardingDone);
+    els.onboardingCreateQuestion?.addEventListener("click", () => {
+      closeOnboardingDone();
+      openTypeModal();
+    });
+    window.addEventListener("resize", () => {
+      if (!onboardingState.active) return;
+      clearTimeout(onboardingState.resizeTimer);
+      onboardingState.resizeTimer = setTimeout(positionOnboarding, 80);
+    });
+    window.addEventListener("scroll", positionOnboarding, true);
+  }
+
+  function maybeShowFirstVisitOnboarding() {
+    if (hasCompletedOnboarding()) return;
+    window.setTimeout(() => startOnboarding(), 550);
+  }
+
   function bindEvents() {
+    bindOnboardingEvents();
     els.modalType.innerHTML = QUESTION_TYPES.map((item) => `<option value="${item.value}">${item.label}</option>`).join("");
     els.addTypeGrid.innerHTML = QUESTION_TYPES.map(
       (item) => `
@@ -2178,6 +2483,8 @@
     });
     window.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
+        if (onboardingState.active) closeOnboarding({ complete: true });
+        if (els.onboardingDone && !els.onboardingDone.hidden) closeOnboardingDone();
         if (!els.previewModal.hidden) closePreviewModal();
         if (!els.templateConfirmModal.hidden) closeTemplateConfirmModal();
         if (!els.templatesModal.hidden) closeTemplatesModal();
@@ -2226,10 +2533,13 @@
         return;
       }
       if (state.surveyId) await loadExistingSurvey(state.surveyId);
+      else if (templateFromUrl) await createSurveyFromTemplate(templateFromUrl);
       render();
+      maybeShowFirstVisitOnboarding();
     } catch (error) {
       showToast(error.message || "Не удалось открыть Builder V2", true);
       render();
+      maybeShowFirstVisitOnboarding();
     }
   })();
 })();

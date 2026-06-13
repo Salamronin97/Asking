@@ -26,18 +26,13 @@
       <div class="container topbar__inner">
         <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
         <div class="topbar__actions">
-          <nav class="landing-nav" aria-label="Навигация">
-            <a href="#features">Возможности</a>
-            <a href="#templates">Шаблоны</a>
-            <a href="#faq">FAQ</a>
-          </nav>
           <select id="languageSelect" class="lang-select" aria-label="Language">
             <option value="ru">RU</option>
             <option value="en">EN</option>
             <option value="kz">KZ</option>
           </select>
           <a id="authBtn" class="btn btn--outline" href="/auth">Войти</a>
-          <a class="btn btn--primary" href="/create">Создать анкету</a>
+          <a class="btn btn--primary" href="/create-v2">Создать анкету</a>
         </div>
       </div>
     </header>
@@ -50,7 +45,7 @@
             <h1>Создавайте опросы за минуты и принимайте решения на данных</h1>
             <p class="lead">Запускайте формы по ссылке, собирайте ответы в реальном времени и выгружайте результаты в CSV/XLSX.</p>
             <div class="hero-actions landing-v2-hero__actions">
-              <a class="btn btn--primary" href="/create">Создать анкету</a>
+              <a class="btn btn--primary" href="/create-v2">Создать анкету</a>
               <a class="btn btn--outline" href="/cabinet">Открыть кабинет</a>
             </div>
             <div class="landing-v2-metrics">
@@ -155,29 +150,29 @@
             <p>Запускайте опросы быстрее с готовыми сценариями под ваши задачи.</p>
           </div>
           <div class="template-grid landing-v2-template-grid landing-template-showcase">
-            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--education" type="button" data-template-key="education">
+            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--feedback" type="button" data-template-key="feedback">
               <span class="landing-template-card__media"></span>
-              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">12 вопросов</span><h3>Образование</h3><p>Оценка курсов, преподавателей, материалов и качества обучения.</p></span>
-            </button>
-            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--hr" type="button" data-template-key="hr">
-              <span class="landing-template-card__media"></span>
-              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">Pulse</span><h3>HR и команда</h3><p>Вовлеченность сотрудников, адаптация, eNPS и внутренний климат.</p></span>
-            </button>
-            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--marketing" type="button" data-template-key="marketing">
-              <span class="landing-template-card__media"></span>
-              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">Research</span><h3>Маркетинг</h3><p>Сегментация аудитории, проверка гипотез и оценка спроса.</p></span>
+              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">7 вопросов</span><h3>Обратная связь</h3><p>Сбор мнения клиентов, впечатлений и идей для улучшения.</p><span class="landing-template-card__action">Использовать шаблон</span></span>
             </button>
             <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--service" type="button" data-template-key="service">
               <span class="landing-template-card__media"></span>
-              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">CX</span><h3>Сервис</h3><p>Качество обслуживания, клиентский опыт и точки улучшения.</p></span>
+              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">6 вопросов</span><h3>Оценка сервиса</h3><p>Качество обслуживания, скорость реакции и клиентский опыт.</p><span class="landing-template-card__action">Использовать шаблон</span></span>
             </button>
-            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--events" type="button" data-template-key="events">
+            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--hr" type="button" data-template-key="hr">
               <span class="landing-template-card__media"></span>
-              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">Event</span><h3>События</h3><p>Регистрация, пост-опросы, рейтинг сессий и обратная связь.</p></span>
+              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">8 вопросов</span><h3>HR-опрос</h3><p>Пульс команды, вовлеченность сотрудников и рабочие процессы.</p><span class="landing-template-card__action">Использовать шаблон</span></span>
             </button>
-            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--voting" type="button" data-template-key="voting">
+            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--education" type="button" data-template-key="education">
               <span class="landing-template-card__media"></span>
-              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">Decision</span><h3>Голосования</h3><p>Быстрый выбор приоритетов, решений и командных направлений.</p></span>
+              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">6 вопросов</span><h3>Образование</h3><p>Оценка курса, урока, преподавателя и учебных материалов.</p><span class="landing-template-card__action">Использовать шаблон</span></span>
+            </button>
+            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--event" type="button" data-template-key="event">
+              <span class="landing-template-card__media"></span>
+              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">7 вопросов</span><h3>Оценка мероприятия</h3><p>Впечатления участников, рейтинг сессий и обратная связь.</p><span class="landing-template-card__action">Использовать шаблон</span></span>
+            </button>
+            <button class="template-card template-card--action landing-v2-template landing-template-card landing-template-card--blank" type="button" data-template-key="blank">
+              <span class="landing-template-card__media"></span>
+              <span class="landing-template-card__content"><span class="landing-template-card__eyebrow">1 вопрос</span><h3>Пустая анкета</h3><p>Чистая структура для нового сценария без лишних блоков.</p><span class="landing-template-card__action">Использовать шаблон</span></span>
             </button>
           </div>
         </div>
@@ -191,24 +186,32 @@
           </div>
           <div class="faq-grid">
             <article class="faq-card landing-v2-reveal">
-              <h3>Можно ли ограничить доступ к анкете?</h3>
-              <p>Да, можно включить пароль на вход и лимит по количеству ответов.</p>
+              <h3>Можно ли закрыть анкету паролем?</h3>
+              <p>Да, в настройках доступа можно задать пароль для прохождения.</p>
             </article>
             <article class="faq-card landing-v2-reveal">
-              <h3>Работает ли сервис на телефоне?</h3>
-              <p>Да, кабинет, конструктор и форма прохождения адаптированы под мобильные экраны.</p>
+              <h3>Можно ли ограничить количество ответов?</h3>
+              <p>Да, укажите лимит, и анкета остановит сбор после нужного числа ответов.</p>
+            </article>
+            <article class="faq-card landing-v2-reveal">
+              <h3>Работает ли на телефоне?</h3>
+              <p>Да, анкеты удобно проходить с телефона, планшета или компьютера.</p>
             </article>
             <article class="faq-card landing-v2-reveal">
               <h3>Какие типы вопросов доступны?</h3>
               <p>Текст, одиночный выбор, множественный выбор, рейтинг и выпадающий список.</p>
             </article>
             <article class="faq-card landing-v2-reveal">
-              <h3>Можно ли экспортировать результаты?</h3>
-              <p>Да, экспорт доступен в форматах CSV и XLSX.</p>
+              <h3>Как поделиться анкетой?</h3>
+              <p>После публикации скопируйте ссылку из кабинета и отправьте участникам.</p>
             </article>
             <article class="faq-card landing-v2-reveal">
-              <h3>Нужна регистрация для создания анкет?</h3>
-              <p>Да, создание и управление анкетами доступно только авторизованным пользователям.</p>
+              <h3>Можно ли выгрузить результаты?</h3>
+              <p>Да, ответы можно скачать в CSV или XLSX для дальнейшей работы.</p>
+            </article>
+            <article class="faq-card landing-v2-reveal">
+              <h3>Нужна ли регистрация для прохождения анкеты?</h3>
+              <p>Нет, участники открывают публичную ссылку и отвечают без аккаунта.</p>
             </article>
           </div>
         </div>
@@ -261,7 +264,7 @@
         node.addEventListener("click", async () => {
           const key = node.getAttribute("data-template-key");
           if (!key) return;
-          window.location.href = `/create?template=${encodeURIComponent(key)}`;
+          window.location.href = `/create-v2?template=${encodeURIComponent(key)}`;
         });
       });
 

@@ -1,6 +1,5 @@
 ﻿const logoutBtn = document.getElementById("logoutBtn");
 const refreshBtn = document.getElementById("refreshBtn");
-const viewToggleBtn = document.getElementById("viewToggleBtn");
 const statusLine = document.getElementById("cabinetStatusLine");
 const selectAllFilteredBtn = document.getElementById("selectAllFilteredBtn");
 const clearBulkSelectionBtn = document.getElementById("clearBulkSelectionBtn") || document.getElementById("clearSelectionBtn");
@@ -28,9 +27,10 @@ const cardsSkeleton = document.getElementById("cardsSkeleton");
 const emptyState = document.getElementById("emptyState");
 const toast = document.getElementById("toast");
 const resultsCount = document.getElementById("resultsCount");
+const activityList = document.getElementById("activityList");
 
-const statTotal = document.getElementById("statTotal");
 const statActive = document.getElementById("statActive");
+const statPublished = document.getElementById("statPublished");
 const statDraft = document.getElementById("statDraft");
 const statArchived = document.getElementById("statArchived");
 const statResponses = document.getElementById("statResponses");
@@ -62,7 +62,7 @@ const state = {
   supportMessagesFiltered: [],
   loading: false,
   selectedSurveyIds: [],
-  viewMode: localStorage.getItem(VIEW_KEY) === "compact" ? "compact" : "grid"
+  viewMode: "grid"
 };
 
 const SUPPORT_TEMPLATES = [
@@ -111,8 +111,6 @@ function applyStaticCabinetTextFixes() {
     if (node) node.textContent = value;
   };
 
-  setText("#refreshBtn", "Обновить");
-  setText("#viewToggleBtn", "Компактный вид");
   setText("#bulkCount", "0 выбрано");
   setText("#selectAllFilteredBtn", "Выбрать все");
   setText("#clearSelectionBtn", "Снять выделение");
@@ -220,8 +218,8 @@ function getPublicLink(id) {
   return `${window.location.origin}/s/${id}`;
 }
 
-function getBuilderLink(id) {
-  return `/create?surveyId=${encodeURIComponent(id)}`;
+function getBuilderV2Link(id) {
+  return `/create-v2?surveyId=${encodeURIComponent(id)}`;
 }
 
 function renderSupportTemplates() {
@@ -341,7 +339,7 @@ async function submitSupportForm(event) {
 }
 
 function getResultsLink(id) {
-  return `/survey/${encodeURIComponent(id)}?tab=results`;
+  return `/results-v2.html?surveyId=${encodeURIComponent(id)}`;
 }
 
 function highlightMatch(text, query) {
@@ -358,7 +356,7 @@ function highlightMatch(text, query) {
 }
 
 function statusLabel(status) {
-  if (status === "published") return "Опубликован";
+  if (status === "published") return "Опубликована";
   if (status === "archived") return "Архив";
   return "Черновик";
 }
@@ -388,7 +386,8 @@ function normalizeSurvey(item) {
     title: String(item.title || "").trim(),
     description: String(item.description || "").trim(),
     status,
-    responses_count: Number(item.responses_count || 0)
+    responses_count: Number(item.responses_count || 0),
+    views_count: Number.isFinite(Number(item.views_count ?? item.view_count)) ? Number(item.views_count ?? item.view_count) : null
   };
 }
 
@@ -431,17 +430,81 @@ function updateStats() {
   const archived = state.surveys.filter((item) => item.status === "archived").length;
   const responses = state.surveys.reduce((sum, item) => sum + Number(item.responses_count || 0), 0);
 
-  if (statTotal) statTotal.textContent = String(total);
-  if (statActive) statActive.textContent = String(published);
+  if (statActive) statActive.textContent = String(total);
+  if (statPublished) statPublished.textContent = String(published);
   if (statDraft) statDraft.textContent = String(draft);
   if (statArchived) statArchived.textContent = String(archived);
   if (statResponses) statResponses.textContent = String(responses);
+  renderActivity();
 }
 
 function updateResultsCount() {
   if (!resultsCount) return;
-  const modeLabel = state.viewMode === "compact" ? "компакт" : "карточки";
-  resultsCount.textContent = `Показано ${state.filtered.length} из ${state.surveys.length} • Вид: ${modeLabel}`;
+  resultsCount.textContent = `Показано ${state.filtered.length} из ${state.surveys.length}`;
+}
+
+function activityDate(survey) {
+  return survey.updated_at || survey.created_at || survey.published_at || "";
+}
+
+function renderActivity() {
+  if (!activityList) return;
+  const events = [];
+
+  state.surveys.forEach((survey) => {
+    if (survey.status === "published") {
+      events.push({
+        type: "published",
+        label: "Опубликована анкета",
+        title: survey.title || "Без названия",
+        date: activityDate(survey),
+        href: getPublicLink(survey.id)
+      });
+    }
+    if (Number(survey.responses_count || 0) > 0) {
+      events.push({
+        type: "response",
+        label: "Получен ответ",
+        title: survey.title || "Без названия",
+        date: activityDate(survey),
+        href: getResultsLink(survey.id)
+      });
+    }
+    events.push({
+      type: "created",
+      label: "Создана анкета",
+      title: survey.title || "Без названия",
+      date: survey.created_at || "",
+      href: getBuilderV2Link(survey.id)
+    });
+  });
+
+  const sorted = events
+    .filter((event) => event.title)
+    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+    .slice(0, 5);
+
+  if (!sorted.length) {
+    activityList.innerHTML = `
+      <div class="svdash-activity-empty">
+        <strong>Активность появится после первых действий</strong>
+        <span>Здесь будут отображаться публикации, новые ответы и созданные анкеты.</span>
+      </div>
+    `;
+    return;
+  }
+
+  activityList.innerHTML = sorted
+    .map((event) => `
+      <a class="svdash-activity-item is-${event.type}" href="${escapeHtml(event.href)}">
+        <span class="svdash-activity-dot"></span>
+        <div>
+          <strong>${escapeHtml(event.label)}</strong>
+          <small>${escapeHtml(event.title)} · ${escapeHtml(formatDate(event.date))}</small>
+        </div>
+      </a>
+    `)
+    .join("");
 }
 
 function getSorted(items) {
@@ -514,15 +577,8 @@ function updateBulkControls() {
 }
 
 function setViewMode(mode, notify = false) {
-  state.viewMode = mode === "compact" ? "compact" : "grid";
+  state.viewMode = "grid";
   localStorage.setItem(VIEW_KEY, state.viewMode);
-
-  if (surveysGrid) surveysGrid.classList.toggle("is-compact", state.viewMode === "compact");
-  if (viewToggleBtn) {
-    const compact = state.viewMode === "compact";
-    viewToggleBtn.textContent = compact ? "Вид: карточки" : "Компактный вид";
-    viewToggleBtn.setAttribute("aria-pressed", compact ? "true" : "false");
-  }
 
   updateResultsCount();
   if (notify) {
@@ -590,8 +646,20 @@ function renderCards() {
   const hasItems = state.filtered.length > 0;
 
   if (emptyState) {
+    const emptyTitle = emptyState.querySelector("h3");
+    const emptyText = emptyState.querySelector("p");
+    const emptyButton = emptyState.querySelector("a");
+    if (state.surveys.length === 0) {
+      if (emptyTitle) emptyTitle.textContent = "Здесь пока нет анкет";
+      if (emptyText) emptyText.textContent = "Создайте первую анкету, чтобы начать сбор ответов";
+      if (emptyButton) emptyButton.hidden = false;
+    } else {
+      if (emptyTitle) emptyTitle.textContent = "Ничего не найдено";
+      if (emptyText) emptyText.textContent = "Измените поиск или фильтр статуса.";
+      if (emptyButton) emptyButton.hidden = true;
+    }
     emptyState.hidden = hasItems;
-    emptyState.style.display = hasItems ? "none" : "block";
+    emptyState.style.display = hasItems ? "none" : "grid";
   }
 
   if (!hasItems) {
@@ -600,44 +668,45 @@ function renderCards() {
     return;
   }
 
-  const maxResponses = Math.max(1, ...state.filtered.map((s) => Number(s.responses_count || 0)));
-
   if (surveysGrid) {
     surveysGrid.innerHTML = state.filtered
       .map((survey, index) => {
         const selected = isSurveySelected(survey.id);
-        const archiveLabel = survey.status === "archived" ? "Восстановить" : "Архивировать";
-        const windowState = getWindowState(survey);
-        const responsePercent = Math.max(2, Math.round((Number(survey.responses_count || 0) / maxResponses) * 100));
+        const publishLabel = survey.status === "published" ? "Опубликована" : "Публикация";
+        const publishDisabled = survey.status === "published" || survey.status === "archived" ? " disabled" : "";
+        const publishTitle = survey.status === "published"
+          ? "Анкета уже опубликована"
+          : survey.status === "archived"
+            ? "Сначала восстановите анкету из архива"
+            : "Опубликовать анкету";
         const titleHtml = highlightMatch(survey.title || "Без названия", query);
-        const descHtml = highlightMatch(survey.description || "Описание не заполнено", query);
         return `
           <article class="svdash-card${selected ? " is-selected" : ""}" style="--card-delay:${Math.min(index, 10) * 35}ms" data-survey-card="${survey.id}">
             <header class="svdash-card__head">
-              <h3>${titleHtml}</h3>
-              <span class="svdash-pill ${statusClass(survey.status)}">${statusLabel(survey.status)}</span>
+              <div>
+                <span class="svdash-pill ${statusClass(survey.status)}">${statusLabel(survey.status)}</span>
+                <h3>${titleHtml}</h3>
+              </div>
+              <button class="svdash-select${selected ? " is-active" : ""}" type="button" data-select="${survey.id}" aria-pressed="${selected ? "true" : "false"}" aria-label="${selected ? "Снять выделение" : "Выбрать анкету"}"></button>
             </header>
-            <div class="svdash-card__window">
-              <span class="svdash-window ${windowState.className}">${windowState.label}</span>
+            <div class="svdash-card__metrics">
+              <div><span>Ответы</span><strong>${Number(survey.responses_count || 0)}</strong></div>
+              <div><span>Создана</span><strong>${escapeHtml(formatDate(survey.created_at))}</strong></div>
             </div>
-            <p class="svdash-card__desc">${descHtml}</p>
-            <div class="svdash-card__meta">
-              <span>Ответов: <strong>${Number(survey.responses_count || 0)}</strong></span>
-              <span>Старт: ${escapeHtml(formatDate(survey.starts_at))}</span>
-              <span>Финиш: ${escapeHtml(formatDate(survey.ends_at))}</span>
-            </div>
-            <div class="svdash-response-bar">
-              <span style="width:${responsePercent}%"></span>
-            </div>
-            <div class="svdash-card__trend">${renderTrendSparkline(survey.id)}</div>
             <div class="svdash-card__actions">
-              <button class="btn btn--ghost btn--xs" type="button" data-select="${survey.id}" aria-pressed="${selected ? "true" : "false"}">${selected ? "Выбрано" : "Выбрать"}</button>
-              <a class="btn btn--outline btn--xs" href="${getBuilderLink(survey.id)}">Открыть</a>
-              <a class="btn btn--ghost btn--xs" href="${getResultsLink(survey.id)}">Результаты</a>
-              <button class="btn btn--ghost btn--xs" type="button" data-copy="${survey.id}">Ссылка</button>
-              <button class="btn btn--ghost btn--xs" type="button" data-qr="${survey.id}">QR</button>
-              <button class="btn btn--ghost btn--xs" type="button" data-archive="${survey.id}">${archiveLabel}</button>
-              <button class="btn btn--danger btn--xs" type="button" data-delete="${survey.id}">Удалить</button>
+              <a class="svdash-btn svdash-btn--primary svdash-btn--small svdash-card-action-main" href="${getBuilderV2Link(survey.id)}">Конструктор</a>
+              <a class="svdash-btn svdash-btn--light svdash-btn--small svdash-card-action-main" href="${getResultsLink(survey.id)}">Результаты</a>
+              <a class="svdash-btn svdash-btn--light svdash-btn--small svdash-card-action-main" href="${getPublicLink(survey.id)}" target="_blank" rel="noopener">Открыть</a>
+              <button class="svdash-btn svdash-btn--primary svdash-btn--small svdash-card-action-main" type="button" data-publish="${survey.id}" title="${publishTitle}"${publishDisabled}>${publishLabel}</button>
+              <details class="svdash-card-menu">
+                <summary aria-label="Дополнительные действия">•••</summary>
+                <div class="svdash-card-menu__list">
+                  <button type="button" data-copy="${survey.id}">Скопировать ссылку</button>
+                  <button type="button" data-qr="${survey.id}">QR-код</button>
+                  <button type="button" data-archive="${survey.id}">${survey.status === "archived" ? "Восстановить" : "Архивировать"}</button>
+                  <button class="is-danger" type="button" data-delete="${survey.id}">Удалить</button>
+                </div>
+              </details>
             </div>
           </article>
         `;
@@ -795,11 +864,6 @@ function bindEvents() {
     loadSurveys().catch(() => {});
   });
 
-  viewToggleBtn?.addEventListener("click", () => {
-    setViewMode(state.viewMode === "compact" ? "grid" : "compact", true);
-    renderCards();
-  });
-
   selectAllFilteredBtn?.addEventListener("click", selectAllFilteredSurveys);
   clearBulkSelectionBtn?.addEventListener("click", clearSurveySelection);
 
@@ -870,6 +934,23 @@ function bindEvents() {
     if (qrBtn) {
       const id = Number(qrBtn.dataset.qr);
       openQrModal(getPublicLink(id));
+      return;
+    }
+
+    const publishBtn = event.target.closest("[data-publish]");
+    if (publishBtn) {
+      const id = Number(publishBtn.dataset.publish);
+      const survey = state.surveys.find((item) => item.id === id);
+      if (survey?.status === "published") return;
+      openConfirm({
+        title: "Опубликовать анкету",
+        text: "Анкета станет доступна по публичной ссылке.",
+        action: async () => {
+          await api.request(`/api/surveys/${id}/publish`, { method: "POST" });
+          await loadSurveys();
+          showToast("Анкета опубликована");
+        }
+      });
       return;
     }
 
@@ -958,7 +1039,7 @@ function bindEvents() {
 
     if (event.key.toLowerCase() === "n") {
       event.preventDefault();
-      window.location.href = "/create";
+      window.location.href = "/create-v2";
       return;
     }
 
@@ -968,11 +1049,6 @@ function bindEvents() {
       return;
     }
 
-    if (event.key.toLowerCase() === "v") {
-      event.preventDefault();
-      setViewMode(state.viewMode === "compact" ? "grid" : "compact", true);
-      renderCards();
-    }
   });
 
   supportTemplates?.addEventListener("click", (event) => {

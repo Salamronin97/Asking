@@ -23,6 +23,7 @@
       <div class="bv2-topbar__actions">
         <button id="undoBtn" class="bv2-icon-btn" type="button" title="Отменить" disabled>↶</button>
         <button id="redoBtn" class="bv2-icon-btn" type="button" title="Повторить" disabled>↷</button>
+        <button id="onboardingStartBtn" class="bv2-btn bv2-btn--ghost" type="button">Показать обучение</button>
         <button id="previewTopBtn" class="bv2-btn bv2-btn--ghost" type="button">Предпросмотр</button>
         <button id="publishBtn" class="bv2-btn bv2-btn--primary" type="button">Публикация</button>
         <a class="bv2-avatar" href="/account" aria-label="Аккаунт">A</a>
@@ -241,6 +242,7 @@
               <h3>Ограничения</h3>
               <label class="bv2-field bv2-field--stack"><span>Дата окончания</span><input id="settingsEndsAtInput" type="date" /></label>
               <label class="bv2-field bv2-field--stack"><span>Лимит ответов</span><input id="settingsResponseLimitInput" type="number" min="1" placeholder="Без лимита" /></label>
+              <label class="bv2-field bv2-field--stack"><span>Лимит времени, минут</span><input id="settingsTimeLimitInput" type="number" min="1" placeholder="Без лимита" /></label>
             </section>
 
             <section class="bv2-settings-section">
@@ -410,7 +412,34 @@
       </div>
     </div>
 
+    <div id="builderOnboarding" class="bv2-onboarding" hidden aria-live="polite">
+      <div id="onboardingSpotlight" class="bv2-onboarding__spotlight" aria-hidden="true"></div>
+      <section id="onboardingCard" class="bv2-onboarding__card" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+        <span id="onboardingStepLabel" class="bv2-onboarding__eyebrow">Шаг 1 из 4</span>
+        <h2 id="onboardingTitle">Страницы</h2>
+        <p id="onboardingText">Страницы позволяют разделить анкету на логические блоки.</p>
+        <p id="onboardingSubtext">Можно создавать многостраничные сценарии прохождения.</p>
+        <div id="onboardingDots" class="bv2-onboarding__dots" aria-hidden="true"></div>
+        <div class="bv2-onboarding__actions">
+          <button id="onboardingCloseBtn" class="bv2-btn bv2-btn--light" type="button">Закрыть</button>
+          <button id="onboardingNextBtn" class="bv2-btn bv2-btn--primary" type="button">Далее</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="onboardingDoneCard" class="bv2-onboarding-done" hidden role="dialog" aria-modal="true" aria-labelledby="onboardingDoneTitle">
+      <div class="bv2-onboarding-done__panel">
+        <span class="bv2-onboarding-done__icon">✓</span>
+        <h2 id="onboardingDoneTitle">Готово</h2>
+        <p>Теперь вы можете создать свою первую анкету.</p>
+        <div>
+          <button id="onboardingCreateQuestionBtn" class="bv2-btn bv2-btn--primary" type="button">Создать вопрос</button>
+          <button id="onboardingDoneCloseBtn" class="bv2-btn bv2-btn--light" type="button">Закрыть</button>
+        </div>
+      </div>
+    </div>
+
     <div id="toast" class="bv2-toast" hidden></div>
-    <script src="/create-v2.js?v=20260612-3"></script>
+    <script src="/create-v2.js?v=20260612-onboarding-1"></script>
   </body>
 </html>

@@ -7,17 +7,16 @@
     <title>Аккаунт | Asking</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260518-account-refresh-2" />
+    <link rel="stylesheet" href="/styles.css?v=20260613-account-settings-1" />
   </head>
-  <body class="workspace-page svacc-page">
+  <body class="workspace-page svacc-page svacc-settings-page">
     <header class="topbar">
       <div class="container topbar__inner">
         <a class="brand" href="/"><span class="brand__mark">A</span><span>Asking</span></a>
         <div class="topbar__actions">
           <a class="btn btn--ghost" href="/guide">Инструкция</a>
-          <a class="btn btn--ghost" href="/create">Создать</a>
+          <a class="btn btn--ghost" href="/create-v2">Создать</a>
           <a class="btn btn--ghost" href="/cabinet">Кабинет</a>
           <a class="btn btn--ghost" href="/account">Аккаунт</a>
           <button id="logoutBtn" class="btn btn--outline" type="button">Выйти</button>
@@ -26,278 +25,139 @@
     </header>
 
     <main class="svacc-shell workspace-shell">
-      <aside class="svacc-side workspace-side card">
+      <aside class="svacc-side workspace-side">
         <div class="svacc-side__brand">
-          <span class="svacc-side__logo">A</span>
+          <span id="profileInitials" class="svacc-side__logo">A</span>
           <div>
-            <strong>Asking Account</strong>
-            <p>Личный кабинет пользователя</p>
+            <strong id="profileSummaryName">Аккаунт</strong>
+            <p id="profileSummaryEmail">Загрузка...</p>
           </div>
-        </div>
-
-        <div class="svacc-side__intro">
-          <h1>Аккаунт</h1>
-          <p>Профиль, безопасность и интерфейс в одной панели без потери текущих действий.</p>
         </div>
 
         <nav class="svacc-nav" aria-label="Разделы аккаунта">
           <button class="account-tab is-active" data-tab="profile" type="button">Профиль</button>
           <button class="account-tab" data-tab="security" type="button">Безопасность</button>
-          <button class="account-tab" data-tab="prefs" type="button">Предпочтения</button>
+          <button class="account-tab" data-tab="info" type="button">Информация</button>
         </nav>
-
-        <div class="svacc-side__links">
-          <a class="svacc-side__link" href="/cabinet">Мои опросы</a>
-          <a class="svacc-side__link" href="/create">Создать опрос</a>
-          <a class="svacc-side__link" href="/guide">Инструкция</a>
-          <a class="svacc-side__link" href="/author">Связь с автором</a>
-        </div>
       </aside>
 
       <section class="svacc-main workspace-main">
-        <section class="svacc-hero card">
-          <div class="svacc-hero__content">
-            <span class="svacc-kicker">Account center</span>
-            <h2>Управляйте профилем так же быстро, как опросами</h2>
-            <p>Мы сохранили все кнопки и сценарии, но сделали экран чище, информативнее и ближе к продуктовой панели.</p>
-            <div class="svacc-hero__actions">
-              <a class="btn btn--primary" href="/cabinet">Открыть кабинет</a>
-              <a class="btn btn--outline" href="/create">Создать опрос</a>
-            </div>
-          </div>
+        <section class="svacc-main__card">
+          <article class="account-pane is-active" data-pane="profile">
+            <header class="svacc-pane__head">
+              <h1>Профиль</h1>
+              <p>Основные данные аккаунта.</p>
+            </header>
 
-          <div class="svacc-hero__summary">
-            <div class="svacc-profile-card">
-              <div id="profileInitials" class="svacc-profile-card__avatar">A</div>
-              <div class="svacc-profile-card__body">
-                <strong id="profileSummaryName">Ваш профиль</strong>
-                <span id="profileSummaryEmail">Аккаунт Asking</span>
-                <div class="svacc-profile-card__badges">
-                  <span id="profileSummaryVerified" class="ui-badge ui-badge--muted">Email проверяется</span>
-                  <span id="profileSummaryPassword" class="ui-badge ui-badge--info">Пароль не загружен</span>
-                </div>
+            <div class="svacc-section-card">
+              <div class="settings-grid">
+                <label class="form-row">
+                  <span>Имя</span>
+                  <input id="displayNameInput" type="text" autocomplete="name" />
+                </label>
+                <label class="form-row">
+                  <span>Email</span>
+                  <input id="emailInput" type="email" readonly />
+                </label>
+                <label class="form-row">
+                  <span>Язык</span>
+                  <select id="localeSelect">
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
+                    <option value="kz">Қазақша</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="settings-actions">
+                <button id="saveProfileBtn" class="btn btn--primary" type="button">Сохранить</button>
               </div>
             </div>
+          </article>
 
-            <div class="svacc-metrics">
-              <article class="svacc-metric">
-                <span>Регистрация</span>
-                <strong id="profileCreatedAt">—</strong>
-              </article>
-              <article class="svacc-metric">
-                <span>Обновление</span>
-                <strong id="profileUpdatedAt">—</strong>
-              </article>
-              <article class="svacc-metric">
+          <article class="account-pane" data-pane="security">
+            <header class="svacc-pane__head">
+              <h1>Безопасность</h1>
+              <p>Пароль и активные сессии.</p>
+            </header>
+
+            <section class="svacc-section-card">
+              <div class="svacc-section-card__head">
+                <h2>Сменить пароль</h2>
+                <p id="securityPasswordHint">После загрузки будет видно, доступна ли смена пароля.</p>
+              </div>
+
+              <div id="passwordUnavailable" class="svacc-note" hidden>
+                <p>Смена пароля недоступна для текущего способа входа.</p>
+              </div>
+
+              <div id="passwordForm" class="settings-grid">
+                <label class="form-row">
+                  <span>Текущий пароль</span>
+                  <div class="account-password-row">
+                    <input id="currentPasswordInput" type="password" autocomplete="current-password" />
+                    <button class="btn btn--ghost btn--xs" data-toggle-password="currentPasswordInput" type="button">Показать</button>
+                  </div>
+                </label>
+                <label class="form-row">
+                  <span>Новый пароль</span>
+                  <div class="account-password-row">
+                    <input id="newPasswordInput" type="password" autocomplete="new-password" />
+                    <button class="btn btn--ghost btn--xs" data-toggle-password="newPasswordInput" type="button">Показать</button>
+                  </div>
+                </label>
+                <label class="form-row">
+                  <span>Повторите новый пароль</span>
+                  <div class="account-password-row">
+                    <input id="repeatPasswordInput" type="password" autocomplete="new-password" />
+                    <button class="btn btn--ghost btn--xs" data-toggle-password="repeatPasswordInput" type="button">Показать</button>
+                  </div>
+                </label>
+              </div>
+
+              <div class="settings-actions">
+                <button id="changePasswordBtn" class="btn btn--outline" type="button">Сменить пароль</button>
+              </div>
+            </section>
+
+            <section class="svacc-section-card">
+              <div class="svacc-section__head">
+                <div>
+                  <h2>Активные сессии</h2>
+                  <p><span id="securitySessionsCount">0</span> активных подключений.</p>
+                </div>
+                <button id="refreshSessionsBtn" class="btn btn--ghost btn--xs" type="button">Обновить</button>
+              </div>
+              <div id="sessionsList" class="svacc-sessions"></div>
+              <div class="settings-actions">
+                <button id="logoutAllBtn" class="btn btn--danger" type="button">Выйти на всех устройствах</button>
+              </div>
+            </section>
+          </article>
+
+          <article class="account-pane" data-pane="info">
+            <header class="svacc-pane__head">
+              <h1>Информация</h1>
+              <p>Служебные данные аккаунта.</p>
+            </header>
+
+            <section class="svacc-section-card">
+              <div class="svacc-account-row">
+                <span>Дата регистрации</span>
+                <strong id="profileCreatedAt">-</strong>
+              </div>
+              <div class="svacc-account-row">
+                <span>Последнее обновление</span>
+                <strong id="profileUpdatedAt">-</strong>
+              </div>
+              <div class="svacc-account-row">
                 <span>Активные сессии</span>
                 <strong id="profileSessionsCount">0</strong>
-              </article>
-            </div>
-          </div>
-        </section>
-
-        <section class="svacc-main__card card">
-        <article class="account-pane is-active" data-pane="profile">
-          <header class="svacc-pane__head">
-            <h2>Профиль</h2>
-            <p>Базовая информация учетной записи и краткая сводка по вашему рабочему месту.</p>
-          </header>
-
-          <div class="svacc-overview-grid">
-            <article class="svacc-info-card">
-              <span class="svacc-info-card__label">Статус профиля</span>
-              <strong id="profileCompleteness">Заполняем профиль</strong>
-              <p id="profileCompletenessHint">Добавьте имя, компанию и должность, чтобы профиль выглядел завершенным.</p>
-            </article>
-            <article class="svacc-info-card">
-              <span class="svacc-info-card__label">Рабочий контекст</span>
-              <strong id="profileCompanyPreview">Личная рабочая область</strong>
-              <p id="profileRolePreview">Укажите компанию и роль, чтобы команда быстрее вас идентифицировала.</p>
-            </article>
-            <article class="svacc-info-card">
-              <span class="svacc-info-card__label">Интерфейс</span>
-              <strong id="profileThemePreview">Светлая тема</strong>
-              <p id="profileLocalePreview">Язык и формат даты подгружаются из ваших предпочтений.</p>
-            </article>
-          </div>
-
-          <div class="svacc-section-card">
-            <div class="svacc-section-card__head">
-              <h3>Основные данные</h3>
-              <p>Все поля ниже сохраняются в текущую учетную запись.</p>
-            </div>
-            <div class="settings-grid">
-              <label class="form-row">
-                <span>Имя</span>
-                <input id="displayNameInput" type="text" />
-              </label>
-              <label class="form-row">
-                <span>Email</span>
-                <input id="emailInput" type="email" readonly />
-              </label>
-              <label class="form-row">
-                <span>Компания</span>
-                <input id="companyInput" type="text" placeholder="Например, Asking Team" />
-              </label>
-              <label class="form-row">
-                <span>Должность</span>
-                <input id="positionInput" type="text" placeholder="Например, Product Manager" />
-              </label>
-            </div>
-            <div class="settings-actions">
-              <button id="saveProfileBtn" class="btn btn--primary" type="button">Сохранить профиль</button>
-            </div>
-          </div>
-        </article>
-
-        <article class="account-pane" data-pane="security">
-          <header class="svacc-pane__head">
-            <h2>Безопасность</h2>
-            <p>Смена пароля, управление устройствами и удаление аккаунта без потери текущих функций.</p>
-          </header>
-
-          <div class="svacc-overview-grid">
-            <article class="svacc-info-card">
-              <span class="svacc-info-card__label">Защита входа</span>
-              <strong id="securityPasswordState">Пароль проверяется</strong>
-              <p id="securityPasswordHint">После загрузки увидите, можно ли сменить пароль в этом режиме входа.</p>
-            </article>
-            <article class="svacc-info-card">
-              <span class="svacc-info-card__label">Текущее устройство</span>
-              <strong id="securityCurrentDevice">Не определено</strong>
-              <p id="securityCurrentHint">Здесь будет показана активная сессия, из которой вы открыли кабинет.</p>
-            </article>
-            <article class="svacc-info-card">
-              <span class="svacc-info-card__label">Всего сессий</span>
-              <strong id="securitySessionsCount">0</strong>
-              <p>При необходимости можно завершить отдельные устройства или сразу все.</p>
-            </article>
-          </div>
-
-          <div id="passwordUnavailable" class="svacc-note" hidden>
-            <p>Смена пароля недоступна в текущем режиме авторизации.</p>
-          </div>
-
-          <div class="svacc-section-card">
-            <div class="svacc-section-card__head">
-              <h3>Доступ к аккаунту</h3>
-              <p>Обновите пароль, если хотите ограничить доступ со старых устройств.</p>
-            </div>
-            <div id="passwordForm" class="settings-grid">
-              <label class="form-row">
-                <span>Текущий пароль</span>
-                <div class="account-password-row">
-                  <input id="currentPasswordInput" type="password" autocomplete="current-password" />
-                  <button class="btn btn--ghost btn--xs" data-toggle-password="currentPasswordInput" type="button">Показать</button>
-                </div>
-              </label>
-              <label class="form-row">
-                <span>Новый пароль</span>
-                <div class="account-password-row">
-                  <input id="newPasswordInput" type="password" autocomplete="new-password" />
-                  <button class="btn btn--ghost btn--xs" data-toggle-password="newPasswordInput" type="button">Показать</button>
-                </div>
-              </label>
-              <label class="form-row">
-                <span>Повторите новый пароль</span>
-                <div class="account-password-row">
-                  <input id="repeatPasswordInput" type="password" autocomplete="new-password" />
-                  <button class="btn btn--ghost btn--xs" data-toggle-password="repeatPasswordInput" type="button">Показать</button>
-                </div>
-              </label>
-            </div>
-
-            <div class="settings-actions">
-              <button id="changePasswordBtn" class="btn btn--outline" type="button">Сменить пароль</button>
-              <button id="logoutAllBtn" class="btn btn--danger" type="button">Выйти со всех устройств</button>
-            </div>
-          </div>
-
-          <section class="svacc-section svacc-section-card">
-            <div class="svacc-section__head">
-              <h3>Активные сессии</h3>
-              <button id="refreshSessionsBtn" class="btn btn--ghost btn--xs" type="button">Обновить</button>
-            </div>
-            <div id="sessionsList" class="svacc-sessions"></div>
-          </section>
-
-          <section class="svacc-danger svacc-section-card">
-            <div class="svacc-danger__head">
-              <h3>Опасная зона</h3>
-              <p>Удаление аккаунта необратимо.</p>
-            </div>
-            <label class="form-row">
-              <span id="deleteAccountHint">Введите пароль для подтверждения удаления аккаунта.</span>
-              <div class="account-password-row">
-                <input id="deleteAccountPasswordInput" type="password" autocomplete="current-password" />
-                <button class="btn btn--ghost btn--xs" data-toggle-password="deleteAccountPasswordInput" type="button">Показать</button>
               </div>
-            </label>
-            <button id="deleteAccountBtn" class="btn btn--danger" type="button">Удалить аккаунт</button>
-          </section>
-        </article>
+            </section>
+          </article>
 
-        <article class="account-pane" data-pane="prefs">
-          <header class="svacc-pane__head">
-            <h2>Предпочтения</h2>
-            <p>Язык интерфейса, тема, формат даты и быстрые переходы к помощи.</p>
-          </header>
-
-          <div class="svacc-overview-grid">
-            <article class="svacc-info-card">
-              <span class="svacc-info-card__label">Язык</span>
-              <strong id="prefsLocalePreview">RU</strong>
-              <p>Локализация применяется к рабочим экранам и системным подписям.</p>
-            </article>
-            <article class="svacc-info-card">
-              <span class="svacc-info-card__label">Тема</span>
-              <strong id="prefsThemePreview">Светлая</strong>
-              <p>Тема сохраняется и переносится между страницами проекта.</p>
-            </article>
-          </div>
-
-          <div class="svacc-section-card">
-            <div class="svacc-section-card__head">
-              <h3>Настройки интерфейса</h3>
-              <p>Выберите удобный язык и тему оформления.</p>
-            </div>
-            <div class="settings-grid">
-              <label class="form-row">
-                <span>Язык</span>
-                <select id="localeSelect">
-                  <option value="ru">RU</option>
-                  <option value="en">EN</option>
-                  <option value="kz">KZ</option>
-                </select>
-              </label>
-              <label class="form-row">
-                <span>Тема</span>
-                <select id="themeSelect">
-                  <option value="light">Светлая</option>
-                  <option value="dark">Темная</option>
-                  <option value="system">Системная</option>
-                </select>
-              </label>
-            </div>
-
-            <div class="settings-actions">
-              <button id="savePrefsBtn" class="btn btn--primary" type="button">Сохранить предпочтения</button>
-            </div>
-          </div>
-
-          <section class="svacc-section svacc-section-card">
-            <div class="svacc-section__head">
-              <h3>Помощь и поддержка</h3>
-            </div>
-            <p class="svacc-note">Если нужно быстро решить проблему, откройте инструкцию или напишите автору проекта.</p>
-            <div class="settings-actions">
-              <button id="supportGuideBtn" class="btn btn--outline" type="button">Открыть инструкцию</button>
-              <button id="supportAuthorBtn" class="btn btn--primary" type="button">Связь с автором</button>
-            </div>
-          </section>
-        </article>
-
-        <p id="accountStatus" class="status"></p>
+          <p id="accountStatus" class="status"></p>
         </section>
       </section>
     </main>
@@ -316,6 +176,6 @@
     <div id="toast" class="toast" hidden></div>
 
     <script src="/lang.js?v=20260429-1"></script>
-    <script src="/account.js?v=20260518-account-refresh-2"></script>
+    <script src="/account.js?v=20260613-account-settings-1"></script>
   </body>
 </html>

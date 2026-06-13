@@ -382,6 +382,21 @@
   templates.government = templates.public_service_feedback;
   templates.nonprofit = templates.nonprofit_volunteer_feedback;
   templates.feedback = templates.customer_satisfaction_pro;
+  templates.blank = {
+    id: "blank",
+    title: "Пустая анкета",
+    description: "Чистая структура для нового сценария без лишних блоков.",
+    audience: "",
+    pages: [
+      {
+        title: "Страница 1",
+        design: design("", "#f6f7fb", "full", 0, { imageEnabled: false }),
+        questions: [
+          q("text", "Первый вопрос", true)
+        ]
+      }
+    ]
+  };
 
   return templates;
 });

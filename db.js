@@ -83,6 +83,8 @@ async function init() {
       audience TEXT,
       status TEXT NOT NULL DEFAULT 'published',
       allow_multiple_responses INTEGER NOT NULL DEFAULT 0,
+      response_limit INTEGER,
+      time_limit_seconds INTEGER,
       starts_at TEXT,
       ends_at TEXT,
       created_at TEXT NOT NULL,
@@ -138,6 +140,10 @@ async function init() {
       survey_id INTEGER NOT NULL,
       participant_hash TEXT,
       respondent_hash TEXT,
+      started_at TEXT,
+      completed_at TEXT,
+      duration_seconds INTEGER,
+      status TEXT NOT NULL DEFAULT 'completed',
       created_at TEXT NOT NULL,
       FOREIGN KEY(survey_id) REFERENCES surveys(id) ON DELETE CASCADE
     )
@@ -224,6 +230,9 @@ async function init() {
   if (!surveyColumns.some((column) => column.name === "response_limit")) {
     await run("ALTER TABLE surveys ADD COLUMN response_limit INTEGER");
   }
+  if (!surveyColumns.some((column) => column.name === "time_limit_seconds")) {
+    await run("ALTER TABLE surveys ADD COLUMN time_limit_seconds INTEGER");
+  }
   const userColumns = await all("PRAGMA table_info(users)");
   if (!userColumns.some((column) => column.name === "username")) {
     await run("ALTER TABLE users ADD COLUMN username TEXT");
@@ -269,6 +278,24 @@ async function init() {
   const responseColumns = await all("PRAGMA table_info(responses)");
   if (!responseColumns.some((column) => column.name === "respondent_hash")) {
     await run("ALTER TABLE responses ADD COLUMN respondent_hash TEXT");
+  }
+  if (!responseColumns.some((column) => column.name === "started_at")) {
+    await run("ALTER TABLE responses ADD COLUMN started_at TEXT");
+  }
+  if (!responseColumns.some((column) => column.name === "completed_at")) {
+    await run("ALTER TABLE responses ADD COLUMN completed_at TEXT");
+  }
+  if (!responseColumns.some((column) => column.name === "duration_seconds")) {
+    await run("ALTER TABLE responses ADD COLUMN duration_seconds INTEGER");
+  }
+  if (!responseColumns.some((column) => column.name === "status")) {
+    await run("ALTER TABLE responses ADD COLUMN status TEXT NOT NULL DEFAULT 'completed'");
+  }
+  if (!responseColumns.some((column) => column.name === "respondent_name")) {
+    await run("ALTER TABLE responses ADD COLUMN respondent_name TEXT");
+  }
+  if (!responseColumns.some((column) => column.name === "respondent_email")) {
+    await run("ALTER TABLE responses ADD COLUMN respondent_email TEXT");
   }
   const sessionColumns = await all("PRAGMA table_info(auth_sessions)");
   if (!sessionColumns.some((column) => column.name === "user_agent")) {

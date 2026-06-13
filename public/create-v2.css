@@ -2563,3 +2563,207 @@ body[data-animation-style="none"] .bv2-preview-runtime-question {
     min-height: auto;
   }
 }
+
+.bv2-onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  pointer-events: auto;
+  opacity: 1;
+  transition: opacity 220ms ease;
+}
+
+.bv2-onboarding[hidden],
+.bv2-onboarding-done[hidden] {
+  display: none;
+}
+
+.bv2-onboarding::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(9, 12, 22, 0.62);
+  backdrop-filter: blur(2px);
+}
+
+.bv2-onboarding__spotlight {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 120px;
+  height: 120px;
+  border: 2px solid rgba(255, 255, 255, 0.96);
+  border-radius: 24px;
+  box-shadow:
+    0 0 0 9999px rgba(9, 12, 22, 0.34),
+    0 24px 70px rgba(108, 99, 255, 0.28),
+    inset 0 0 0 1px rgba(108, 99, 255, 0.52);
+  pointer-events: none;
+  transition: transform 360ms cubic-bezier(0.2, 0.8, 0.2, 1), width 360ms cubic-bezier(0.2, 0.8, 0.2, 1), height 360ms cubic-bezier(0.2, 0.8, 0.2, 1), border-radius 360ms ease;
+}
+
+.bv2-onboarding__card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: min(390px, calc(100vw - 32px));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 24px;
+  padding: 22px;
+  color: #fff;
+  background: rgba(17, 24, 39, 0.92);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(18px);
+  transition: transform 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.bv2-onboarding__eyebrow {
+  display: inline-flex;
+  min-height: 26px;
+  border-radius: 999px;
+  padding: 0 10px;
+  align-items: center;
+  color: #ddd9ff;
+  background: rgba(108, 99, 255, 0.22);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.bv2-onboarding__card h2 {
+  margin: 14px 0 10px;
+  color: #fff;
+  font-size: 26px;
+  line-height: 1.08;
+  font-weight: 900;
+}
+
+.bv2-onboarding__card p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 650;
+}
+
+.bv2-onboarding__card p + p {
+  margin-top: 8px;
+}
+
+.bv2-onboarding__dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 18px;
+}
+
+.bv2-onboarding__dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  transition: width 200ms ease, background 200ms ease;
+}
+
+.bv2-onboarding__dots span.is-active {
+  width: 24px;
+  background: #fff;
+}
+
+.bv2-onboarding__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.bv2-onboarding__actions .bv2-btn--light {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.bv2-onboarding-done {
+  position: fixed;
+  inset: 0;
+  z-index: 125;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(9, 12, 22, 0.48);
+  backdrop-filter: blur(3px);
+}
+
+.bv2-onboarding-done__panel {
+  width: min(420px, 100%);
+  border: 1px solid var(--bv2-line);
+  border-radius: 24px;
+  padding: 26px;
+  color: var(--bv2-text);
+  background: #fff;
+  box-shadow: var(--bv2-shadow);
+  text-align: center;
+  animation: bv2OnboardingDoneIn 240ms ease both;
+}
+
+.bv2-onboarding-done__icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 14px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--bv2-accent), var(--bv2-accent-dark));
+  box-shadow: 0 14px 30px rgba(108, 99, 255, 0.24);
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.bv2-onboarding-done__panel h2 {
+  margin: 0;
+  color: var(--bv2-text);
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.bv2-onboarding-done__panel p {
+  margin: 10px 0 22px;
+  color: var(--bv2-muted);
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+.bv2-onboarding-done__panel div {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@keyframes bv2OnboardingDoneIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 760px) {
+  .bv2-onboarding__card {
+    padding: 18px;
+    border-radius: 20px;
+  }
+
+  .bv2-onboarding__actions {
+    flex-direction: column-reverse;
+  }
+
+  .bv2-onboarding__actions .bv2-btn,
+  .bv2-onboarding-done__panel .bv2-btn {
+    width: 100%;
+  }
+}
