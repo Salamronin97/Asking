@@ -1758,6 +1758,12 @@
       endsAt: state.survey.endsAt || null,
       responseLimit: state.survey.responseLimit || null,
       timeLimitSeconds: state.survey.timeLimitSeconds || null,
+      settings: {
+        ...(state.survey.settings || {}),
+        language: ["ru", "en"].includes(String(state.survey.settings?.language || "").toLowerCase())
+          ? String(state.survey.settings.language).toLowerCase()
+          : "ru"
+      },
       pages: state.survey.pages.map((page) => ({
         title: page.title || "Страница",
         design: {
@@ -1888,6 +1894,7 @@
     const firstDesign = pages[0]?.design || {};
     const firstWelcome = firstDesign.welcome && typeof firstDesign.welcome === "object" ? firstDesign.welcome : {};
     const welcomeOverlay = Number(firstWelcome.welcomeOverlayStrength ?? firstWelcome.overlay);
+    const persistedSettings = survey.settings && typeof survey.settings === "object" ? survey.settings : {};
     state.survey = {
       title: survey.title || "Новая анкета",
       description: survey.description || "",
@@ -1900,6 +1907,8 @@
       hasAccessPassword: Boolean(survey.has_access_password),
       settings: {
         ...(state.survey.settings || {}),
+        ...persistedSettings,
+        language: ["ru", "en"].includes(String(persistedSettings.language || "").toLowerCase()) ? String(persistedSettings.language).toLowerCase() : "ru",
         welcomeTitle: firstWelcome.welcomeTitle || firstWelcome.title || survey.title || "Название анкеты",
         welcomeSubtitle: firstWelcome.welcomeSubtitle || firstWelcome.subtitle || "Добро пожаловать",
         welcomeDescription: firstWelcome.welcomeDescription || firstWelcome.description || survey.description || "Описание анкеты",

@@ -2,7 +2,8 @@ const searchInput = document.getElementById("guideSearchInput");
 const faqList = document.getElementById("guideFaqList");
 const emptyNode = document.getElementById("guideFaqEmpty");
 
-const LANG_KEY = "asking-pro-lang";
+const LANG_KEY = "asking_language";
+const LEGACY_LANG_KEY = "asking-pro-lang";
 const SUPPORTED_LANGS = new Set(["ru", "en", "kz"]);
 
 const guideI18n = {
@@ -93,7 +94,7 @@ const guideI18n = {
 };
 
 function getLang() {
-  const value = String(localStorage.getItem(LANG_KEY) || "ru").trim().toLowerCase();
+  const value = String(localStorage.getItem(LANG_KEY) || localStorage.getItem(LEGACY_LANG_KEY) || "ru").trim().toLowerCase();
   return SUPPORTED_LANGS.has(value) ? value : "ru";
 }
 
@@ -166,7 +167,7 @@ function applyFaqFilter() {
 searchInput?.addEventListener("input", applyFaqFilter);
 window.addEventListener("asking:languagechange", renderGuide);
 window.addEventListener("storage", (event) => {
-  if (event.key === LANG_KEY) renderGuide();
+  if (event.key === LANG_KEY || event.key === LEGACY_LANG_KEY) renderGuide();
 });
 
 renderGuide();

@@ -25,7 +25,8 @@
   toggleConfirmPasswordBtn: document.getElementById("toggleConfirmPasswordBtn")
 };
 
-const LANG_KEY = "asking-pro-lang";
+const LANG_KEY = "asking_language";
+const LEGACY_LANG_KEY = "asking-pro-lang";
 const SUPPORTED_LANGS = ["ru", "en", "kz"];
 const params = new URLSearchParams(window.location.search);
 const resetTokenFromUrl = String(params.get("reset") || "").trim();
@@ -34,7 +35,7 @@ const nextUrl = String(params.get("next") || "/");
 const state = {
   mode: "login",
   submitting: false,
-  lang: SUPPORTED_LANGS.includes(localStorage.getItem(LANG_KEY)) ? localStorage.getItem(LANG_KEY) : "ru"
+  lang: SUPPORTED_LANGS.includes(localStorage.getItem(LANG_KEY) || localStorage.getItem(LEGACY_LANG_KEY)) ? (localStorage.getItem(LANG_KEY) || localStorage.getItem(LEGACY_LANG_KEY)) : "ru"
 };
 
 const i18n = {
@@ -361,6 +362,8 @@ async function bootstrap() {
   refs.languageSelect.addEventListener("change", () => {
     state.lang = refs.languageSelect.value;
     localStorage.setItem(LANG_KEY, state.lang);
+    localStorage.setItem(LEGACY_LANG_KEY, state.lang);
+    localStorage.setItem(`${LANG_KEY}_manual`, "1");
     applyI18n();
     setMode(state.mode);
   });

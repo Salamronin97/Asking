@@ -85,6 +85,7 @@ async function init() {
       allow_multiple_responses INTEGER NOT NULL DEFAULT 0,
       response_limit INTEGER,
       time_limit_seconds INTEGER,
+      settings_json TEXT,
       starts_at TEXT,
       ends_at TEXT,
       created_at TEXT NOT NULL,
@@ -232,6 +233,9 @@ async function init() {
   }
   if (!surveyColumns.some((column) => column.name === "time_limit_seconds")) {
     await run("ALTER TABLE surveys ADD COLUMN time_limit_seconds INTEGER");
+  }
+  if (!surveyColumns.some((column) => column.name === "settings_json")) {
+    await run("ALTER TABLE surveys ADD COLUMN settings_json TEXT");
   }
   const userColumns = await all("PRAGMA table_info(users)");
   if (!userColumns.some((column) => column.name === "username")) {

@@ -182,6 +182,15 @@ function parseTimeLimitSeconds(value) {
   return Math.min(Math.round(parsed), 24 * 60 * 60);
 }
 
+function normalizeSurveySettings(raw) {
+  const obj = raw && typeof raw === "object" ? raw : {};
+  const languageRaw = String(obj.language || "").trim().toLowerCase();
+  return {
+    ...obj,
+    language: ["ru", "en"].includes(languageRaw) ? languageRaw : "ru"
+  };
+}
+
 function normalizeStoredQuestionType(type) {
   const value = String(type || "").trim().toLowerCase();
   if (value === "multiple") return "multi";
@@ -865,6 +874,7 @@ function validateSurveyPayload(payload) {
   const allowMultipleResponses = parseBool(payload?.allowMultipleResponses, false) ? 1 : 0;
   const responseLimit = parseResponseLimit(payload?.responseLimit);
   const timeLimitSeconds = parseTimeLimitSeconds(payload?.timeLimitSeconds);
+  const settings = normalizeSurveySettings(payload?.settings);
 
   if (title.length < 3) fields.push("title");
 
@@ -909,7 +919,7 @@ function validateSurveyPayload(payload) {
 
   return {
     fields,
-    payload: { title, description, audience, startsAt, endsAt, allowMultipleResponses, responseLimit, timeLimitSeconds, questions, pages: normalizedPages }
+    payload: { title, description, audience, startsAt, endsAt, allowMultipleResponses, responseLimit, timeLimitSeconds, settings, questions, pages: normalizedPages }
   };
 }
 
@@ -1978,7 +1988,7 @@ app.get("/api/public/surveys/:id", async (req, res, next) => {
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
-      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, access_password_hash, response_limit, time_limit_seconds
+      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, access_password_hash, response_limit, time_limit_seconds, settings_json
        FROM surveys
        WHERE id = ?`,
       [surveyId]
@@ -2010,6 +2020,7 @@ app.get("/api/public/surveys/:id", async (req, res, next) => {
       ends_at: survey.ends_at,
       response_limit: Number.isInteger(Number(survey.response_limit)) ? Number(survey.response_limit) : null,
       time_limit_seconds: Number.isInteger(Number(survey.time_limit_seconds)) ? Number(survey.time_limit_seconds) : null,
+      settings: normalizeSurveySettings(safeJsonParse(survey.settings_json, {})),
       has_access_password: Boolean(survey.access_password_hash)
     };
 
@@ -2033,7 +2044,7 @@ app.post("/api/surveys/:id/duplicate", requireAuth, async (req, res, next) => {
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
-      `SELECT id, title, description, audience, allow_multiple_responses, response_limit, time_limit_seconds, starts_at, ends_at
+      `SELECT id, title, description, audience, allow_multiple_responses, response_limit, time_limit_seconds, settings_json, starts_at, ends_at
        FROM surveys
        WHERE id = ? AND owner_user_id = ?`,
       [surveyId, req.user.id]
@@ -2045,8 +2056,8 @@ app.post("/api/surveys/:id/duplicate", requireAuth, async (req, res, next) => {
     const createdAt = nowIso();
     const clone = await run(
       `INSERT INTO surveys
-        (owner_user_id, title, description, audience, status, allow_multiple_responses, response_limit, time_limit_seconds, starts_at, ends_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?)`,
+        (owner_user_id, title, description, audience, status, allow_multiple_responses, response_limit, time_limit_seconds, settings_json, starts_at, ends_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.user.id,
         `${survey.title} (Copy)`,
@@ -2055,6 +2066,7 @@ app.post("/api/surveys/:id/duplicate", requireAuth, async (req, res, next) => {
         survey.allow_multiple_responses,
         survey.response_limit,
         survey.time_limit_seconds,
+        survey.settings_json || JSON.stringify(normalizeSurveySettings({})),
         survey.starts_at,
         survey.ends_at,
         createdAt,
@@ -2118,7 +2130,7 @@ app.get("/api/surveys/:id", async (req, res, next) => {
     if (!Number.isInteger(surveyId)) return res.status(400).json({ error: "Invalid id" });
 
     const survey = await get(
-      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, access_password_hash, response_limit, time_limit_seconds, created_at, updated_at
+      `SELECT id, owner_user_id, title, description, audience, status, allow_multiple_responses, starts_at, ends_at, access_password_hash, response_limit, time_limit_seconds, settings_json, created_at, updated_at
        FROM surveys
        WHERE id = ?`,
       [surveyId]
@@ -2134,6 +2146,8 @@ app.get("/api/surveys/:id", async (req, res, next) => {
     res.json({
       survey: {
         ...survey,
+        settings: normalizeSurveySettings(safeJsonParse(survey.settings_json, {})),
+        settings_json: undefined,
         has_access_password: Boolean(survey.access_password_hash),
         access_password_hash: undefined
       },
@@ -2153,8 +2167,8 @@ app.post("/api/surveys", requireAuth, async (req, res, next) => {
     const createdAt = nowIso();
     const created = await run(
       `INSERT INTO surveys
-        (owner_user_id, title, description, audience, status, allow_multiple_responses, response_limit, time_limit_seconds, starts_at, ends_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?)`,
+        (owner_user_id, title, description, audience, status, allow_multiple_responses, response_limit, time_limit_seconds, settings_json, starts_at, ends_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.user.id,
         payload.title,
@@ -2163,6 +2177,7 @@ app.post("/api/surveys", requireAuth, async (req, res, next) => {
         payload.allowMultipleResponses,
         payload.responseLimit,
         payload.timeLimitSeconds,
+        JSON.stringify(payload.settings),
         payload.startsAt,
         payload.endsAt,
         createdAt,
@@ -2221,7 +2236,7 @@ app.put("/api/surveys/:id", requireAuth, async (req, res, next) => {
 
     await run(
       `UPDATE surveys
-       SET title = ?, description = ?, audience = ?, allow_multiple_responses = ?, response_limit = ?, time_limit_seconds = ?, starts_at = ?, ends_at = ?, updated_at = ?
+       SET title = ?, description = ?, audience = ?, allow_multiple_responses = ?, response_limit = ?, time_limit_seconds = ?, settings_json = ?, starts_at = ?, ends_at = ?, updated_at = ?
        WHERE id = ?`,
       [
         payload.title,
@@ -2230,6 +2245,7 @@ app.put("/api/surveys/:id", requireAuth, async (req, res, next) => {
         payload.allowMultipleResponses,
         payload.responseLimit,
         payload.timeLimitSeconds,
+        JSON.stringify(payload.settings),
         payload.startsAt,
         payload.endsAt,
         nowIso(),
@@ -2292,7 +2308,7 @@ app.patch("/api/surveys/:id", requireAuth, async (req, res, next) => {
 
     await run(
       `UPDATE surveys
-       SET title = ?, description = ?, audience = ?, allow_multiple_responses = ?, response_limit = ?, time_limit_seconds = ?, starts_at = ?, ends_at = ?, updated_at = ?
+       SET title = ?, description = ?, audience = ?, allow_multiple_responses = ?, response_limit = ?, time_limit_seconds = ?, settings_json = ?, starts_at = ?, ends_at = ?, updated_at = ?
        WHERE id = ?`,
       [
         payload.title,
@@ -2301,6 +2317,7 @@ app.patch("/api/surveys/:id", requireAuth, async (req, res, next) => {
         payload.allowMultipleResponses,
         payload.responseLimit,
         payload.timeLimitSeconds,
+        JSON.stringify(payload.settings),
         payload.startsAt,
         payload.endsAt,
         nowIso(),

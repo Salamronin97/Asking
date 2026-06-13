@@ -231,11 +231,12 @@
     <script src="/theme.js?v=20260315-theme-public-1"></script>
     <script src="/lang.js?v=20260429-1"></script>
     <script>
-      const LANG_KEY = "asking-pro-lang";
+      const LANG_KEY = "asking_language";
+      const LEGACY_LANG_KEY = "asking-pro-lang";
       const languageSelect = document.getElementById("languageSelect");
       const authBtn = document.getElementById("authBtn");
 
-      const savedLang = localStorage.getItem(LANG_KEY);
+      const savedLang = localStorage.getItem(LANG_KEY) || localStorage.getItem(LEGACY_LANG_KEY);
       if (["ru", "en", "kz"].includes(savedLang)) {
         languageSelect.value = savedLang;
         document.documentElement.lang = savedLang;
@@ -243,6 +244,8 @@
 
       languageSelect.addEventListener("change", () => {
         localStorage.setItem(LANG_KEY, languageSelect.value);
+        localStorage.setItem(LEGACY_LANG_KEY, languageSelect.value);
+        localStorage.setItem(`${LANG_KEY}_manual`, "1");
         document.documentElement.lang = languageSelect.value;
       });
 

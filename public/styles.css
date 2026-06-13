@@ -11520,6 +11520,14 @@ body.survey-page.survey-public-mode #ownerApp {
 
 body.survey-page.survey-public-mode #publicApp {
   display: block !important;
+  position: relative;
+}
+
+body.survey-page.survey-public-mode .public-runtime-lang-select {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 80;
 }
 
 body.survey-page.survey-public-mode #surveyCard {
@@ -12617,10 +12625,6 @@ body.survey-page.survey-public-mode .bv2-test-badge {
 .svdash-page input,
 .svdash-page select {
   font: inherit;
-}
-
-.svdash-page .asking-lang-select {
-  display: none;
 }
 
 .svdash-topbar {

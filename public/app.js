@@ -7,9 +7,11 @@ const state = {
   },
   surveys: [],
   templates: [],
-  lang: localStorage.getItem("asking-pro-lang") || "ru",
+  lang: localStorage.getItem("asking_language") || localStorage.getItem("asking-pro-lang") || "ru",
   user: null
 };
+const LANG_KEY = "asking_language";
+const LEGACY_LANG_KEY = "asking-pro-lang";
 
 const DRAFT_CACHE_KEY = "asking-pro-builder-draft";
 const languageSelect = document.getElementById("languageSelect");
@@ -1151,7 +1153,9 @@ function wireEvents() {
 
   languageSelect.addEventListener("change", async () => {
     state.lang = languageSelect.value === "en" ? "en" : "ru";
-    localStorage.setItem("asking-pro-lang", state.lang);
+    localStorage.setItem(LANG_KEY, state.lang);
+    localStorage.setItem(LEGACY_LANG_KEY, state.lang);
+    localStorage.setItem(`${LANG_KEY}_manual`, "1");
     const draft = collectSurveyPayload();
     applyStaticI18n();
     questionsWrap.innerHTML = "";

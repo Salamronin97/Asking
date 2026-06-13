@@ -1,13 +1,15 @@
 (() => {
   "use strict";
 
-  const LANG_KEY = "asking-pro-lang";
+  const LANG_KEY = "asking_language";
+  const LEGACY_LANG_KEY = "asking-pro-lang";
   const SUPPORTED_LANGS = ["ru", "en", "kz"];
   const SELECT_ID = "languageSelect";
   const textSourceCache = new WeakMap();
   const placeholderSourceCache = new WeakMap();
   const attributeSourceCache = new WeakMap();
   const titleSourceCache = { value: "" };
+  let activeLang = null;
   let isApplying = false;
   let applyQueued = false;
   let observer = null;
@@ -1102,17 +1104,23 @@
   };
 
   function getLang() {
-    const saved = String(localStorage.getItem(LANG_KEY) || "ru").trim().toLowerCase();
+    if (SUPPORTED_LANGS.includes(activeLang)) return activeLang;
+    const saved = String(localStorage.getItem(LANG_KEY) || localStorage.getItem(LEGACY_LANG_KEY) || "ru").trim().toLowerCase();
     return SUPPORTED_LANGS.includes(saved) ? saved : "ru";
   }
 
-  function setLang(lang) {
+  function setLang(lang, options = {}) {
     const next = SUPPORTED_LANGS.includes(lang) ? lang : "ru";
-    localStorage.setItem(LANG_KEY, next);
+    activeLang = next;
+    if (!options.transient) {
+      localStorage.setItem(LANG_KEY, next);
+      localStorage.setItem(LEGACY_LANG_KEY, next);
+      if (options.manual !== false) localStorage.setItem(`${LANG_KEY}_manual`, "1");
+    }
     document.documentElement.lang = next;
     syncSelectValue(next);
     applyTranslations();
-    window.dispatchEvent(new CustomEvent("asking:languagechange", { detail: { lang: next } }));
+    window.dispatchEvent(new CustomEvent("asking:languagechange", { detail: { lang: next, manual: options.manual !== false, transient: Boolean(options.transient) } }));
   }
 
   function syncSelectValue(lang) {
@@ -1179,6 +1187,7 @@
     });
 
     document.querySelectorAll("option").forEach((node) => {
+      if (node.closest("[data-no-i18n]")) return;
       const raw = textSourceCache.has(node) ? textSourceCache.get(node) : node.textContent;
       if (!raw || !raw.trim()) return;
       if (!textSourceCache.has(node)) textSourceCache.set(node, raw);
@@ -1215,6 +1224,7 @@
       const parent = walker.currentNode.parentElement;
       if (!parent) continue;
       if (["SCRIPT", "STYLE", "TEXTAREA", "OPTION"].includes(parent.tagName)) continue;
+      if (parent.closest("[data-no-i18n]")) continue;
       textNodes.push(walker.currentNode);
     }
     textNodes.forEach((node) => translateTextNode(node, lang));
@@ -1264,6 +1274,10 @@
 
     const target =
       document.querySelector(".auth-card__top") ||
+      document.querySelector(".bv2-topbar__actions") ||
+      document.querySelector(".rv2-topbar__actions") ||
+      document.querySelector(".svdash-topbar__actions") ||
+      document.querySelector(".author-v2-actions") ||
       document.querySelector(".topbar__actions") ||
       document.querySelector(".topbar__inner") ||
       document.querySelector("main");
@@ -1282,9 +1296,13 @@
   }
 
   function boot() {
+    const initial = getLang();
+    activeLang = initial;
+    localStorage.setItem(LANG_KEY, initial);
+    localStorage.setItem(LEGACY_LANG_KEY, initial);
     ensureSwitcher();
     bindLocaleSelect();
-    syncSelectValue(getLang());
+    syncSelectValue(initial);
     applyTranslations();
 
     observer = new MutationObserver(() => {
@@ -1301,7 +1319,7 @@
     startObserver();
   }
 
-  window.AskingLang = { getLang, setLang, applyTranslations };
+  window.AskingLang = { getLang, setLang, applyTranslations, LANG_KEY, LEGACY_LANG_KEY };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", boot, { once: true });

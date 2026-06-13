@@ -13,6 +13,9 @@
   const shareCopyBtn = document.getElementById("shareCopyBtn");
   const shareOpenBtn = document.getElementById("shareOpenBtn");
   const THEME_STORAGE_KEY = "asking_theme";
+  const LANG_KEY = "asking_language";
+  const LEGACY_LANG_KEY = "asking-pro-lang";
+  const PUBLIC_MANUAL_PREFIX = `${LANG_KEY}_public_manual_`;
   const WELCOME_LAYOUTS = new Set(["image-right", "image-left", "image-top", "background", "typographic"]);
 
   const api = {
@@ -59,8 +62,72 @@
       cannotOpen: "Не удалось открыть анкету",
       progress: "Страница {current} из {total}",
       logicJumpTo: "Переход по условию: {page}"
+    },
+    en: {
+      invalidLink: "Invalid survey link",
+      selectRating: "Select a rating",
+      selectOption: "Select an option",
+      enterAccessPassword: "Enter access password",
+      fillRequired: "Complete the required fields on this page.",
+      sending: "Sending...",
+      next: "Next",
+      back: "Back",
+      finish: "Submit survey",
+      success: "Response submitted successfully.",
+      inactiveTitle: "Survey is currently unavailable",
+      inactiveLead: "This form is not accepting responses right now.",
+      cannotOpen: "Could not open survey",
+      progress: "Page {current} of {total}",
+      logicJumpTo: "Conditional jump: {page}"
     }
   };
+
+  function normalizeLang(value) {
+    const lang = String(value || "").trim().toLowerCase();
+    return ["ru", "en"].includes(lang) ? lang : "ru";
+  }
+
+  function getStoredLang() {
+    return normalizeLang(localStorage.getItem(LANG_KEY) || localStorage.getItem(LEGACY_LANG_KEY) || "ru");
+  }
+
+  function applyPublicLang(lang, options = {}) {
+    const next = normalizeLang(lang);
+    publicState.lang = next;
+    if (window.AskingLang?.setLang) {
+      window.AskingLang.setLang(next, options);
+    } else {
+      document.documentElement.lang = next;
+      if (!options.transient) {
+        localStorage.setItem(LANG_KEY, next);
+        localStorage.setItem(LEGACY_LANG_KEY, next);
+      }
+    }
+  }
+
+  function applySurveyDefaultLanguage(survey) {
+    if (survey?.id && localStorage.getItem(`${PUBLIC_MANUAL_PREFIX}${survey.id}`) === "1") {
+      publicState.lang = getStoredLang();
+      return;
+    }
+    const surveyLang = normalizeLang(survey?.settings?.language || survey?.language || getStoredLang());
+    applyPublicLang(surveyLang, { transient: true, manual: false });
+  }
+
+  function ensurePublicLanguageSelect() {
+    if (!publicApp || document.getElementById("publicRuntimeLanguageSelect")) return;
+    const select = document.createElement("select");
+    select.id = "publicRuntimeLanguageSelect";
+    select.className = "lang-select asking-lang-select public-runtime-lang-select";
+    select.setAttribute("aria-label", "Language");
+    select.innerHTML = `
+      <option value="ru">RU</option>
+      <option value="en">EN</option>
+    `;
+    select.value = publicState.lang;
+    select.addEventListener("change", () => applyPublicLang(select.value));
+    publicApp.prepend(select);
+  }
 
   function applyTheme(theme) {
     const preferred = theme || localStorage.getItem(THEME_STORAGE_KEY) || "light";
@@ -1176,6 +1243,7 @@
 
     const label = document.createElement("div");
     label.className = "public-question-row__label";
+    label.dataset.noI18n = "";
     label.textContent = question.text || "Вопрос";
     titleLine.appendChild(label);
 
@@ -1235,6 +1303,7 @@
 
       const text = document.createElement("span");
       text.className = "public-choice__text";
+      text.dataset.noI18n = "";
       text.textContent = option.text;
       optionLabel.appendChild(text);
       return optionLabel;
@@ -1291,7 +1360,9 @@
       select.name = key;
       select.appendChild(new Option(tPublic("selectOption"), ""));
       options.forEach((option) => {
-        select.appendChild(new Option(option.text, option.text));
+        const optionNode = new Option(option.text, option.text);
+        optionNode.dataset.noI18n = "";
+        select.appendChild(optionNode);
       });
       field.appendChild(select);
       row.appendChild(field);
@@ -1668,9 +1739,9 @@
         ${state.testMode ? `<span class="bv2-test-badge">Тестовый режим</span>` : ""}
         ${welcome.imageEnabled && welcome.coverImage ? `<img class="bv2-preview-welcome-image" src="${escapeAttr(welcome.coverImage)}" alt="" />` : ""}
         <div class="bv2-preview-runtime-head">
-          <span>${escapeHtml(welcomeSubtitle)}</span>
-          <h1>${escapeHtml(welcomeTitle)}</h1>
-          <p>${escapeHtml(welcomeDescription)}</p>
+          <span data-no-i18n>${escapeHtml(welcomeSubtitle)}</span>
+          <h1 data-no-i18n>${escapeHtml(welcomeTitle)}</h1>
+          <p data-no-i18n>${escapeHtml(welcomeDescription)}</p>
         </div>
         <div class="bv2-preview-start-meta" aria-label="Параметры анкеты">
           <span><strong>${estimated} мин</strong>примерное время</span>
@@ -1742,9 +1813,9 @@
           ${required}
         </div>
         <div class="bv2-preview-runtime-head">
-          ${step.page?.title ? `<span>${escapeHtml(step.page.title)}</span>` : ""}
-          <h1>${escapeHtml(question.text || "Вопрос")}</h1>
-          ${question.helpText ? `<p>${escapeHtml(question.helpText)}</p>` : ""}
+          ${step.page?.title ? `<span data-no-i18n>${escapeHtml(step.page.title)}</span>` : ""}
+          <h1 data-no-i18n>${escapeHtml(question.text || "Вопрос")}</h1>
+          ${question.helpText ? `<p data-no-i18n>${escapeHtml(question.helpText)}</p>` : ""}
         </div>
         <div class="asking-step__error" ${error ? "" : "hidden"}>${escapeHtml(error)}</div>
         <div class="bv2-preview-runtime-questions">
@@ -1859,7 +1930,7 @@
           <option value="">Не выбрано</option>
           ${(question.options || []).map((option, index) => {
             const value = option.value || option.text || String(index + 1);
-            return `<option value="${escapeAttr(value)}" ${current === String(value) ? "selected" : ""}>${escapeHtml(option.text || `Вариант ${index + 1}`)}</option>`;
+            return `<option data-no-i18n value="${escapeAttr(value)}" ${current === String(value) ? "selected" : ""}>${escapeHtml(option.text || `Вариант ${index + 1}`)}</option>`;
           }).join("")}
         </select>
     `;
@@ -1880,7 +1951,7 @@
           return `
             <label class="${selected ? "is-selected" : ""}">
               <input data-preview-answer="${escapeAttr(question.id)}" name="q_${escapeAttr(question.id)}" type="${multiple ? "checkbox" : "radio"}" value="${escapeAttr(value)}" ${selected ? "checked" : ""} />
-              ${escapeHtml(option.text || `Вариант ${index + 1}`)}
+              <span data-no-i18n>${escapeHtml(option.text || `Вариант ${index + 1}`)}</span>
             </label>
           `;
         }).join("")}
@@ -1912,7 +1983,7 @@
           return `
             <button class="${selected ? "is-selected" : ""}" type="button" data-preview-choice="${escapeAttr(question.id)}" data-value="${escapeAttr(value)}">
               ${option.imageUrl ? `<img src="${escapeAttr(option.imageUrl)}" alt="" style="object-fit:${escapeAttr(option.imageFit || "cover")}" loading="lazy" />` : ""}
-              <strong>${escapeHtml(option.text || `Вариант ${index + 1}`)}</strong>
+              <strong data-no-i18n>${escapeHtml(option.text || `Вариант ${index + 1}`)}</strong>
             </button>
           `;
         }).join("")}
@@ -1930,7 +2001,7 @@
 
   function renderInfoQuestion(_state, question, mount) {
     const settings = question.settings || {};
-    mount.innerHTML = `<div class="bv2-preview-info">${escapeHtml(settings.infoContent || question.text || "Информационный блок")}</div>`;
+    mount.innerHTML = `<div class="bv2-preview-info" data-no-i18n>${escapeHtml(settings.infoContent || question.text || "Информационный блок")}</div>`;
   }
 
   function clearInlineError(root, question) {
@@ -2169,7 +2240,7 @@
         pageTitle.className = "wizard-pane__head";
         pageTitle.innerHTML = `
           <span>Страница</span>
-          <h3>${escapeHtml(step.page.title || "Страница")}</h3>
+          <h3 data-no-i18n>${escapeHtml(step.page.title || "Страница")}</h3>
         `;
         pane.appendChild(pageTitle);
       }
@@ -2446,6 +2517,8 @@
   async function bootPublicMode(surveyId) {
     document.body.classList.remove("survey-owner-mode");
     document.body.classList.add("survey-public-mode");
+    publicState.lang = getStoredLang();
+    ensurePublicLanguageSelect();
     publicState.testMode = new URLSearchParams(window.location.search).get("test") === "1";
     await initAuthButton();
 
@@ -2473,6 +2546,8 @@
 
     try {
       const data = await api.request(`/api/public/surveys/${surveyId}`);
+      applySurveyDefaultLanguage(data.survey);
+      setTimeout(() => applySurveyDefaultLanguage(data.survey), 0);
       if (!data.active && !data.preview) {
         surveyCard.innerHTML = `<h2>${tPublic("inactiveTitle")}</h2><p>${tPublic("inactiveLead")}</p>`;
         return;
@@ -2513,5 +2588,13 @@
 
   bootstrap().catch((error) => {
     showToast(error.message || "Ошибка загрузки страницы", true);
+  });
+
+  window.addEventListener("asking:languagechange", (event) => {
+    publicState.lang = normalizeLang(event.detail?.lang || getStoredLang());
+    const pathInfo = getSurveyPathInfo();
+    if (document.body.classList.contains("survey-public-mode") && pathInfo?.surveyId && event.detail?.manual !== false) {
+      localStorage.setItem(`${PUBLIC_MANUAL_PREFIX}${pathInfo.surveyId}`, "1");
+    }
   });
 })();
