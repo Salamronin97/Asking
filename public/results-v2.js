@@ -33,6 +33,18 @@
     summary: null
   };
 
+  function currentLang() {
+    return window.AskingLang?.getLang?.() || localStorage.getItem("asking_language") || "ru";
+  }
+
+  function untitledLabel() {
+    return { en: "Untitled", kz: "Атаусыз", ru: "Без названия" }[currentLang()] || "Без названия";
+  }
+
+  function applySharedTranslations() {
+    window.AskingLang?.applyTranslations?.();
+  }
+
   async function apiRequest(url, options) {
     const response = await fetch(url, options);
     const data = await response.json().catch(() => ({}));
@@ -107,7 +119,7 @@
       type: hasImages ? "image_choice" : rawType === "multi" ? "multi" : rawType === "select" ? "dropdown" : rawType || "text",
       options: options.map((option, index) => ({
         id: option?.id || `option_${index}`,
-        label: String(option?.text || option?.label || `Вариант ${index + 1}`),
+        label: String(option?.text || option?.label || untitledLabel()),
         image: String(option?.imageUrl || option?.image || "")
       }))
     };
@@ -192,7 +204,13 @@
     if (els.loadingState) els.loadingState.hidden = true;
     els.builderLink.href = surveyId ? `/create-v2?surveyId=${encodeURIComponent(surveyId)}` : "/create-v2";
     els.openSurveyEmptyBtn.href = surveyId ? `/s/${encodeURIComponent(surveyId)}` : "#";
-    els.surveyTitle.textContent = state.survey?.title || "Результаты";
+    if (state.survey?.title) {
+      els.surveyTitle.setAttribute("data-no-i18n", "");
+      els.surveyTitle.textContent = state.survey.title;
+    } else {
+      els.surveyTitle.removeAttribute("data-no-i18n");
+      els.surveyTitle.textContent = "Результаты";
+    }
     els.responseCount.textContent = String(summary.total);
     els.surveyMeta.textContent = summary.total
       ? `${summary.total} ${pluralRu(summary.total, ["ответ", "ответа", "ответов"])}. Последний ответ ${formatRelative(summary.last)}.`
@@ -207,6 +225,7 @@
     els.analyticsSummary.textContent = `${state.questions.length} ${pluralRu(state.questions.length, ["вопрос", "вопроса", "вопросов"])}`;
     renderResponses();
     renderAnalytics();
+    applySharedTranslations();
   }
 
   function renderStats(summary) {
@@ -238,7 +257,7 @@
           <div class="rv2-respondent">
             <span class="rv2-avatar">${escapeHtml(respondent.name.slice(0, 1).toUpperCase())}</span>
             <div>
-              <p><span>Участник:</span> <strong>${escapeHtml(respondent.name)}</strong></p>
+              <p><span>Участник:</span> <strong data-no-i18n>${escapeHtml(respondent.name)}</strong></p>
               <p><span>Email:</span> ${escapeHtml(respondent.email)}</p>
             </div>
           </div>
@@ -278,7 +297,7 @@
       <article class="rv2-analytics-card">
         <header class="rv2-analytics-card__head">
           <div>
-            <h3>${escapeHtml(question.title)}</h3>
+            <h3 data-no-i18n>${escapeHtml(question.title)}</h3>
             <p>${escapeHtml(typeLabel(type))}</p>
           </div>
           <span class="rv2-pill">${answered.length} ${pluralRu(answered.length, ["ответ", "ответа", "ответов"])}</span>
@@ -336,7 +355,7 @@
         const percent = Math.round((row.count / denominator) * 100);
         return `
           <div class="rv2-bar-row">
-            <div class="rv2-bar-row__top"><span>${escapeHtml(row.label)}</span><span>${percent}%</span></div>
+            <div class="rv2-bar-row__top"><span data-no-i18n>${escapeHtml(row.label)}</span><span>${percent}%</span></div>
             <div class="rv2-bar-row__track"><span style="width:${Math.max(2, percent)}%"></span></div>
           </div>
         `;
@@ -382,7 +401,7 @@
   function renderTextList(question, answered) {
     const samples = answered.slice(0, 8).map((response) => answerValue(response, question)).filter(Boolean);
     return `<div class="rv2-text-feed">
-      ${samples.map((sample) => `<blockquote>${escapeHtml(formatAnswer(sample))}</blockquote>`).join("") || "<p>Ответов пока нет.</p>"}
+      ${samples.map((sample) => `<blockquote data-no-i18n>${escapeHtml(formatAnswer(sample))}</blockquote>`).join("") || "<p>Ответов пока нет.</p>"}
     </div>`;
   }
 
@@ -397,7 +416,7 @@
           <div class="rv2-image-option">
             ${option.image ? `<img src="${escapeHtml(option.image)}" alt="" loading="lazy" />` : ""}
             <div>
-              <span>${escapeHtml(row.label)}</span>
+              <span data-no-i18n>${escapeHtml(row.label)}</span>
               <div class="rv2-bar-row__track"><span style="width:${Math.max(2, percent)}%"></span></div>
               <small>${percent}%</small>
             </div>
@@ -415,7 +434,7 @@
     els.drawerStatus.textContent = response.status === "partial" ? "Частичный" : "Завершён";
     els.drawerBody.innerHTML = `
       <div class="rv2-detail-grid">
-        <div><span>Участник</span><strong>${escapeHtml(respondent.name)}</strong></div>
+        <div><span>Участник</span><strong data-no-i18n>${escapeHtml(respondent.name)}</strong></div>
         <div><span>Email</span><strong>${escapeHtml(respondent.email)}</strong></div>
         <div><span>Отправлено</span><strong>${escapeHtml(formatDateTime(response.submittedAt || response.completedAt || response.createdAt))}</strong></div>
         <div><span>Время прохождения</span><strong>${escapeHtml(formatDuration(response.durationSeconds))}</strong></div>
@@ -424,14 +443,15 @@
         ${state.questions.map((question) => `
           <article class="rv2-answer">
             <span>${escapeHtml(typeLabel(inferQuestionType(question)))}</span>
-            <strong>${escapeHtml(question.title)}</strong>
-            <p>${escapeHtml(formatAnswer(answerValue(response, question)))}</p>
+            <strong data-no-i18n>${escapeHtml(question.title)}</strong>
+            <p data-no-i18n>${escapeHtml(formatAnswer(answerValue(response, question)))}</p>
           </article>
         `).join("")}
       </div>
     `;
     els.drawer.classList.add("is-open");
     els.drawer.setAttribute("aria-hidden", "false");
+    applySharedTranslations();
   }
 
   function closeDrawer() {
@@ -459,6 +479,7 @@
       els.surveyMeta.textContent = "Откройте результаты из кабинета или конструктора.";
       els.emptyState.hidden = false;
       els.resultsContent.hidden = true;
+      applySharedTranslations();
       return;
     }
     const data = await apiRequest(`/api/surveys/${encodeURIComponent(surveyId)}/results-v2`);
@@ -509,5 +530,8 @@
     els.surveyMeta.textContent = error.message || "Неизвестная ошибка";
     els.emptyState.hidden = false;
     els.resultsContent.hidden = true;
+    applySharedTranslations();
   });
+
+  window.addEventListener("asking:languagechange", render);
 })();

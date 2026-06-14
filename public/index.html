@@ -243,6 +243,10 @@
       }
 
       languageSelect.addEventListener("change", () => {
+        if (window.AskingLang?.setLang) {
+          window.AskingLang.setLang(languageSelect.value);
+          return;
+        }
         localStorage.setItem(LANG_KEY, languageSelect.value);
         localStorage.setItem(LEGACY_LANG_KEY, languageSelect.value);
         localStorage.setItem(`${LANG_KEY}_manual`, "1");

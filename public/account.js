@@ -123,8 +123,10 @@ function updateProfile(profile) {
 
   refs.displayNameInput.value = profile.displayName || profile.name || "";
   refs.emailInput.value = email;
-  refs.localeSelect.value = profile.locale || "ru";
+  refs.localeSelect.value = window.AskingLang?.getLang?.() || profile.locale || "ru";
   refs.profileInitials.textContent = userInitials(profile);
+  refs.profileSummaryName?.setAttribute("data-no-i18n", "");
+  refs.profileSummaryEmail?.setAttribute("data-no-i18n", "");
   refs.profileSummaryName.textContent = name;
   refs.profileSummaryEmail.textContent = email;
   refs.profileCreatedAt.textContent = formatDate(profile.createdAt, false);
@@ -198,11 +200,12 @@ function switchTab(tab, pushHistory = true) {
 }
 
 function profilePayload() {
+  const locale = window.AskingLang?.getLang?.() || refs.localeSelect.value || "ru";
   return {
     displayName: refs.displayNameInput.value.trim(),
     company: state.profile?.company || "",
     position: state.profile?.position || "",
-    locale: refs.localeSelect.value,
+    locale,
     theme: state.profile?.theme || "light"
   };
 }
@@ -233,6 +236,7 @@ async function saveProfile() {
     body: JSON.stringify(payload)
   });
 
+  window.AskingLang?.setLang?.(payload.locale, { manual: false });
   state.profile = profile;
   updateProfile(profile);
   setStatus("Изменения сохранены.");

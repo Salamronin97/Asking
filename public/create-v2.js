@@ -599,8 +599,26 @@
     els.saveState.style.color = "#b45309";
   }
 
-  async function apiRequest(url, options) {
-    const response = await fetch(url, options);
+  function applySharedTranslations() {
+    window.AskingLang?.applyTranslations?.();
+  }
+
+  async function apiRequest(url, options = {}) {
+    const timeoutMs = Number(options.timeoutMs || 30000);
+    const controller = options.signal ? null : new AbortController();
+    const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+    const requestOptions = { ...options };
+    delete requestOptions.timeoutMs;
+    if (controller) requestOptions.signal = controller.signal;
+    let response;
+    try {
+      response = await fetch(url, requestOptions);
+    } catch (error) {
+      if (error?.name === "AbortError") throw new Error("Сервер не ответил вовремя. Попробуйте файл меньшего размера.");
+      throw error;
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Ошибка запроса");
     return data;
@@ -608,12 +626,22 @@
 
   async function uploadImageFile(file) {
     if (!file) throw new Error("Выберите изображение");
+    if (!String(file.type || "").startsWith("image/")) throw new Error("Можно загрузить только изображение");
+    if (file.size > 5 * 1024 * 1024) throw new Error("Изображение слишком большое. Максимум 5 МБ.");
     const formData = new FormData();
     formData.append("file", file);
-    const result = await apiRequest("/api/uploads/image", { method: "POST", body: formData });
+    const result = await apiRequest("/api/uploads/image", { method: "POST", body: formData, timeoutMs: 30000 });
     const path = String(result?.path || "").trim();
     if (!path) throw new Error("Сервер не вернул путь файла");
     return path;
+  }
+
+  function setUploadBusy(button, busy) {
+    if (!button) return;
+    if (!button.dataset.idleText) button.dataset.idleText = button.textContent;
+    button.disabled = Boolean(busy);
+    button.textContent = busy ? "Загрузка..." : button.dataset.idleText;
+    applySharedTranslations();
   }
 
   function render() {
@@ -1153,11 +1181,12 @@
     showToast("Ссылка скопирована");
   }
 
-  async function uploadWelcomeImage(input, targetInput) {
+  async function uploadWelcomeImage(input, targetInput, button) {
     const file = input.files?.[0];
     if (!file) return;
     try {
       input.disabled = true;
+      setUploadBusy(button, true);
       const path = await uploadImageFile(file);
       targetInput.value = path;
       renderWelcomePreview();
@@ -1167,6 +1196,7 @@
       showToast(error.message || "Не удалось загрузить изображение", true);
     } finally {
       input.disabled = false;
+      setUploadBusy(button, false);
       input.value = "";
     }
   }
@@ -1176,6 +1206,7 @@
     if (!file) return;
     try {
       els.designBgFile.disabled = true;
+      setUploadBusy(els.designBgUpload, true);
       const path = await uploadImageFile(file);
       state.design.backgroundImage = path;
       state.design.backgroundType = "image";
@@ -1185,6 +1216,7 @@
       showToast(error.message || "Не удалось загрузить фон", true);
     } finally {
       els.designBgFile.disabled = false;
+      setUploadBusy(els.designBgUpload, false);
       els.designBgFile.value = "";
     }
   }
@@ -2163,8 +2195,8 @@
     });
     els.welcomeCoverUpload.addEventListener("click", () => els.welcomeCoverFile.click());
     els.welcomeBgUpload.addEventListener("click", () => els.welcomeBgFile.click());
-    els.welcomeCoverFile.addEventListener("change", () => uploadWelcomeImage(els.welcomeCoverFile, els.welcomeCover));
-    els.welcomeBgFile.addEventListener("change", () => uploadWelcomeImage(els.welcomeBgFile, els.welcomeBg));
+    els.welcomeCoverFile.addEventListener("change", () => uploadWelcomeImage(els.welcomeCoverFile, els.welcomeCover, els.welcomeCoverUpload));
+    els.welcomeBgFile.addEventListener("change", () => uploadWelcomeImage(els.welcomeBgFile, els.welcomeBg, els.welcomeBgUpload));
     els.title.addEventListener("input", () => {
       state.survey.title = els.title.value;
       markDirty();
@@ -2388,8 +2420,10 @@
       const index = Number(input.getAttribute("data-upload-input"));
       const file = input.files?.[0];
       if (!file) return;
+      const uploadButton = els.typeSpecific.querySelector(`[data-upload-option="${CSS.escape(String(index))}"]`);
       try {
         input.disabled = true;
+        setUploadBusy(uploadButton, true);
         const path = await uploadImageFile(file);
         const row = els.typeSpecific.querySelector(`[data-option-index="${CSS.escape(String(index))}"]`);
         const imageInput = row?.querySelector('[data-option-field="imageUrl"]');
@@ -2402,6 +2436,7 @@
         showToast(error.message || "Не удалось загрузить изображение", true);
       } finally {
         input.disabled = false;
+        setUploadBusy(uploadButton, false);
         input.value = "";
       }
     });

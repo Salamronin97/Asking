@@ -500,7 +500,7 @@ function renderActivity() {
         <span class="svdash-activity-dot"></span>
         <div>
           <strong>${escapeHtml(event.label)}</strong>
-          <small>${escapeHtml(event.title)} · ${escapeHtml(formatDate(event.date))}</small>
+          <small><span data-no-i18n>${escapeHtml(event.title)}</span> · <span>${escapeHtml(formatDate(event.date))}</span></small>
         </div>
       </a>
     `)
@@ -685,7 +685,7 @@ function renderCards() {
             <header class="svdash-card__head">
               <div>
                 <span class="svdash-pill ${statusClass(survey.status)}">${statusLabel(survey.status)}</span>
-                <h3>${titleHtml}</h3>
+                <h3 data-no-i18n>${titleHtml}</h3>
               </div>
               <button class="svdash-select${selected ? " is-active" : ""}" type="button" data-select="${survey.id}" aria-pressed="${selected ? "true" : "false"}" aria-label="${selected ? "Снять выделение" : "Выбрать анкету"}"></button>
             </header>

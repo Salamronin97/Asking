@@ -13,6 +13,7 @@ const QUICK_TEMPLATES_RU = require("./public/templates");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.set("trust proxy", 1);
 app.use(express.json({ limit: "2mb" }));
 app.use(
   express.static(path.join(__dirname, "public"), {
@@ -67,6 +68,9 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR
   : VOLUME_ROOT
     ? path.join(VOLUME_ROOT, "uploads")
     : path.join(__dirname, "public", "uploads");
+const IMAGE_UPLOAD_LIMIT_BYTES = Number(process.env.IMAGE_UPLOAD_LIMIT_BYTES || 5 * 1024 * 1024);
+const ALLOWED_IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]);
+const ALLOWED_IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"]);
 
 function loadResponseHashSalt() {
   if (process.env.RESPONSE_HASH_SALT) return process.env.RESPONSE_HASH_SALT;
@@ -89,29 +93,64 @@ function loadResponseHashSalt() {
 
 const RESPONSE_HASH_SALT = loadResponseHashSalt();
 
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-app.use("/uploads", express.static(UPLOAD_DIR));
+function ensureUploadDir() {
+  try {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+    return true;
+  } catch (error) {
+    console.error("Upload directory is not writable", { uploadDir: UPLOAD_DIR, error });
+    return false;
+  }
+}
+
+ensureUploadDir();
+app.use("/uploads", express.static(UPLOAD_DIR, {
+  fallthrough: false,
+  maxAge: "7d",
+  immutable: true
+}));
 
 const upload = multer({
   storage: multer.diskStorage({
     destination(_req, _file, cb) {
+      if (!ensureUploadDir()) {
+        cb(new Error("Upload storage is unavailable"));
+        return;
+      }
       cb(null, UPLOAD_DIR);
     },
     filename(_req, file, cb) {
       const ext = path.extname(file.originalname || "").toLowerCase();
-      const safeExt = ext && ext.length <= 8 ? ext : "";
+      const safeExt = ALLOWED_IMAGE_EXTENSIONS.has(ext) ? ext : "";
       cb(null, `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${safeExt}`);
     }
   }),
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: IMAGE_UPLOAD_LIMIT_BYTES, files: 1, fields: 8, parts: 12 },
   fileFilter(_req, file, cb) {
-    if (!String(file.mimetype || "").startsWith("image/")) {
+    const mime = String(file.mimetype || "").toLowerCase();
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    if (!ALLOWED_IMAGE_MIME_TYPES.has(mime) || (ext && !ALLOWED_IMAGE_EXTENSIONS.has(ext))) {
       cb(new Error("Only image files are allowed"));
       return;
     }
     cb(null, true);
   }
 });
+
+function uploadSingleImage(req, res, next) {
+  upload.single("file")(req, res, (error) => {
+    if (error) {
+      next(error);
+      return;
+    }
+    next();
+  });
+}
+
+function publicUploadUrl(req, publicPath) {
+  const base = APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
+  return `${String(base).replace(/\/$/, "")}${publicPath}`;
+}
 const AUTH_RATE_BUCKETS = new Map();
 const PUBLIC_SUBMISSION_CACHE = new Map();
 const PUBLIC_SUBMISSION_TTL_MS = 10 * 60 * 1000;
@@ -2965,7 +3004,7 @@ app.post("/api/questions/:questionId/options", requireAuth, async (req, res, nex
   }
 });
 
-app.post("/api/questions/:questionId/media", requireAuth, upload.single("file"), async (req, res, next) => {
+app.post("/api/questions/:questionId/media", requireAuth, uploadSingleImage, async (req, res, next) => {
   try {
     const questionId = Number(req.params.questionId);
     if (!Number.isInteger(questionId)) return res.status(400).json({ error: "Invalid question id" });
@@ -2987,6 +3026,7 @@ app.post("/api/questions/:questionId/media", requireAuth, upload.single("file"),
     );
     res.status(201).json({
       path: publicPath,
+      url: publicUploadUrl(req, publicPath),
       originalName: req.file.originalname || "",
       mime: req.file.mimetype || "",
       size: Number(req.file.size || 0)
@@ -2996,12 +3036,13 @@ app.post("/api/questions/:questionId/media", requireAuth, upload.single("file"),
   }
 });
 
-app.post("/api/uploads/image", requireAuth, upload.single("file"), async (req, res, next) => {
+app.post("/api/uploads/image", requireAuth, uploadSingleImage, async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: "File is required" });
     const publicPath = `/uploads/${req.file.filename}`;
     res.status(201).json({
       path: publicPath,
+      url: publicUploadUrl(req, publicPath),
       originalName: req.file.originalname || "",
       mime: req.file.mimetype || "",
       size: Number(req.file.size || 0)
@@ -3417,12 +3458,20 @@ app.get("/api/surveys/:id/export.csv", requireAuth, async (req, res, next) => {
 });
 
 app.use((error, _req, res, _next) => {
+  if (res.headersSent) return;
   if (error instanceof multer.MulterError) {
-    res.status(400).json({ error: error.message || "Upload error" });
+    const message = error.code === "LIMIT_FILE_SIZE"
+      ? `Image is too large. Maximum size is ${Math.round(IMAGE_UPLOAD_LIMIT_BYTES / 1024 / 1024)} MB.`
+      : error.message || "Upload error";
+    res.status(400).json({ error: message, code: error.code || "UPLOAD_ERROR" });
     return;
   }
   if (error?.message === "Only image files are allowed") {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: error.message, code: "INVALID_IMAGE_TYPE" });
+    return;
+  }
+  if (error?.message === "Upload storage is unavailable") {
+    res.status(503).json({ error: "Upload storage is unavailable", code: "UPLOAD_STORAGE_UNAVAILABLE" });
     return;
   }
   console.error(error);
