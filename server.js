@@ -3457,8 +3457,14 @@ app.get("/api/surveys/:id/export.csv", requireAuth, async (req, res, next) => {
   }
 });
 
-app.use((error, _req, res, _next) => {
+app.use((error, req, res, _next) => {
   if (res.headersSent) return;
+  if (req.aborted || error?.message === "Request aborted" || error?.code === "ECONNRESET") {
+    if (!req.aborted) {
+      res.status(400).json({ error: "Upload request aborted", code: "UPLOAD_ABORTED" });
+    }
+    return;
+  }
   if (error instanceof multer.MulterError) {
     const message = error.code === "LIMIT_FILE_SIZE"
       ? `Image is too large. Maximum size is ${Math.round(IMAGE_UPLOAD_LIMIT_BYTES / 1024 / 1024)} MB.`
