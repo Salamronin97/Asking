@@ -631,7 +631,7 @@
     const formData = new FormData();
     formData.append("file", file);
     const result = await apiRequest("/api/uploads/image", { method: "POST", body: formData, timeoutMs: 30000 });
-    const path = String(result?.path || "").trim();
+    const path = String(result?.url || result?.path || "").trim();
     if (!path) throw new Error("Сервер не вернул путь файла");
     return path;
   }
@@ -768,7 +768,7 @@
           .map(
             (option) => `
               <div class="bv2-image-option">
-                <img src="${escapeAttr(option.imageUrl || DEFAULT_IMAGE_OPTIONS[0].imageUrl)}" alt="${escapeAttr(option.text || "Вариант")}" loading="lazy" />
+                ${normalizeOptionImage(option) ? `<img src="${escapeAttr(normalizeOptionImage(option))}" alt="${escapeAttr(option.text || "Вариант")}" loading="lazy" />` : ""}
                 <strong>${escapeHtml(option.text || "Вариант")}</strong>
                 ${option.description ? `<span>${escapeHtml(option.description)}</span>` : ""}
               </div>
@@ -794,11 +794,19 @@
     return forms[2];
   }
 
+  function firstImageValue(...values) {
+    return values.map((value) => String(value || "").trim()).find(Boolean) || "";
+  }
+
+  function normalizeOptionImage(option = {}) {
+    return firstImageValue(option.image, option.imageUrl);
+  }
+
   function normalizeDesign(design = {}) {
     const theme = DESIGN_THEMES[design.theme] ? design.theme : DEFAULT_DESIGN.theme;
     const cardAliases = { soft: "shadow", elevated: "shadow", flat: "light" };
     const progressAliases = { rounded: "segments", minimal: "dots" };
-    const rawImage = String(design.backgroundImage || design.bgImage || "").trim();
+    const rawImage = firstImageValue(design.designBackgroundImage, design.backgroundImage, design.bgImage);
     const blockedImage = /encrypted-tbn\d*\.gstatic\.com/i.test(rawImage);
     return {
       ...DEFAULT_DESIGN,
@@ -810,6 +818,7 @@
       accentColor: design.accentColor || design.primaryColor || DESIGN_THEMES[theme].primaryColor,
       textColor: design.textColor || DEFAULT_DESIGN.textColor,
       backgroundColor: design.backgroundColor || design.bgColor || DEFAULT_DESIGN.backgroundColor,
+      designBackgroundImage: blockedImage ? "" : rawImage,
       backgroundImage: blockedImage ? "" : rawImage,
       backgroundType: design.backgroundType || (rawImage && !blockedImage ? "image" : (design.gradientStyle && design.gradientStyle !== "none" ? "gradient" : "color")),
       overlay: Number.isFinite(Number(design.overlay)) ? Number(design.overlay) : DEFAULT_DESIGN.overlay,
@@ -861,7 +870,8 @@
   function welcomeDesignFromSettings(existingWelcome = {}) {
     const settings = state.survey.settings || {};
     const overlay = Number(settings.welcomeOverlay);
-    const coverImage = String(settings.welcomeCover || existingWelcome.coverImage || "").trim();
+    const coverImage = firstImageValue(settings.welcomeCoverImage, settings.welcomeCover, existingWelcome.welcomeCoverImage, existingWelcome.coverImage, existingWelcome.heroImage);
+    const backgroundImage = firstImageValue(settings.welcomeBackgroundImage, settings.welcomeBackground, existingWelcome.welcomeBackgroundImage, existingWelcome.backgroundImage);
     return {
       ...existingWelcome,
       welcomeTitle: String(settings.welcomeTitle || state.survey.title || "").trim(),
@@ -869,14 +879,14 @@
       welcomeDescription: String(settings.welcomeDescription || state.survey.description || "").trim(),
       welcomeButtonText: String(settings.welcomeButtonText || "Начать опрос").trim(),
       welcomeCoverImage: coverImage,
-      welcomeBackgroundImage: String(settings.welcomeBackground || existingWelcome.welcomeBackgroundImage || existingWelcome.backgroundImage || "").trim(),
+      welcomeBackgroundImage: backgroundImage,
       welcomeOverlayStrength: Number.isFinite(overlay) ? Math.max(0, Math.min(90, Math.round(overlay))) : Math.max(0, Math.min(90, Number(state.design.overlay || 0))),
       title: String(settings.welcomeTitle || state.survey.title || "").trim(),
       subtitle: String(settings.welcomeSubtitle || "Добро пожаловать").trim(),
       description: String(settings.welcomeDescription || state.survey.description || "").trim(),
       buttonText: String(settings.welcomeButtonText || "Начать опрос").trim(),
       coverImage,
-      backgroundImage: String(settings.welcomeBackground || existingWelcome.welcomeBackgroundImage || existingWelcome.backgroundImage || "").trim(),
+      backgroundImage,
       overlay: Number.isFinite(overlay) ? Math.max(0, Math.min(90, Math.round(overlay))) : Math.max(0, Math.min(90, Number(state.design.overlay || 0))),
       layout: existingWelcome.layout || "image-right",
       imageOpacity: Number.isFinite(Number(existingWelcome.imageOpacity)) ? Number(existingWelcome.imageOpacity) : 86,
@@ -892,6 +902,7 @@
         ...state.design,
         builderV2Design: { ...state.design },
         bgColor: state.design.backgroundColor,
+        designBackgroundImage: state.design.designBackgroundImage || state.design.backgroundImage,
         bgImage: state.design.backgroundImage,
         overlay: state.design.overlay,
         layout: state.design.layout,
@@ -1054,8 +1065,8 @@
     els.welcomeSubtitle.value = settings.welcomeSubtitle || "Добро пожаловать";
     els.welcomeDescription.value = settings.welcomeDescription || state.survey.description || "Описание анкеты";
     els.welcomeButtonText.value = settings.welcomeButtonText || "Начать опрос";
-    els.welcomeCover.value = settings.welcomeCover || "";
-    els.welcomeBg.value = settings.welcomeBackground || "";
+    els.welcomeCover.value = firstImageValue(settings.welcomeCoverImage, settings.welcomeCover);
+    els.welcomeBg.value = firstImageValue(settings.welcomeBackgroundImage, settings.welcomeBackground);
     els.welcomeOverlay.value = Number.isFinite(Number(settings.welcomeOverlay)) ? String(settings.welcomeOverlay) : "24";
     els.settingsPassword.value = settings.accessPassword || "";
     els.settingsPublic.checked = settings.isPublic !== false;
@@ -1088,6 +1099,8 @@
       welcomeSubtitle: els.welcomeSubtitle.value.trim() || "Добро пожаловать",
       welcomeDescription: els.welcomeDescription.value.trim() || state.survey.description || "Описание анкеты",
       welcomeButtonText: els.welcomeButtonText.value.trim() || "Начать опрос",
+      welcomeCoverImage: els.welcomeCover.value.trim(),
+      welcomeBackgroundImage: els.welcomeBg.value.trim(),
       welcomeCover: els.welcomeCover.value.trim(),
       welcomeBackground: els.welcomeBg.value.trim(),
       welcomeOverlay: Number(els.welcomeOverlay.value || 0),
@@ -1189,7 +1202,14 @@
       setUploadBusy(button, true);
       const path = await uploadImageFile(file);
       targetInput.value = path;
+      if (targetInput === els.welcomeCover) {
+        state.survey.settings = { ...(state.survey.settings || {}), welcomeCoverImage: path, welcomeCover: path };
+      } else if (targetInput === els.welcomeBg) {
+        state.survey.settings = { ...(state.survey.settings || {}), welcomeBackgroundImage: path, welcomeBackground: path };
+      }
+      persistDesignToPages();
       renderWelcomePreview();
+      if (!els.previewModal.hidden) renderPreviewV2();
       markDirty();
       showToast("Изображение загружено");
     } catch (error) {
@@ -1208,9 +1228,11 @@
       els.designBgFile.disabled = true;
       setUploadBusy(els.designBgUpload, true);
       const path = await uploadImageFile(file);
+      state.design.designBackgroundImage = path;
       state.design.backgroundImage = path;
       state.design.backgroundType = "image";
       applyDesignState({ dirty: true });
+      if (!els.previewModal.hidden) renderPreviewV2();
       showToast("Фон загружен");
     } catch (error) {
       showToast(error.message || "Не удалось загрузить фон", true);
@@ -1223,6 +1245,7 @@
 
   function clearDesignBackground() {
     state.design.backgroundImage = "";
+    state.design.designBackgroundImage = "";
     state.design.backgroundType = state.design.gradientStyle && state.design.gradientStyle !== "none" ? "gradient" : "color";
     applyDesignState({ dirty: true });
   }
@@ -1378,18 +1401,18 @@
         </div>
       `;
     }
-    const imageUrl = option.imageUrl || DEFAULT_IMAGE_OPTIONS[index % DEFAULT_IMAGE_OPTIONS.length].imageUrl;
+    const imageUrl = normalizeOptionImage(option);
     const ratioClass = `is-ratio-${String(settings.aspectRatio || "16:9").replace(":", "-")}`;
     return `
       <article class="bv2-image-edit-card" data-option-index="${index}">
         <div class="bv2-image-edit-card__preview ${ratioClass}">
-          <img src="${escapeAttr(imageUrl)}" alt="${escapeAttr(option.text || "Вариант")}" />
+          ${imageUrl ? `<img src="${escapeAttr(imageUrl)}" alt="${escapeAttr(option.text || "Вариант")}" />` : ""}
         </div>
         <div class="bv2-image-edit-card__fields">
           <input data-option-field="text" value="${escapeAttr(option.text || "")}" placeholder="Название варианта" />
           <input data-option-field="description" value="${escapeAttr(option.description || "")}" placeholder="Описание варианта" />
           <div class="bv2-image-edit-card__url">
-            <input data-option-field="imageUrl" value="${escapeAttr(option.imageUrl || "")}" placeholder="URL изображения" />
+            <input data-option-field="image" value="${escapeAttr(normalizeOptionImage(option))}" placeholder="URL изображения" />
             <button class="bv2-upload-btn" type="button" data-upload-option="${index}">Загрузить</button>
             <input type="file" accept="image/*" data-upload-input="${index}" hidden />
             <button class="bv2-remove-btn" type="button" data-remove-option="${index}">Удалить</button>
@@ -1423,7 +1446,10 @@
           row.querySelectorAll("[data-option-field]").forEach((input) => {
             next[input.getAttribute("data-option-field")] = input.value.trim();
           });
-          return next.text || next.imageUrl ? next : null;
+          const image = normalizeOptionImage(next);
+          next.image = image;
+          next.imageUrl = image;
+          return next.text || image ? next : null;
         })
         .filter(Boolean);
     } else if (previousType !== nextType) {
@@ -1494,10 +1520,17 @@
 
   function hasWelcomeScreenV2() {
     const settings = state.survey.settings || {};
-    return Boolean(settings.welcomeTitle || settings.welcomeSubtitle || settings.welcomeDescription || settings.welcomeCover || settings.welcomeBackground);
+    return Boolean(
+      settings.welcomeTitle ||
+      settings.welcomeSubtitle ||
+      settings.welcomeDescription ||
+      firstImageValue(settings.welcomeCoverImage, settings.welcomeCover, settings.coverImage, settings.heroImage) ||
+      firstImageValue(settings.welcomeBackgroundImage, settings.welcomeBackground, settings.backgroundImage, settings.bgImage)
+    );
   }
 
   function openPreviewV2() {
+    if (currentStep() === "settings") applySettingsScreen();
     const pages = getPreviewPages();
     if (!pages.length) {
       showToast("Добавьте хотя бы один вопрос для предпросмотра", true);
@@ -1525,7 +1558,7 @@
     const required = current?.question.required && currentType !== "info" ? `<span class="bv2-badge bv2-badge--required">Обязательный</span>` : "";
     const cardMode = currentType === "image_choice" ? "image" : "standard";
     const progress = state.previewStep === "welcome" ? 0 : state.previewStep === "complete" ? 100 : Math.round(((state.previewQuestionIndex + 1) / total) * 100);
-    const welcomeBackground = String(settings.welcomeBackground || "").trim();
+    const welcomeBackground = firstImageValue(settings.welcomeBackgroundImage, settings.welcomeBackground, settings.backgroundImage, settings.bgImage);
     const welcomeOverlay = Math.max(0, Math.min(90, Number(settings.welcomeOverlay || 0))) / 100;
     els.previewStage.style.setProperty("--preview-bg", welcomeBackground ? `linear-gradient(rgba(17,24,39,${welcomeOverlay}), rgba(17,24,39,${welcomeOverlay})), url("${welcomeBackground}"), ${state.design.backgroundColor}` : designBackground(state.design));
     if (state.previewStep === "welcome") {
@@ -1562,7 +1595,7 @@
 
   function renderPreviewWelcomeV2(questionCount = getPreviewQuestions().length) {
     const settings = state.survey.settings || {};
-    const cover = settings.welcomeCover || "";
+    const cover = firstImageValue(settings.welcomeCoverImage, settings.welcomeCover, settings.coverImage, settings.heroImage);
     const estimated = previewEstimatedMinutes(questionCount);
     return `
       <section class="bv2-preview-runtime-card bv2-preview-runtime-card--welcome" data-preview-view>
@@ -1631,7 +1664,10 @@
     if (type === "single") return renderPreviewOptionsV2(question, options, "radio");
     if (type === "multi") return renderPreviewOptionsV2(question, options, "checkbox");
     if (type === "dropdown") return `<select class="bv2-preview-input" data-preview-answer="${escapeAttr(question.id)}"><option value="">Выберите вариант</option>${options.map((option) => `<option>${escapeHtml(option.text || "Вариант")}</option>`).join("")}</select>`;
-    if (type === "image_choice") return `<div class="bv2-preview-image-options">${options.map((option) => `<button type="button" data-preview-choice="${escapeAttr(question.id)}" data-value="${escapeAttr(option.text || "Вариант")}"><img src="${escapeAttr(option.imageUrl || DEFAULT_IMAGE_OPTIONS[0].imageUrl)}" alt="" /><strong>${escapeHtml(option.text || "Вариант")}</strong>${option.description ? `<span>${escapeHtml(option.description)}</span>` : ""}</button>`).join("")}</div>`;
+    if (type === "image_choice") return `<div class="bv2-preview-image-options">${options.map((option) => {
+      const image = normalizeOptionImage(option);
+      return `<button type="button" data-preview-choice="${escapeAttr(question.id)}" data-value="${escapeAttr(option.text || "Вариант")}">${image ? `<img src="${escapeAttr(image)}" alt="" />` : ""}<strong>${escapeHtml(option.text || "Вариант")}</strong>${option.description ? `<span>${escapeHtml(option.description)}</span>` : ""}</button>`;
+    }).join("")}</div>`;
     if (type === "rating") return `<div class="bv2-preview-rating">${Array.from({ length: Number(settings.ratingScale || 5) }, (_, index) => `<button type="button" data-preview-choice="${escapeAttr(question.id)}" data-value="${index + 1}">★</button>`).join("")}</div>`;
     if (type === "nps") return `<div class="bv2-preview-nps-wrap"><div class="bv2-preview-nps">${Array.from({ length: 11 }, (_, index) => `<button type="button" data-preview-choice="${escapeAttr(question.id)}" data-value="${index}">${index}</button>`).join("")}</div><div class="bv2-preview-nps-labels"><span>Точно нет</span><span>Точно да</span></div></div>`;
     if (type === "info") return `<div class="bv2-preview-info">${escapeHtml(settings.infoContent || question.text || "Информационный блок")}</div>`;
@@ -1768,7 +1804,10 @@
     if (type === "single") return renderPreviewOptions(question, options, "radio");
     if (type === "multi") return renderPreviewOptions(question, options, "checkbox");
     if (type === "dropdown") return `<select class="bv2-preview-input" data-preview-answer="${escapeAttr(question.id)}"><option value="">Выберите вариант</option>${options.map((option) => `<option>${escapeHtml(option.text || "Вариант")}</option>`).join("")}</select>`;
-    if (type === "image_choice") return `<div class="bv2-preview-image-options">${options.map((option) => `<button type="button" data-preview-choice="${escapeAttr(question.id)}" data-value="${escapeAttr(option.text || "Вариант")}"><img src="${escapeAttr(option.imageUrl || DEFAULT_IMAGE_OPTIONS[0].imageUrl)}" alt="" /><strong>${escapeHtml(option.text || "Вариант")}</strong></button>`).join("")}</div>`;
+    if (type === "image_choice") return `<div class="bv2-preview-image-options">${options.map((option) => {
+      const image = normalizeOptionImage(option);
+      return `<button type="button" data-preview-choice="${escapeAttr(question.id)}" data-value="${escapeAttr(option.text || "Вариант")}">${image ? `<img src="${escapeAttr(image)}" alt="" />` : ""}<strong>${escapeHtml(option.text || "Вариант")}</strong></button>`;
+    }).join("")}</div>`;
     if (type === "rating") return `<div class="bv2-preview-rating">${Array.from({ length: Number(settings.ratingScale || 5) }, (_, index) => `<button type="button" data-preview-choice="${escapeAttr(question.id)}" data-value="${index + 1}">★</button>`).join("")}</div>`;
     if (type === "nps") return `<div class="bv2-preview-nps">${Array.from({ length: 11 }, (_, index) => `<button type="button" data-preview-choice="${escapeAttr(question.id)}" data-value="${index}">${index}</button>`).join("")}</div>`;
     if (type === "info") return `<div class="bv2-preview-info">${escapeHtml(settings.infoContent || question.text || "Информационный блок")}</div>`;
@@ -1803,6 +1842,8 @@
           ...state.design,
           builderV2Design: { ...state.design },
           bgColor: state.design.backgroundColor,
+          designBackgroundImage: state.design.designBackgroundImage || state.design.backgroundImage,
+          backgroundImage: state.design.backgroundImage,
           bgImage: state.design.backgroundImage
         },
         questions: (page.questions || [])
@@ -1815,7 +1856,12 @@
             type: apiType(question.type),
             required: question.required !== false,
             order: index,
-            options: Array.isArray(question.options) ? question.options : []
+            options: Array.isArray(question.options)
+              ? question.options.map((option) => {
+                  const image = normalizeOptionImage(option);
+                  return { ...option, image, imageUrl: image };
+                })
+              : []
           }))
       }))
     };
@@ -1890,7 +1936,7 @@
 
   function inferBuilderType(question) {
     const type = normalizeType(question.type);
-    if (type === "single" && Array.isArray(question.options) && question.options.some((option) => option.imageUrl)) return "image_choice";
+    if (type === "single" && Array.isArray(question.options) && question.options.some((option) => normalizeOptionImage(option))) return "image_choice";
     return type;
   }
 
@@ -1917,7 +1963,12 @@
         required: question.required !== false,
         panelOpacity: question.panelOpacity || question.panel_opacity || 72,
         imageUrl: question.imageUrl || question.image_url || "",
-        options: Array.isArray(question.options) ? question.options : defaultOptions(builderType),
+        options: Array.isArray(question.options)
+          ? question.options.map((option) => {
+              const image = normalizeOptionImage(option);
+              return { ...option, image, imageUrl: image };
+            })
+          : defaultOptions(builderType),
         settings: defaultSettings(builderType)
       });
     });
@@ -1945,8 +1996,10 @@
         welcomeSubtitle: firstWelcome.welcomeSubtitle || firstWelcome.subtitle || "Добро пожаловать",
         welcomeDescription: firstWelcome.welcomeDescription || firstWelcome.description || survey.description || "Описание анкеты",
         welcomeButtonText: firstWelcome.welcomeButtonText || firstWelcome.buttonText || "Начать опрос",
-        welcomeCover: firstWelcome.welcomeCoverImage || firstWelcome.coverImage || "",
-        welcomeBackground: firstWelcome.welcomeBackgroundImage || firstWelcome.backgroundImage || "",
+        welcomeCoverImage: firstImageValue(firstWelcome.welcomeCoverImage, firstWelcome.coverImage, firstWelcome.heroImage),
+        welcomeBackgroundImage: firstImageValue(firstWelcome.welcomeBackgroundImage, firstWelcome.backgroundImage),
+        welcomeCover: firstImageValue(firstWelcome.welcomeCoverImage, firstWelcome.coverImage, firstWelcome.heroImage),
+        welcomeBackground: firstImageValue(firstWelcome.welcomeBackgroundImage, firstWelcome.backgroundImage),
         welcomeOverlay: Number.isFinite(welcomeOverlay) ? welcomeOverlay : Number(firstWelcome.welcomeOverlayStrength || firstDesign.overlay || 24),
         isPublic: survey.status !== "draft",
         isHidden: survey.status === "draft"
@@ -2235,6 +2288,7 @@
         return;
       }
       state.design.backgroundImage = recommended;
+      state.design.designBackgroundImage = recommended;
       state.design.backgroundType = "image";
       applyDesignState({ dirty: true });
     });
@@ -2304,6 +2358,7 @@
           ...state.design,
           backgroundType: node === els.designBgImage ? "image" : state.design.backgroundType,
           backgroundColor: els.designBgColor.value,
+          designBackgroundImage: els.designBgImage.value.trim(),
           backgroundImage: els.designBgImage.value.trim(),
           overlay: Number(els.designOverlay.value || 0),
           layout: els.designLayout.value,
@@ -2321,6 +2376,7 @@
     els.designBgPreview.addEventListener("error", () => {
       if (!state.design.backgroundImage) return;
       state.design.backgroundImage = "";
+      state.design.designBackgroundImage = "";
       state.design.backgroundType = state.design.gradientStyle ? "gradient" : "color";
       applyDesignState({ dirty: true });
       showToast("Изображение фона недоступно, применён цвет или градиент", true);
@@ -2406,7 +2462,7 @@
       }
     });
     els.typeSpecific.addEventListener("input", (event) => {
-      const input = event.target.closest('[data-option-field="imageUrl"]');
+      const input = event.target.closest('[data-option-field="image"], [data-option-field="imageUrl"]');
       if (!input) return;
       const card = input.closest("[data-option-index]");
       const img = card?.querySelector("img");
@@ -2426,11 +2482,11 @@
         setUploadBusy(uploadButton, true);
         const path = await uploadImageFile(file);
         const row = els.typeSpecific.querySelector(`[data-option-index="${CSS.escape(String(index))}"]`);
-        const imageInput = row?.querySelector('[data-option-field="imageUrl"]');
+        const imageInput = row?.querySelector('[data-option-field="image"], [data-option-field="imageUrl"]');
         const img = row?.querySelector("img");
         if (imageInput) imageInput.value = path;
         if (img) img.src = path;
-        found.question.options[index] = { ...(found.question.options[index] || createOption(`Вариант ${index + 1}`)), imageUrl: path };
+        found.question.options[index] = { ...(found.question.options[index] || createOption(`Вариант ${index + 1}`)), image: path, imageUrl: path };
         showToast("Изображение загружено");
       } catch (error) {
         showToast(error.message || "Не удалось загрузить изображение", true);

@@ -69,8 +69,8 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR
     ? path.join(VOLUME_ROOT, "uploads")
     : path.join(__dirname, "public", "uploads");
 const IMAGE_UPLOAD_LIMIT_BYTES = Number(process.env.IMAGE_UPLOAD_LIMIT_BYTES || 5 * 1024 * 1024);
-const ALLOWED_IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]);
-const ALLOWED_IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"]);
+const ALLOWED_IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const ALLOWED_IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
 
 function loadResponseHashSalt() {
   if (process.env.RESPONSE_HASH_SALT) return process.env.RESPONSE_HASH_SALT;
@@ -287,7 +287,7 @@ function normalizeDesignString(value, fallback = "", maxLength = 120) {
 
 function normalizeBuilderV2Design(raw) {
   const obj = raw && typeof raw === "object" ? raw : {};
-  const backgroundImageRaw = String(obj.backgroundImage || obj.bgImage || "").trim();
+  const backgroundImageRaw = String(obj.designBackgroundImage || obj.backgroundImage || obj.bgImage || "").trim();
   const backgroundTypeRaw = String(obj.backgroundType || "").trim();
   const gradientStyleRaw = String(obj.gradientStyle || "").trim();
   const overlayRaw = Number(obj.overlay);
@@ -301,6 +301,7 @@ function normalizeBuilderV2Design(raw) {
     accentColor: normalizeHexColor(obj.accentColor, "#F97316"),
     textColor: normalizeHexColor(obj.textColor, "#111827"),
     backgroundColor: normalizeHexColor(obj.backgroundColor || obj.bgColor, "#eaf3fb"),
+    designBackgroundImage: isAllowedMediaPath(backgroundImageRaw) ? backgroundImageRaw.slice(0, 1200) : "",
     backgroundImage: isAllowedMediaPath(backgroundImageRaw) ? backgroundImageRaw.slice(0, 1200) : "",
     backgroundType: allowedBackgroundTypes.has(backgroundTypeRaw) ? backgroundTypeRaw : "color",
     gradientStyle: allowedGradientStyles.has(gradientStyleRaw) ? gradientStyleRaw : "soft",
@@ -321,7 +322,7 @@ function normalizePageDesign(raw) {
   const allowedLayouts = new Set(["full", "split-right-image", "split-left-image", "cover-top-image", "center-card"]);
   const allowedWelcomeLayouts = new Set(["image-right", "image-left", "image-top", "background", "typographic"]);
   const bgColorRaw = String(obj.bgColor || builderDesign.backgroundColor || "").trim();
-  const bgImageRaw = String(obj.bgImage || builderDesign.backgroundImage || "").trim();
+  const bgImageRaw = String(obj.designBackgroundImage || obj.bgImage || builderDesign.designBackgroundImage || builderDesign.backgroundImage || "").trim();
   const layoutRaw = String(obj.layout || builderDesign.layout || "").trim();
   const themeIdRaw = String(obj.themeId || "").trim();
   const overlayRaw = Number(obj.overlay ?? builderDesign.overlay);
@@ -335,6 +336,7 @@ function normalizePageDesign(raw) {
   return {
     themeId: themeIdRaw ? themeIdRaw.slice(0, 80) : "",
     bgColor: normalizeHexColor(bgColorRaw, "#eaf3fb"),
+    designBackgroundImage: isAllowedMediaPath(bgImageRaw) ? bgImageRaw.slice(0, 1200) : "",
     bgImage: isAllowedMediaPath(bgImageRaw) ? bgImageRaw.slice(0, 1200) : "",
     layout: allowedLayouts.has(layoutRaw) ? layoutRaw : "full",
     overlay: Number.isFinite(overlayRaw) ? Math.max(0, Math.min(90, Math.round(overlayRaw))) : 0,
@@ -550,12 +552,12 @@ function normalizeQuestion(question, index) {
     .map((item) => {
       if (typeof item === "string") {
         const cleaned = item.trim();
-        return cleaned ? { id: "", text: cleaned, imageUrl: "", imageFit: "cover", imageScale: 100, jumpToPageId: "", jumpToPageIndex: null } : null;
+        return cleaned ? { id: "", text: cleaned, image: "", imageUrl: "", imageFit: "cover", imageScale: 100, jumpToPageId: "", jumpToPageIndex: null } : null;
       }
       if (item && typeof item === "object") {
         const id = String(item.id || "").trim();
         const cleanedText = String(item.text || "").trim();
-        const imageUrl = String(item.imageUrl || "").trim();
+        const imageUrl = String(item.image || item.imageUrl || "").trim();
         const jumpToPageId = String(item.jumpToPageId || item.targetPageId || "").trim();
         const jumpToPageIndexRaw = Number(item.jumpToPageIndex);
         const jumpToPageIndex = Number.isInteger(jumpToPageIndexRaw) ? jumpToPageIndexRaw : null;
@@ -564,7 +566,7 @@ function normalizeQuestion(question, index) {
         const imageFit = imageFitRaw === "contain" ? "contain" : "cover";
         const imageScale = Number.isFinite(imageScaleRaw) ? Math.max(60, Math.min(130, Math.round(imageScaleRaw))) : 100;
         if (!cleanedText && !imageUrl) return null;
-        return { id, text: cleanedText || "Option", imageUrl, imageFit, imageScale, jumpToPageId, jumpToPageIndex };
+        return { id, text: cleanedText || "Option", image: imageUrl, imageUrl, imageFit, imageScale, jumpToPageId, jumpToPageIndex };
       }
       return null;
     })
@@ -644,7 +646,7 @@ async function getSurveyQuestionsDetailed(surveyId) {
   const optionsByQuestion = new Map();
   optionRows.forEach((row) => {
     const list = optionsByQuestion.get(row.question_id) || [];
-    list.push({ id: "", text: row.text, imageUrl: "", imageFit: "cover", imageScale: 100, jumpToPageId: "", jumpToPageIndex: null });
+    list.push({ id: "", text: row.text, image: "", imageUrl: "", imageFit: "cover", imageScale: 100, jumpToPageId: "", jumpToPageIndex: null });
     optionsByQuestion.set(row.question_id, list);
   });
 
@@ -667,12 +669,12 @@ async function getSurveyQuestionsDetailed(surveyId) {
           .map((item) => {
             if (typeof item === "string") {
               const cleaned = item.trim();
-              return cleaned ? { id: "", text: cleaned, imageUrl: "", imageFit: "cover", imageScale: 100, jumpToPageId: "", jumpToPageIndex: null } : null;
+              return cleaned ? { id: "", text: cleaned, image: "", imageUrl: "", imageFit: "cover", imageScale: 100, jumpToPageId: "", jumpToPageIndex: null } : null;
             }
             if (item && typeof item === "object") {
               const id = String(item.id || "").trim();
               const cleanedText = String(item.text || "").trim();
-              const imageUrl = String(item.imageUrl || "").trim();
+              const imageUrl = String(item.image || item.imageUrl || "").trim();
               const jumpToPageIndexRaw = Number(item.jumpToPageIndex);
               const jumpToPageIndex = Number.isInteger(jumpToPageIndexRaw) ? jumpToPageIndexRaw : null;
               const imageFitRaw = String(item.imageFit || "cover").trim().toLowerCase();
@@ -683,6 +685,7 @@ async function getSurveyQuestionsDetailed(surveyId) {
               return {
                 id,
                 text: cleanedText || "Option",
+                image: imageUrl,
                 imageUrl,
                 imageFit,
                 imageScale,
@@ -2977,12 +2980,12 @@ app.post("/api/questions/:questionId/options", requireAuth, async (req, res, nex
           .map((item) => {
             if (typeof item === "string") {
               const text = item.trim();
-              return text ? { id: "", text, imageUrl: "", imageFit: "cover", imageScale: 100, jumpToPageId: "", jumpToPageIndex: null } : null;
+              return text ? { id: "", text, image: "", imageUrl: "", imageFit: "cover", imageScale: 100, jumpToPageId: "", jumpToPageIndex: null } : null;
             }
             if (item && typeof item === "object") {
               const id = String(item.id || "").trim();
               const text = String(item.text || "").trim();
-              const imageUrl = String(item.imageUrl || "").trim();
+              const imageUrl = String(item.image || item.imageUrl || "").trim();
               const jumpToPageId = String(item.jumpToPageId || item.targetPageId || "").trim();
               const jumpToPageIndexRaw = Number(item.jumpToPageIndex);
               const jumpToPageIndex = Number.isInteger(jumpToPageIndexRaw) ? jumpToPageIndexRaw : null;
@@ -2991,7 +2994,7 @@ app.post("/api/questions/:questionId/options", requireAuth, async (req, res, nex
               const imageFit = imageFitRaw === "contain" ? "contain" : "cover";
               const imageScale = Number.isFinite(imageScaleRaw) ? Math.max(60, Math.min(130, Math.round(imageScaleRaw))) : 100;
               if (!text && !imageUrl) return null;
-              return { id, text: text || "Option", imageUrl, imageFit, imageScale, jumpToPageId, jumpToPageIndex };
+              return { id, text: text || "Option", image: imageUrl, imageUrl, imageFit, imageScale, jumpToPageId, jumpToPageIndex };
             }
             return null;
           })
@@ -3026,7 +3029,8 @@ app.post("/api/questions/:questionId/media", requireAuth, uploadSingleImage, asy
     );
     res.status(201).json({
       path: publicPath,
-      url: publicUploadUrl(req, publicPath),
+      url: publicPath,
+      absoluteUrl: publicUploadUrl(req, publicPath),
       originalName: req.file.originalname || "",
       mime: req.file.mimetype || "",
       size: Number(req.file.size || 0)
@@ -3042,7 +3046,8 @@ app.post("/api/uploads/image", requireAuth, uploadSingleImage, async (req, res, 
     const publicPath = `/uploads/${req.file.filename}`;
     res.status(201).json({
       path: publicPath,
-      url: publicUploadUrl(req, publicPath),
+      url: publicPath,
+      absoluteUrl: publicUploadUrl(req, publicPath),
       originalName: req.file.originalname || "",
       mime: req.file.mimetype || "",
       size: Number(req.file.size || 0)

@@ -286,13 +286,14 @@
               if (typeof item === "string") return { text: item, imageUrl: "", jumpToPageIndex: null, jumpToPageId: "" };
               if (!item || typeof item !== "object") return null;
               const text = String(item.text || "").trim();
-              const imageUrl = String(item.imageUrl || "");
+              const imageUrl = String(item.image || item.imageUrl || "");
               const jumpToPageIndexRaw = Number(item.jumpToPageIndex);
               const imageFitRaw = String(item.imageFit || "cover").trim().toLowerCase();
               const imageScaleRaw = Number(item.imageScale);
               if (!text && !imageUrl) return null;
               return {
                 text: text || "Option",
+                image: imageUrl,
                 imageUrl,
                 imageFit: imageFitRaw === "contain" ? "contain" : "cover",
                 imageScale: Number.isFinite(imageScaleRaw) ? Math.max(60, Math.min(130, Math.round(imageScaleRaw))) : 100,
@@ -364,7 +365,7 @@
     const value = raw && typeof raw === "object" ? raw : {};
     const layout = String(value.layout || "image-right");
     const opacity = Number(value.imageOpacity);
-    const coverImage = String(value.welcomeCoverImage || value.coverImage || "").trim();
+    const coverImage = String(value.welcomeCoverImage || value.coverImage || value.heroImage || "").trim();
     const backgroundImage = String(value.welcomeBackgroundImage || value.backgroundImage || "").trim();
     const allowedImage =
       /^https?:\/\//i.test(coverImage) || coverImage.startsWith("/uploads/")
@@ -380,6 +381,8 @@
       subtitle: String(value.welcomeSubtitle || value.subtitle || "").trim(),
       description: String(value.welcomeDescription || value.description || "").trim(),
       buttonText: String(value.welcomeButtonText || value.buttonText || "").trim(),
+      welcomeCoverImage: allowedImage,
+      welcomeBackgroundImage: allowedBackground,
       coverImage: allowedImage,
       backgroundImage: allowedBackground,
       overlay: Number.isFinite(overlay) ? Math.max(0, Math.min(90, Math.round(overlay))) : 24,
@@ -392,13 +395,14 @@
   function normalizePublicPageDesign(raw) {
     const value = raw && typeof raw === "object" ? raw : {};
     const builder = value.builderV2Design && typeof value.builderV2Design === "object" ? value.builderV2Design : {};
-    const bgImage = String(value.bgImage || builder.backgroundImage || "").trim();
+    const bgImage = String(value.designBackgroundImage || value.bgImage || builder.designBackgroundImage || builder.backgroundImage || "").trim();
     const bgColor = String(value.bgColor || builder.backgroundColor || "").trim();
     const backgroundType = String(builder.backgroundType || (bgImage ? "image" : "color")).trim();
     const gradientStyle = String(builder.gradientStyle || "soft").trim();
     return {
       themeId: String(value.themeId || value.theme_id || inferPublicThemeId(value)).trim() || "corporate",
       bgColor: /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(bgColor) ? bgColor : "#eaf3fb",
+      designBackgroundImage: /^https?:\/\//i.test(bgImage) || bgImage.startsWith("/uploads/") ? bgImage : "",
       bgImage: /^https?:\/\//i.test(bgImage) || bgImage.startsWith("/uploads/") ? bgImage : "",
       backgroundType: ["color", "gradient", "image"].includes(backgroundType) ? backgroundType : "color",
       gradientStyle,
@@ -1515,7 +1519,7 @@
     }
     const source = option && typeof option === "object" ? option : {};
     const text = String(source.text || "").trim();
-    const imageUrl = String(source.imageUrl || source.image || "").trim();
+    const imageUrl = String(source.image || source.imageUrl || "").trim();
     const imageFit = String(source.imageFit || "cover").toLowerCase() === "contain" ? "contain" : "cover";
     const scale = Number(source.imageScale);
     const jumpIndex = Number(source.jumpToPageIndex);
@@ -1523,6 +1527,7 @@
       id: String(source.id || `option_${index + 1}`),
       text,
       value: text || String(index + 1),
+      image: imageUrl,
       imageUrl,
       imageFit,
       imageScale: Number.isFinite(scale) ? Math.max(60, Math.min(130, Math.round(scale))) : 100,
@@ -2176,7 +2181,7 @@
       <div class="public-ambient public-ambient--image" aria-hidden="true"></div>
       <div class="public-ambient public-ambient--tint" aria-hidden="true"></div>
       <section class="public-survey-cover public-survey-cover--builder" data-layout="${welcome.imageEnabled ? welcome.layout : "typographic"}">
-        <div class="public-survey-cover__media" style="--welcome-image-opacity:${(welcome.imageOpacity / 100).toFixed(2)}; background-image:url('${welcome.coverImage.replace(/'/g, "%27")}')" aria-hidden="true"></div>
+        <div class="public-survey-cover__media" style="--welcome-image-opacity:${(welcome.imageOpacity / 100).toFixed(2)}; ${welcome.coverImage ? `background-image:url('${welcome.coverImage.replace(/'/g, "%27")}')` : ""}" aria-hidden="true"></div>
         <div class="public-survey-cover__content">
           <div>
             <span class="public-survey-head__kicker">Asking</span>
@@ -2329,11 +2334,12 @@
       return currentIndex;
     };
 
-    const applyAmbient = (design) => {
+    const applyAmbient = (design, imageOverride = "") => {
       const d = normalizePublicPageDesign(design || {});
-      const hasImage = Boolean(d.bgImage);
+      const image = String(imageOverride || d.bgImage || d.designBackgroundImage || "").trim();
+      const hasImage = Boolean(image);
       if (ambientImage) {
-        ambientImage.style.backgroundImage = hasImage ? `url("${d.bgImage}")` : "";
+        ambientImage.style.backgroundImage = hasImage ? `url("${image}")` : "";
         ambientImage.style.opacity = hasImage ? "0.68" : "0";
       }
       if (ambientTint) {
@@ -2353,7 +2359,8 @@
       applyAmbient(currentPage?.design || {});
       if (surveyCard) surveyCard.style.removeProperty("background");
       if (surveyCard) surveyCard.style.borderColor = "transparent";
-      stage.dataset.hasImage = currentPage?.design?.bgImage ? "true" : "false";
+      const currentDesign = normalizePublicPageDesign(currentPage?.design || {});
+      stage.dataset.hasImage = currentDesign.bgImage ? "true" : "false";
 
       progressText.textContent = `Вопрос ${Math.min(currentIndex + 1, steps.length)} из ${Math.max(1, steps.length)}`;
 
@@ -2509,8 +2516,8 @@
       handleNext();
     });
 
-    applyAmbient(steps[currentIndex]?.page?.design || {});
     renderStep();
+    applyAmbient(introDesign, welcome.backgroundImage);
     return wrap;
   }
 
